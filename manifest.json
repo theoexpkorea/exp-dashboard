@@ -1,6 +1,6 @@
 {
-  "name": "theo 업무현황",
-  "short_name": "theo HUB",
+  "name": "HUB",
+  "short_name": "HUB",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

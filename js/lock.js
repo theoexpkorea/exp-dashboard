@@ -8,6 +8,7 @@
 
 const DASHBOARD_LOCK = {
   sessionKey: "theo_dashboard_unlocked",
+  idleTimeoutMs: 30 * 60 * 1000, // 30분간 활동 없으면 자동 로그아웃
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbzDk9DYfD7okIfp4_MH5asXVxgroC9qlYGL08yHL_0dXPDfWElTdKglhQ-BQxWVoiil/exec",
 };
 
@@ -16,11 +17,45 @@ function isMobileViewport() {
 }
 
 function isUnlocked() {
-  return sessionStorage.getItem(DASHBOARD_LOCK.sessionKey) === "1";
+  try {
+    const raw = sessionStorage.getItem(DASHBOARD_LOCK.sessionKey);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || !data.ts) return false;
+    if (Date.now() - data.ts > DASHBOARD_LOCK.idleTimeoutMs) {
+      sessionStorage.removeItem(DASHBOARD_LOCK.sessionKey);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function markUnlocked() {
-  sessionStorage.setItem(DASHBOARD_LOCK.sessionKey, "1");
+  sessionStorage.setItem(DASHBOARD_LOCK.sessionKey, JSON.stringify({ ts: Date.now() }));
+}
+
+// 활동(클릭/터치/키입력/스크롤)이 있을 때마다 마지막 활동 시각을 갱신 — 실제 사용 중엔 로그아웃되지 않도록
+let __lastActivityWrite = 0;
+function touchActivity() {
+  if (!sessionStorage.getItem(DASHBOARD_LOCK.sessionKey)) return;
+  const now = Date.now();
+  if (now - __lastActivityWrite < 5000) return; // 5초에 한 번만 기록 (과도한 쓰기 방지)
+  __lastActivityWrite = now;
+  sessionStorage.setItem(DASHBOARD_LOCK.sessionKey, JSON.stringify({ ts: now }));
+}
+["click", "keydown", "mousemove", "touchstart", "scroll"].forEach((evt) => {
+  window.addEventListener(evt, touchActivity, { passive: true });
+});
+
+// 페이지가 열려있는 동안 주기적으로 로그아웃 여부 확인 — 시간 지나면 자동으로 잠금화면 다시 노출
+function startIdleWatchdog() {
+  if (window.__theoIdleWatchdogStarted) return;
+  window.__theoIdleWatchdogStarted = true;
+  setInterval(() => {
+    if (!isUnlocked()) location.reload();
+  }, 15000);
 }
 
 // JSONP로 Apps Script 호출 (CORS 회피 — 매물뷰/CRM과 동일 패턴)
@@ -47,37 +82,46 @@ function fetchJsonp(url) {
   });
 }
 
-async function fetchDashboardCreds() {
-  const cacheKey = "theo_dashboard_credscache";
-  const ttlMs = 5 * 60 * 1000; // 5분
+// 매물뷰/CRM과 동일한 캐싱 패턴: 마지막으로 받은 비번을 localStorage에 영구 저장해뒀다가
+// 다음 접속 때는 네트워크를 기다리지 않고 캐시로 즉시 화면을 사용 가능하게 함.
+// 네트워크 요청은 뒤에서 조용히 진행해서 캐시를 최신값으로 갱신만 함.
+const PASS_CACHE_KEY = "theo_dashboard_pass_cache";
+const PATTERN_CACHE_KEY = "theo_dashboard_pattern_cache";
 
+function readCredsCache() {
   try {
-    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
-    if (cached && Date.now() - cached.ts < ttlMs) {
-      return { pass: cached.pass, pattern: cached.pattern };
-    }
+    const pass = localStorage.getItem(PASS_CACHE_KEY);
+    if (pass === null) return null;
+    const patternRaw = localStorage.getItem(PATTERN_CACHE_KEY);
+    return { pass, pattern: patternRaw ? JSON.parse(patternRaw) : [] };
   } catch (e) {
-    /* 캐시 파싱 실패는 무시하고 그냥 새로 받아옴 */
+    return null;
   }
+}
 
+function writeCredsCache(creds) {
+  try {
+    localStorage.setItem(PASS_CACHE_KEY, creds.pass || "");
+    localStorage.setItem(PATTERN_CACHE_KEY, JSON.stringify(creds.pattern || []));
+  } catch (e) {
+    /* 저장 실패해도 이번 세션 인증 자체엔 지장 없음 */
+  }
+}
+
+async function fetchDashboardCredsFromServer() {
   const url = `${DASHBOARD_LOCK.appsScriptUrl}?mode=pass&app=dashboard`;
   const data = await fetchJsonp(url);
-  const creds = {
+  return {
     pass: data && data.pass ? String(data.pass) : "",
     pattern: (data && Array.isArray(data.pattern)) ? data.pattern : [],
   };
-
-  try {
-    sessionStorage.setItem(cacheKey, JSON.stringify({ ...creds, ts: Date.now() }));
-  } catch (e) {
-    /* 저장 실패해도 인증 자체엔 지장 없음 */
-  }
-
-  return creds;
 }
 
 async function initLockScreen(basePrefix = "") {
-  if (isUnlocked()) return; // 이미 이번 세션에 인증됨
+  if (isUnlocked()) {
+    startIdleWatchdog(); // 이미 이번 세션에 인증됨 — 대신 무활동 감시는 계속
+    return;
+  }
 
   const overlay = document.createElement("div");
   overlay.className = "lock-screen";
@@ -89,37 +133,48 @@ async function initLockScreen(basePrefix = "") {
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
 
-  // 서버 응답 오기 전까지는 로딩 중임을 명확히 표시하고 입력을 막아둠
   const errorEl = overlay.querySelector("#lock-error");
-  if (errorEl) errorEl.textContent = "불러오는 중…";
   const submitBtn = overlay.querySelector('.lock-pw-form button[type="submit"]');
-  if (submitBtn) submitBtn.disabled = true;
   const patternGrid = overlay.querySelector("#pattern-grid");
-  if (patternGrid) patternGrid.classList.add("loading");
 
-  let creds = null;
-  let loadError = false;
-  try {
-    creds = await fetchDashboardCreds();
-  } catch (e) {
-    loadError = true;
-  }
+  // credsRef.current를 화면(제출 핸들러)이 참조 — 캐시가 있으면 즉시 사용 가능,
+  // 없을 때만 로딩 표시를 하고 네트워크 응답을 기다림
+  const credsRef = { current: readCredsCache() };
+  const hadCache = !!credsRef.current;
 
-  if (submitBtn) submitBtn.disabled = false;
-  if (patternGrid) patternGrid.classList.remove("loading");
-  if (errorEl && !loadError && creds) {
-    errorEl.textContent = mobile ? "패턴을 그려주세요" : "";
+  if (!hadCache) {
+    if (errorEl) errorEl.textContent = "불러오는 중…";
+    if (submitBtn) submitBtn.disabled = true;
+    if (patternGrid) patternGrid.classList.add("loading");
   }
 
   if (mobile) {
-    setupPatternLock(overlay, creds, loadError);
+    setupPatternLock(overlay, credsRef);
   } else {
-    setupPasswordLock(overlay, creds, loadError);
+    setupPasswordLock(overlay, credsRef);
+  }
+
+  // 네트워크에서 최신 비번을 가져와 캐시 갱신 (화면은 이미 캐시로 사용 가능한 상태이므로 기다리지 않음)
+  try {
+    const fresh = await fetchDashboardCredsFromServer();
+    credsRef.current = fresh;
+    writeCredsCache(fresh);
+    if (!hadCache) {
+      if (submitBtn) submitBtn.disabled = false;
+      if (patternGrid) patternGrid.classList.remove("loading");
+      if (errorEl) errorEl.textContent = mobile ? "패턴을 그려주세요" : "";
+    }
+  } catch (e) {
+    if (!hadCache) {
+      if (errorEl) errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요";
+    }
+    // 캐시가 있었다면 조용히 무시 — 화면은 이미 캐시 값으로 사용 가능한 상태
   }
 }
 
 function unlockAndRemove(overlay) {
   markUnlocked();
+  startIdleWatchdog();
   document.body.style.overflow = "";
   overlay.remove();
 }
@@ -141,17 +196,14 @@ function passwordLockMarkup() {
   `;
 }
 
-function setupPasswordLock(overlay, creds, loadError) {
+function setupPasswordLock(overlay, credsRef) {
   const form = overlay.querySelector("#lock-pw-form");
   const input = overlay.querySelector("#lock-pw-input");
   const errorEl = overlay.querySelector("#lock-error");
 
-  if (loadError || !creds) {
-    errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요";
-  }
-
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    const creds = credsRef.current;
     if (!creds) {
       errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요";
       return;
@@ -188,13 +240,14 @@ function patternLockMarkup() {
   `;
 }
 
-function setupPatternLock(overlay, creds, loadError) {
+function setupPatternLock(overlay, credsRef) {
   const grid = overlay.querySelector("#pattern-grid");
   const svg = overlay.querySelector("#pattern-svg");
   const dotEls = Array.from(overlay.querySelectorAll(".pattern-dot"));
   const errorEl = overlay.querySelector("#lock-error");
+  const creds = credsRef.current;
 
-  if (loadError || !creds) {
+  if (!creds) {
     errorEl.textContent = "서버에 연결할 수 없습니다";
     return; // 서버 응답 없으면 그리기 자체를 막음
   }

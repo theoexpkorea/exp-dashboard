@@ -67,7 +67,7 @@ function renderSidebar(activeKey, opts = {}) {
     <aside class="sidebar" id="sidebar">
       <a class="sidebar-brand" href="${rootHref}">
         <span class="mark">the<span class="o">o</span></span>
-        <span class="sub">업무현황</span>
+        <span class="sub">업무현황 · eXp Korea</span>
       </a>
       <nav class="sidebar-scroll">
         <div class="nav-group" data-group="work">
