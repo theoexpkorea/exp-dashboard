@@ -54,7 +54,7 @@
 
         <div class="card-grid" id="kpi-grid"></div>
 
-        <div class="data-section grid-3-2 content-narrow">
+        <div class="data-section grid-tables-3">
           <div>
             <div class="data-section-head"><h2>매물 현황 요약</h2></div>
             <div class="panel">
@@ -67,9 +67,15 @@
               <table class="data-table" id="table-vacancy"></table>
             </div>
           </div>
+          <div>
+            <div class="data-section-head"><h2>자기계약 누적</h2></div>
+            <div class="panel">
+              <table class="data-table" id="table-selfcontract"></table>
+            </div>
+          </div>
         </div>
 
-        <div class="data-section grid-2">
+        <div class="data-section grid-3">
           <div class="panel">
             <h3>거래구분별 건수</h3>
             <div class="chart-wrap"><canvas id="chart-dealtype"></canvas></div>
@@ -77,24 +83,6 @@
           <div class="panel">
             <h3>매물구분</h3>
             <div class="chart-wrap"><canvas id="chart-listingtype"></canvas></div>
-          </div>
-        </div>
-
-        <div class="data-section grid-2">
-          <div class="panel">
-            <h3>신규 등록 (매물종류별)</h3>
-            <div class="chart-wrap"><canvas id="chart-newlistings"></canvas></div>
-          </div>
-          <div class="panel">
-            <h3>광고 현황 (채널별)</h3>
-            <div class="chart-wrap"><canvas id="chart-adchannels"></canvas></div>
-          </div>
-        </div>
-
-        <div class="data-section grid-2">
-          <div class="panel">
-            <h3>이번 달 신규 광고 (종류별)</h3>
-            <div class="chart-wrap"><canvas id="chart-newads"></canvas></div>
           </div>
           <div class="panel">
             <h3>지역별 매물 현황</h3>
@@ -104,12 +92,23 @@
 
         <div class="data-section grid-2">
           <div class="panel">
+            <h3>신규 등록 (매물종류별)</h3>
+            <div class="chart-wrap"><canvas id="chart-newlistings"></canvas></div>
+          </div>
+          <div class="panel">
             <h3>월별 신규 등록 추이</h3>
             <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
           </div>
+        </div>
+
+        <div class="data-section grid-2">
           <div class="panel">
-            <h3>자기계약 누적 (매물종류별)</h3>
-            <table class="data-table" id="table-selfcontract"></table>
+            <h3>이번 달 신규 광고 (종류별)</h3>
+            <div class="chart-wrap"><canvas id="chart-newads"></canvas></div>
+          </div>
+          <div class="panel">
+            <h3>광고 현황 (채널별)</h3>
+            <div class="chart-wrap"><canvas id="chart-adchannels"></canvas></div>
           </div>
         </div>
 
