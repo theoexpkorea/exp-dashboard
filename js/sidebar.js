@@ -98,8 +98,8 @@ function renderSidebar(activeKey, opts = {}) {
       <div class="sidebar-admin">
         <div class="admin-avatar">T</div>
         <div class="admin-meta">
-          <div class="admin-name">theo <span class="admin-role">관리자</span></div>
-          <div class="admin-org">eXp Korea</div>
+          <div class="admin-name">theo</div>
+          <div class="admin-org">관리자 · eXp Korea</div>
         </div>
       </div>
     </aside>
