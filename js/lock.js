@@ -195,7 +195,7 @@ function passwordLockMarkup() {
       <span class="mark">the<span class="o">o</span></span>
       <span class="sub">업무현황 · eXp Korea</span>
     </div>
-    <div class="lock-box">
+    <div class="lock-card">
       <div class="lock-title">비밀번호를 입력하세요.</div>
       <form class="lock-pw-form" id="lock-pw-form">
         <input type="password" id="lock-pw-input" placeholder="" autocomplete="off" name="dash-pw-${Date.now()}" data-lpignore="true" autocorrect="off" spellcheck="false" />
@@ -213,6 +213,11 @@ function setupPasswordLock(overlay, credsRef) {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (!input.value) {
+      errorEl.textContent = "비밀번호를 입력해 주세요.";
+      input.focus();
+      return;
+    }
     const creds = credsRef.current;
     if (!creds) {
       errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요";
