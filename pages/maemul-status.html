@@ -32,16 +32,118 @@
         <p>엑셀 대시보드 시트 기준 (열람 전용)</p>
       </div>
 
-      <div class="placeholder-block">
-        <strong>연동 예정</strong>
-        CSV 반자동 연동(엑셀 대시보드 시트 export → 셀좌표 매핑) 및 차트가 다음 단계에서 붙습니다.
+      <div class="upload-bar">
+        <div class="upload-meta">
+          <div class="upload-basedate" id="upload-basedate">업로드된 데이터가 없습니다</div>
+          <div class="upload-updated" id="upload-updated"></div>
+        </div>
+        <button class="btn-solid" id="upload-btn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+          CSV 업로드
+        </button>
+        <input type="file" id="csv-input" accept=".csv" class="hidden" />
+      </div>
+
+      <div id="empty-state" class="upload-empty">
+        <strong>아직 업로드된 매물현황 CSV가 없습니다</strong>
+        엑셀 대시보드 시트를 CSV로 내보낸 뒤 업로드하면 여기에 표시됩니다.
+        <br>
+        <button class="btn-solid" id="upload-btn-2" type="button">CSV 업로드</button>
+      </div>
+
+      <div id="dash-content" class="hidden">
+
+        <div class="card-grid" id="kpi-grid"></div>
+
+        <div class="map-link-card" style="margin-top:16px;">
+          <div class="icon-badge">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.6A7 7 0 0 0 5 9.4C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.4" r="2.6"/></svg>
+          </div>
+          <div class="map-text">
+            <div class="map-title">내 매물 지도 열기</div>
+            <div class="map-sub">구글 My Maps · 등록된 매물 위치 보기</div>
+          </div>
+          <a class="btn-soft" href="https://www.google.com/maps/d/u/0/viewer?hl=ko&mid=1cRN6AKabH4M2gIDOzLU_kH2HsHhbNK0&ll=37.44840691226422%2C126.87623830029499&z=11" target="_blank" rel="noopener">열기</a>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-head"><h2>매물 현황 요약</h2></div>
+          <div class="panel">
+            <table class="data-table" id="table-status"></table>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-head"><h2>공실 현황</h2></div>
+          <div class="panel">
+            <table class="data-table" id="table-vacancy"></table>
+          </div>
+        </div>
+
+        <div class="data-section grid-2">
+          <div class="panel">
+            <h3>거래구분별 건수</h3>
+            <div class="chart-wrap"><canvas id="chart-dealtype"></canvas></div>
+          </div>
+          <div class="panel">
+            <h3>매물구분</h3>
+            <div class="chart-wrap"><canvas id="chart-listingtype"></canvas></div>
+          </div>
+        </div>
+
+        <div class="data-section grid-2">
+          <div class="panel">
+            <h3>신규 등록 (매물종류별)</h3>
+            <div class="chart-wrap"><canvas id="chart-newlistings"></canvas></div>
+          </div>
+          <div class="panel">
+            <h3>광고 현황 (채널별)</h3>
+            <div class="chart-wrap"><canvas id="chart-adchannels"></canvas></div>
+          </div>
+        </div>
+
+        <div class="data-section grid-2">
+          <div class="panel">
+            <h3>이번 달 신규 광고 (종류별)</h3>
+            <div class="chart-wrap"><canvas id="chart-newads"></canvas></div>
+          </div>
+          <div class="panel">
+            <h3>만기 임박 (90일 이내)</h3>
+            <div class="badge-list" id="badge-expiring"></div>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-head"><h2>지역별 매물 현황</h2></div>
+          <div class="panel">
+            <div class="chart-wrap tall"><canvas id="chart-region"></canvas></div>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-head"><h2>월별 신규 등록 추이 (최근 12개월)</h2></div>
+          <div class="panel">
+            <div class="chart-wrap tall"><canvas id="chart-monthly"></canvas></div>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <div class="data-section-head"><h2>자기계약 누적 (매물종류별)</h2></div>
+          <div class="panel">
+            <table class="data-table" id="table-selfcontract"></table>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="../js/sidebar.js"></script>
 <script src="../js/lock.js"></script>
+<script src="../js/maemul-status.js"></script>
 <script>
   renderSidebar("maemul", { basePrefix: "../" });
   initLockScreen("../");
