@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>파밍현황 · theo 업무현황</title>
+<link rel="icon" href="../favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#2746E6" />
+<meta property="og:image" content="../og-image.png" />
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<div id="sidebar-mount"></div>
+
+<div class="app-shell">
+  <div class="main-col">
+    <header class="topbar">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="메뉴 열기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <span class="topbar-title">파밍현황</span>
+    </header>
+
+    <main class="main-content">
+      <div class="page-head">
+        <h1>파밍현황</h1>
+        <p>구글시트 실시간 연동 · 파밍 이력 캘린더 뷰 예정</p>
+      </div>
+
+      <div class="placeholder-block">
+        <strong>연동 예정</strong>
+        파밍 기록이 있는 시트/컬럼 확인 후 달력 뷰 + 파밍 기록 추가 기능이 다음 단계에서 붙습니다.
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../js/sidebar.js"></script>
+<script src="../js/lock.js"></script>
+<script>
+  renderSidebar("farming", { basePrefix: "../" });
+  initLockScreen("../");
+</script>
+</body>
+</html>
