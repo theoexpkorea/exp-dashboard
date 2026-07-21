@@ -191,15 +191,15 @@ function unlockAndRemove(overlay) {
 
 function passwordLockMarkup() {
   return `
+    <div class="lock-wordmark">
+      <span class="mark">the<span class="o">o</span></span>
+      <span class="sub">업무현황 · eXp Korea</span>
+    </div>
     <div class="lock-box">
-      <div class="lock-brand">
-        <span class="lock-key-icon">${keyIconSvg()}</span>
-        <span class="mark">the<span class="o">o</span></span>
-        <span class="sub">업무현황 · eXp Korea</span>
-      </div>
+      <div class="lock-title">비밀번호를 입력하세요.</div>
       <form class="lock-pw-form" id="lock-pw-form">
-        <input type="password" id="lock-pw-input" placeholder="비밀번호" autocomplete="off" name="dash-pw-${Date.now()}" data-lpignore="true" autocorrect="off" />
-        <button type="submit">입장</button>
+        <input type="password" id="lock-pw-input" placeholder="" autocomplete="off" name="dash-pw-${Date.now()}" data-lpignore="true" autocorrect="off" spellcheck="false" />
+        <button type="submit">확인</button>
       </form>
       <div class="lock-error" id="lock-error"></div>
     </div>
@@ -404,6 +404,10 @@ function setupPatternLock(overlay, credsRef) {
     if (!drawing || sequence.length === 0) return;
     finish();
   });
+}
+
+function smallLockIconSvg() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;vertical-align:-2px;margin-right:5px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
 }
 
 function keyIconSvg() {

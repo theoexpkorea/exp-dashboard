@@ -45,6 +45,15 @@ html, body {
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 button, input {
@@ -455,10 +464,12 @@ a { color: inherit; text-decoration: none; }
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: var(--surface);
+  background: var(--bg);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 28px;
   padding: 24px;
 }
 
@@ -492,6 +503,43 @@ a { color: inherit; text-decoration: none; }
   color: var(--accent);
 }
 
+/* 텍스트 비번 화면 — 매물뷰와 동일한 워드마크+카드 구조 */
+.lock-wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.lock-wordmark .mark {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+}
+.lock-wordmark .mark .o { color: var(--accent); }
+.lock-wordmark .sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.lock-card {
+  width: 100%;
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 28px 24px;
+}
+.lock-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
 .lock-pw-form {
   width: 100%;
   display: flex;
@@ -500,34 +548,39 @@ a { color: inherit; text-decoration: none; }
 }
 .lock-pw-form input {
   width: 100%;
-  padding: 13px 14px;
+  height: 52px;
+  padding: 0 14px;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-md);
-  font-size: 15px;
+  background: var(--bg);
+  font-size: 16px;
   outline: none;
   text-align: center;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
-.lock-pw-form input:focus { border-color: var(--accent); }
+.lock-pw-form input:focus { border-color: var(--accent); background: var(--surface); }
 .lock-pw-form button {
   width: 100%;
-  padding: 13px 14px;
+  height: 52px;
   border: none;
   border-radius: var(--radius-md);
-  background: var(--accent);
+  background: var(--text);
   color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 15.5px;
+  font-weight: 800;
   cursor: pointer;
+  transition: opacity 0.12s ease;
 }
-.lock-pw-form button:hover { background: var(--accent-hover); }
+.lock-pw-form button:hover { opacity: 0.88; }
 .lock-pw-form button:disabled { opacity: 0.5; cursor: default; }
 
 .lock-error {
   font-size: 13px;
+  font-weight: 600;
   color: var(--danger);
-  min-height: 16px;
+  min-height: 18px;
   text-align: center;
+  margin-top: 10px;
 }
 
 /* Pattern lock (mobile) */

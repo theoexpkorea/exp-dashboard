@@ -13,7 +13,7 @@ const NAV_WORKAREAS = [
 ];
 
 const NAV_APPLINKS = [
-  { key: "app-maemul", label: "매물뷰", href: "https://theoexpkorea.github.io/exp-maemul/", icon: "grid" },
+  { key: "app-maemul", label: "매물 필터뷰", href: "https://theoexpkorea.github.io/exp-maemul/", icon: "grid" },
   { key: "app-client", label: "추천매물", href: "https://theoexpkorea.github.io/exp-client/", icon: "star" },
   { key: "app-card", label: "명함스캔", href: "https://theoexpkorea.github.io/card-scanner/", icon: "idcard" },
   { key: "app-contact", label: "상담신청", href: "https://theoexpkorea.github.io/exp-client/contact.html", icon: "message" },
