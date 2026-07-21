@@ -175,9 +175,10 @@ var KPI_LABELS = [
 
 function renderKpi_(kpi) {
   var wrap = document.getElementById('kpi-grid');
+  var pairTint = [1, 1, 3, 3, 5, 5]; // 거래중/공실 · 신규등록/신규광고 · 가망고객/신규고객 — 테마별로 묶어서 톤 통일
   wrap.innerHTML = KPI_LABELS.map(function (item, idx) {
     var key = item[0], label = item[1], sub = item[2];
-    return '<div class="summary-card static tint-' + (idx + 1) + '">' +
+    return '<div class="summary-card static tint-' + pairTint[idx] + '">' +
       '<div class="icon-badge">' + KPI_ICONS[key] + '</div>' +
       '<div class="title-row"><h3>' + label + '</h3></div>' +
       '<div class="stat">' + kpi[key].toLocaleString() + '</div>' +
