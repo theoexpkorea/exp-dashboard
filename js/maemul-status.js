@@ -261,7 +261,7 @@ function renderKpi_(kpi, expiring) {
 
 function renderStatusTable_(statusSummary) {
   var el = document.getElementById('table-status');
-  var head = '<tr><th>시트명</th><th>거래중 매물</th><th>거래가능</th><th>협의중</th><th>거래완료</th></tr>';
+  var head = '<tr><th>구분</th><th>거래중 매물</th><th>거래가능</th><th>협의중</th><th>거래완료</th></tr>';
   var body = statusSummary.rows.map(function (row) {
     return '<tr><td>' + row.name + '</td><td>' + row.active + '</td><td>' + row.available + '</td><td>' + row.negotiating + '</td><td>' + row.done + '</td></tr>';
   }).join('');
@@ -272,7 +272,7 @@ function renderStatusTable_(statusSummary) {
 
 function renderVacancyTable_(vacancy) {
   var el = document.getElementById('table-vacancy');
-  var head = '<tr><th>시트명</th><th>공실 수</th></tr>';
+  var head = '<tr><th>구분</th><th>공실 수</th></tr>';
   var body = vacancy.rows.map(function (row) {
     return '<tr><td>' + row.name + '</td><td>' + row.value + '</td></tr>';
   }).join('');
@@ -282,7 +282,7 @@ function renderVacancyTable_(vacancy) {
 
 function renderSelfContractTable_(selfContract) {
   var el = document.getElementById('table-selfcontract');
-  var head = '<tr><th>시트명</th><th>자기계약 누적</th></tr>';
+  var head = '<tr><th>구분</th><th>자기계약 누적</th></tr>';
   var body = selfContract.rows.map(function (row) {
     return '<tr><td>' + row.name + '</td><td>' + row.value + '</td></tr>';
   }).join('');
