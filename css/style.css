@@ -484,7 +484,6 @@ a { color: inherit; text-decoration: none; }
 .summary-card .stat-label {
   font-size: 11px;
   color: var(--text-secondary);
-  margin-top: auto;
 }
 
 .placeholder-block {
