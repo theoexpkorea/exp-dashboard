@@ -118,11 +118,11 @@ a { color: inherit; text-decoration: none; }
   margin-left: auto;
   align-items: center;
   flex-shrink: 0;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--text);
-  opacity: 0.65;
+  opacity: 0.85;
 }
 .topbar-mark .o { color: var(--accent); }
 
