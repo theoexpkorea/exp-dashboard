@@ -217,10 +217,12 @@ var KPI_LABELS = [
   ['newLeadsMonth', '이번달 신규 고객', '이번 달 신규 접수']
 ];
 
-function renderKpi_(kpi) {
+var MAP_URL = 'https://www.google.com/maps/d/u/0/viewer?hl=ko&mid=1cRN6AKabH4M2gIDOzLU_kH2HsHhbNK0&ll=37.44840691226422%2C126.87623830029499&z=11';
+
+function renderKpi_(kpi, expiring) {
   var wrap = document.getElementById('kpi-grid');
   var pairTint = [1, 1, 3, 3, 5, 5]; // 거래중/공실 · 신규등록/신규광고 · 가망고객/신규고객 — 테마별로 묶어서 톤 통일
-  wrap.innerHTML = KPI_LABELS.map(function (item, idx) {
+  var cards = KPI_LABELS.map(function (item, idx) {
     var key = item[0], label = item[1], sub = item[2];
     return '<div class="summary-card static tint-' + pairTint[idx] + '">' +
       '<div class="icon-badge">' + KPI_ICONS[key] + '</div>' +
@@ -228,7 +230,31 @@ function renderKpi_(kpi) {
       '<div class="stat">' + kpi[key].toLocaleString() + '</div>' +
       '<div class="stat-label">' + sub + '</div>' +
       '</div>';
-  }).join('');
+  });
+
+  cards.push(
+    '<a class="summary-card tint-2" href="' + MAP_URL + '" target="_blank" rel="noopener">' +
+    '<div class="icon-badge"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.6A7 7 0 0 0 5 9.4C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.4" r="2.4"/></svg></div>' +
+    '<div class="title-row"><h3>내 매물 지도</h3></div>' +
+    '<div class="stat-label" style="margin-top:auto;">구글 My Maps 열기 →</div>' +
+    '</a>'
+  );
+
+  cards.push(
+    '<div class="summary-card static tint-6">' +
+    '<div class="icon-badge"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></div>' +
+    '<div class="title-row"><h3>만기 임박</h3></div>' +
+    '<div class="badge-list mini">' + expiring.map(function (row) {
+      var hasCount = row.value > 0;
+      return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '">' +
+        '<span>' + row.name + '</span>' +
+        '<span class="badge-count">' + row.value + '건</span>' +
+        '</div>';
+    }).join('') + '</div>' +
+    '</div>'
+  );
+
+  wrap.innerHTML = cards.join('');
 }
 
 function renderStatusTable_(statusSummary) {
@@ -260,17 +286,6 @@ function renderSelfContractTable_(selfContract) {
   }).join('');
   var totalRow = '<tr class="total-row"><td>합계</td><td>' + selfContract.total + '</td></tr>';
   el.innerHTML = head + body + totalRow;
-}
-
-function renderExpiringBadges_(expiring) {
-  var el = document.getElementById('badge-expiring');
-  el.innerHTML = expiring.map(function (row) {
-    var hasCount = row.value > 0;
-    return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '">' +
-      '<span>' + row.name + '</span>' +
-      '<span class="badge-count">' + row.value + '건</span>' +
-      '</div>';
-  }).join('');
 }
 
 var chartInstances = {};
@@ -344,13 +359,13 @@ function renderBar_(canvasId, items, opts) {
         x: {
           grid: { display: false, drawBorder: false },
           border: { display: false },
-          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86' },
+          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86', precision: 0 },
           beginAtZero: horizontal
         },
         y: {
           grid: { display: false, drawBorder: false },
           border: { display: false },
-          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86' },
+          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86', precision: 0 },
           beginAtZero: !horizontal
         }
       }
@@ -393,7 +408,7 @@ function renderLine_(canvasId, months, counts) {
           grid: { color: 'rgba(21, 24, 30, 0.06)', drawBorder: false },
           border: { display: false },
           beginAtZero: true,
-          ticks: { font: { size: 10.5, family: "Pretendard" }, color: '#727A86' }
+          ticks: { font: { size: 10.5, family: "Pretendard" }, color: '#727A86', precision: 0 }
         }
       }
     }
@@ -402,18 +417,16 @@ function renderLine_(canvasId, months, counts) {
 }
 
 function renderAll_(data) {
-  renderKpi_(data.kpi);
+  renderKpi_(data.kpi, data.expiring);
   renderStatusTable_(data.statusSummary);
   renderVacancyTable_(data.vacancy);
   renderSelfContractTable_(data.selfContract);
-  renderExpiringBadges_(data.expiring);
 
   renderDonut_('chart-dealtype', data.dealType);
   renderDonut_('chart-listingtype', data.listingType);
   renderBar_('chart-newlistings', data.newListingsByType.rows, { color: CHART_COLORS.newListings });
   renderBar_('chart-adchannels', data.adChannels, { color: CHART_COLORS.adChannels });
   renderBar_('chart-newads', data.newAdsByType, { color: CHART_COLORS.newAds });
-  renderBar_('chart-selfcontract', data.selfContract.rows, { color: CHART_COLORS.selfContract });
 
   // 지역별: 값이 0인 지역은 라벨이 빽빽해지고 안 잘리게 걸러낸다 (0건 지역은 표에 이미 다 있으니 제외해도 정보 손실 없음)
   var activeRegions = data.regions.filter(function (r) { return r.value > 0; })
@@ -431,7 +444,6 @@ function showContent_(stored) {
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('dash-content').classList.remove('hidden');
   document.getElementById('upload-basedate').textContent = stored.data.baseDate + ' 기준';
-  document.getElementById('upload-updated').textContent = fmtUploadedAt_(stored.uploadedAt);
   renderAll_(stored.data);
 }
 
