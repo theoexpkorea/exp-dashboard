@@ -414,7 +414,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 172px;
+  min-height: 136px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
@@ -728,6 +728,19 @@ a { color: inherit; text-decoration: none; }
   padding: 1px 6px;
 }
 
+/* 만기임박처럼 라벨 3개를 세로로 쌓지 않고 박스 오른쪽에 가로로 붙여 보여줄 때 */
+.badge-list.horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+.badge-list.horizontal .badge-row {
+  flex: 0 0 auto;
+  justify-content: center;
+  gap: 5px;
+}
+
 .map-link-card {
   display: flex;
   align-items: center;
@@ -905,10 +918,36 @@ a { color: inherit; text-decoration: none; }
 
 .rec-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 220px));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
   gap: 12px;
-  margin-bottom: 26px;
+  margin-bottom: 22px;
 }
+/* 진행현황 카드 전용 — summary-card보다 절반 가까이 낮은 컴팩트 카드.
+   아이콘 → 숫자 → 라벨을 붙여서 위에서부터 채우고, 하단에 여백을 남기지 않는다. */
+.rec-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.rec-stat-card .icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rec-stat-card.tint-total .icon-badge { background: #DBEAFE; color: #1D4ED8; }
+.rec-stat-card.tint-active .icon-badge { background: #DCFCE7; color: #15803D; }
+.rec-stat-card .rec-stat-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rec-stat-card .stat { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+.rec-stat-card .stat-label { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
 
 .rec-toolbar {
   display: flex;
@@ -918,9 +957,9 @@ a { color: inherit; text-decoration: none; }
   margin-bottom: 18px;
 }
 .rec-search {
-  flex: 1;
-  min-width: 180px;
-  max-width: 320px;
+  flex: 0 1 220px;
+  min-width: 150px;
+  max-width: 220px;
   height: 38px;
   padding: 0 14px;
   border: 1px solid var(--border);
@@ -945,10 +984,21 @@ a { color: inherit; text-decoration: none; }
   font-family: inherit;
   white-space: nowrap;
 }
+/* 필터칩 활성 색상을 결과표의 상태 배지 색상과 통일 — 전체=블루, 진행중=그린, 종료=그레이 */
 .rec-filter-chip.active {
   background: var(--accent-soft);
   color: var(--accent);
   border-color: #D7DEFB;
+}
+.rec-filter-chip[data-filter="active"].active {
+  background: #E7F4ED;
+  color: #1F7A4D;
+  border-color: #BFE6CE;
+}
+.rec-filter-chip[data-filter="ended"].active {
+  background: var(--bg);
+  color: var(--text-muted);
+  border-color: var(--border-strong);
 }
 
 .rec-table-wrap {
@@ -958,7 +1008,8 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-.rec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rec-table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.rec-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px; }
 .rec-table th {
   text-align: left;
   padding: 11px 14px;
@@ -971,19 +1022,28 @@ a { color: inherit; text-decoration: none; }
   background: var(--bg);
   white-space: nowrap;
 }
+.rec-table th.col-center, .rec-table td.col-center { text-align: center; }
+.rec-table th.col-right, .rec-table td.col-right { text-align: right; }
 .rec-table td {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  white-space: nowrap;
 }
 .rec-table tbody tr:last-child td { border-bottom: none; }
 .rec-table tbody tr:hover td { background: rgba(244, 245, 247, 0.6); }
-.rec-name { font-weight: 800; font-size: 13.5px; }
-.rec-access {
-  font-size: 11.5px;
+.rec-name { font-weight: 800; font-size: 13.5px; margin-bottom: 5px; }
+.rec-meta-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rec-access-tag, .rec-type-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-secondary);
-  font-weight: 600;
-  margin-top: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 .rec-status-pill {
   display: inline-flex;
@@ -1000,6 +1060,21 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
   color: var(--text-secondary);
 }
+.rec-map-links { display: inline-flex; align-items: center; gap: 5px; }
+.rec-map-link {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.rec-map-link:hover { background: var(--accent-soft); color: var(--accent); border-color: #D7DEFB; }
 .rec-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .rec-icon-btn {
   width: 32px;
@@ -1012,13 +1087,14 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .rec-icon-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: #D7DEFB; }
 .rec-icon-btn.copy-flash { background: var(--accent); color: #fff; border-color: var(--accent); }
-.rec-empty { padding: 56px 24px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+.rec-empty { padding: 56px 24px; text-align: center; color: var(--text-secondary); font-size: 14px; white-space: normal; }
 
-/* 드래그 가능한 등록 FAB */
+/* 드래그 가능한 등록 FAB — 사이트 테마 블루로 통일 */
 .rec-fab {
   position: fixed;
   z-index: 45;
@@ -1029,16 +1105,18 @@ a { color: inherit; text-decoration: none; }
   padding: 0 20px 0 16px;
   border: none;
   border-radius: 999px;
-  background: var(--text);
+  background: var(--accent);
   color: #fff;
   font-size: 14px;
   font-weight: 800;
   font-family: inherit;
   cursor: grab;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 12px 28px rgba(39, 70, 230, 0.35);
   user-select: none;
   touch-action: none;
+  transition: background 0.12s ease;
 }
+.rec-fab:hover { background: var(--accent-hover); }
 .rec-fab:active { cursor: grabbing; }
 .rec-fab svg { flex-shrink: 0; }
 
