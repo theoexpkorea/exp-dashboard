@@ -469,6 +469,7 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer;
 }
 .lock-pw-form button:hover { background: var(--accent-hover); }
+.lock-pw-form button:disabled { opacity: 0.5; cursor: default; }
 
 .lock-error {
   font-size: 13px;
@@ -483,6 +484,10 @@ a { color: inherit; text-decoration: none; }
   width: 260px;
   height: 260px;
   touch-action: none;
+}
+.pattern-grid.loading {
+  pointer-events: none;
+  opacity: 0.45;
 }
 .pattern-svg {
   position: absolute;

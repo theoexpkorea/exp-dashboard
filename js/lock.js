@@ -48,12 +48,32 @@ function fetchJsonp(url) {
 }
 
 async function fetchDashboardCreds() {
+  const cacheKey = "theo_dashboard_credscache";
+  const ttlMs = 5 * 60 * 1000; // 5분
+
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+    if (cached && Date.now() - cached.ts < ttlMs) {
+      return { pass: cached.pass, pattern: cached.pattern };
+    }
+  } catch (e) {
+    /* 캐시 파싱 실패는 무시하고 그냥 새로 받아옴 */
+  }
+
   const url = `${DASHBOARD_LOCK.appsScriptUrl}?mode=pass&app=dashboard`;
   const data = await fetchJsonp(url);
-  return {
+  const creds = {
     pass: data && data.pass ? String(data.pass) : "",
     pattern: (data && Array.isArray(data.pattern)) ? data.pattern : [],
   };
+
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ ...creds, ts: Date.now() }));
+  } catch (e) {
+    /* 저장 실패해도 인증 자체엔 지장 없음 */
+  }
+
+  return creds;
 }
 
 async function initLockScreen(basePrefix = "") {
@@ -68,12 +88,26 @@ async function initLockScreen(basePrefix = "") {
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
 
+  // 서버 응답 오기 전까지는 로딩 중임을 명확히 표시하고 입력을 막아둠
+  const errorEl = overlay.querySelector("#lock-error");
+  if (errorEl) errorEl.textContent = "불러오는 중…";
+  const submitBtn = overlay.querySelector('.lock-pw-form button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+  const patternGrid = overlay.querySelector("#pattern-grid");
+  if (patternGrid) patternGrid.classList.add("loading");
+
   let creds = null;
   let loadError = false;
   try {
     creds = await fetchDashboardCreds();
   } catch (e) {
     loadError = true;
+  }
+
+  if (submitBtn) submitBtn.disabled = false;
+  if (patternGrid) patternGrid.classList.remove("loading");
+  if (errorEl && !loadError && creds) {
+    errorEl.textContent = mobile ? "패턴을 그려주세요" : "";
   }
 
   if (mobile) {
@@ -183,10 +217,14 @@ function setupPatternLock(overlay, creds, loadError) {
   let drawing = false;
   let sequence = [];
   let errorState = false;
+  let lastX = null;
+  let lastY = null;
 
   function reset(isError) {
     sequence = [];
     errorState = false;
+    lastX = null;
+    lastY = null;
     dotEls.forEach((d) => d.classList.remove("active", "error"));
     svg.innerHTML = "";
     errorEl.textContent = isError ? "패턴이 올바르지 않습니다. 다시 시도하세요" : "패턴을 그려주세요";
@@ -211,16 +249,47 @@ function setupPatternLock(overlay, creds, loadError) {
       .join("");
   }
 
-  function dotAt(clientX, clientY) {
+  function toLocal(clientX, clientY) {
     const rect = grid.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  // 점(px,py)이 선분(x1,y1)-(x2,y2)에서 얼마나 가까운지, 그리고 선분 위 어느 지점(t)인지 계산
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = x1 + t * dx;
+    const cy = y1 + t * dy;
+    return { dist: Math.hypot(px - cx, py - cy), t };
+  }
+
+  const HIT_RADIUS = 30;
+
+  // 현재 위치에서 바로 위 점 판정 (터치 시작 시 등 단일 지점 판정용)
+  function dotAtPoint(x, y) {
     for (const dot of dotEls) {
       const n = Number(dot.dataset.n);
       const p = positions[n];
-      if (Math.hypot(p.x - x, p.y - y) < 30) return n;
+      if (Math.hypot(p.x - x, p.y - y) < HIT_RADIUS) return n;
     }
     return null;
+  }
+
+  // 이전 위치→현재 위치 사이 궤적을 따라 지나친 점들을 순서대로 모두 잡아냄 (빠른 스와이프 대비)
+  function addPointsAlongPath(x1, y1, x2, y2) {
+    const candidates = [];
+    for (const dot of dotEls) {
+      const n = Number(dot.dataset.n);
+      if (sequence.includes(n)) continue;
+      const p = positions[n];
+      const { dist, t } = distToSegment(p.x, p.y, x1, y1, x2, y2);
+      if (dist < HIT_RADIUS) candidates.push({ n, t });
+    }
+    candidates.sort((a, b) => a.t - b.t);
+    candidates.forEach((c) => addPoint(c.n));
   }
 
   function vibrateError() {
@@ -249,13 +318,23 @@ function setupPatternLock(overlay, creds, loadError) {
   grid.addEventListener("pointerdown", (e) => {
     drawing = true;
     reset(false);
-    const n = dotAt(e.clientX, e.clientY);
+    const { x, y } = toLocal(e.clientX, e.clientY);
+    const n = dotAtPoint(x, y);
     if (n) addPoint(n);
+    lastX = x;
+    lastY = y;
   });
   grid.addEventListener("pointermove", (e) => {
     if (!drawing) return;
-    const n = dotAt(e.clientX, e.clientY);
-    if (n) addPoint(n);
+    const { x, y } = toLocal(e.clientX, e.clientY);
+    if (lastX !== null) {
+      addPointsAlongPath(lastX, lastY, x, y);
+    } else {
+      const n = dotAtPoint(x, y);
+      if (n) addPoint(n);
+    }
+    lastX = x;
+    lastY = y;
   });
   window.addEventListener("pointerup", () => {
     if (!drawing || sequence.length === 0) return;
