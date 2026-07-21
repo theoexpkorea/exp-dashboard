@@ -246,7 +246,7 @@ function renderKpi_(kpi, expiring) {
     '<div class="summary-card static tint-6">' +
     '<div class="icon-badge"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></div>' +
     '<div class="title-row"><h3>만기 임박</h3></div>' +
-    '<div class="badge-list mini">' + expiring.map(function (row) {
+    '<div class="badge-list mini horizontal">' + expiring.map(function (row) {
       var hasCount = row.value > 0;
       return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '">' +
         '<span>' + row.name + '</span>' +

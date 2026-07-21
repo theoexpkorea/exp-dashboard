@@ -39,6 +39,24 @@ function notesForAccess(access) {
   return recState.notes.filter(function (n) { return n.access === access; });
 }
 
+/* 구글 My Maps 링크는 시트 D열 한 칸에 "편집URL||미리보기URL" 형식으로 저장.
+   기존에 URL 하나만 들어있던 예전 데이터도 편집용으로 그대로 인식(하위호환). */
+function parseMapUrl(raw) {
+  raw = (raw || '').trim();
+  if (!raw) return { edit: '', preview: '' };
+  if (raw.indexOf('||') >= 0) {
+    var parts = raw.split('||');
+    return { edit: (parts[0] || '').trim(), preview: (parts[1] || '').trim() };
+  }
+  return { edit: raw, preview: '' };
+}
+function composeMapUrl(edit, preview) {
+  edit = (edit || '').trim();
+  preview = (preview || '').trim();
+  if (!edit && !preview) return '';
+  return edit + '||' + preview;
+}
+
 /* ---------------- 진행현황 카드 ---------------- */
 
 function renderRecommendKpi() {
@@ -85,17 +103,29 @@ function renderRecommend() {
     var statusHtml = c.ended
       ? '<span class="rec-status-pill ended">종료</span>'
       : '<span class="rec-status-pill active">진행중</span>';
+    var map = parseMapUrl(c.mapUrl);
+    var mapHtml = '<span class="rec-count-badge">-</span>';
+    if (map.edit || map.preview) {
+      mapHtml = '<span class="rec-map-links">' +
+        (map.edit ? '<a class="rec-map-link" href="' + escapeHtml(map.edit) + '" target="_blank" rel="noopener" title="My Maps 편집">' + pencilIconSvg() + '</a>' : '') +
+        (map.preview ? '<a class="rec-map-link" href="' + escapeHtml(map.preview) + '" target="_blank" rel="noopener" title="My Maps 미리보기">' + eyeIconSvg() + '</a>' : '') +
+        '</span>';
+    }
     return '' +
       '<tr>' +
         '<td>' +
           '<div class="rec-name">' + escapeHtml(c.name || '(이름없음)') + '</div>' +
-          '<div class="rec-access">' + escapeHtml(c.access) + (c.type ? ' · ' + escapeHtml(c.type) : '') + '</div>' +
+          '<div class="rec-meta-row">' +
+            '<span class="rec-access-tag">' + escapeHtml(c.access) + '</span>' +
+            (c.type ? '<span class="rec-type-tag">' + escapeHtml(c.type) + '</span>' : '') +
+          '</div>' +
         '</td>' +
-        '<td>' + statusHtml + '</td>' +
-        '<td><span class="rec-count-badge">' + idCount(c) + '건</span></td>' +
-        '<td>' + (c.mapUrl ? '<span class="rec-count-badge">연결됨</span>' : '<span class="rec-count-badge">-</span>') + '</td>' +
-        '<td>' +
+        '<td class="col-center">' + statusHtml + '</td>' +
+        '<td class="col-center"><span class="rec-count-badge">' + idCount(c) + '건</span></td>' +
+        '<td class="col-center">' + mapHtml + '</td>' +
+        '<td class="col-right">' +
           '<div class="rec-row-actions">' +
+            '<a class="rec-icon-btn" href="' + CLIENT_BASE_URL + '?id=' + encodeURIComponent(c.access) + '" target="_blank" rel="noopener" title="추천매물 링크 미리보기">' + previewIconSvg() + '</a>' +
             '<button class="rec-icon-btn" data-copy="' + escapeHtml(c.access) + '" title="카톡전송 주소 복사">' + kakaoIconSvg() + '</button>' +
             '<button class="rec-icon-btn" data-edit="' + c.row + '" title="수정">' + editIconSvg() + '</button>' +
           '</div>' +
@@ -177,7 +207,9 @@ function openRecModal(client) {
   document.getElementById('rec-f-name').value = client ? client.name : '';
   document.getElementById('rec-f-access').value = client ? client.access : '';
   document.getElementById('rec-f-type').value = client ? (client.type || '중개사') : '중개사';
-  document.getElementById('rec-f-map').value = client ? client.mapUrl : '';
+  var mapParsed = parseMapUrl(client ? client.mapUrl : '');
+  document.getElementById('rec-f-map-edit').value = mapParsed.edit;
+  document.getElementById('rec-f-map-preview').value = mapParsed.preview;
   document.getElementById('rec-f-ended').checked = client ? !!client.ended : false;
   document.getElementById('rec-f-hideTrade').checked = client ? !!client.hideTrade : false;
   document.getElementById('rec-f-hideProposal').checked = client ? !!client.hideProposal : false;
@@ -247,7 +279,7 @@ function saveRecClient() {
     code: document.getElementById('rec-f-code').value.trim(),
     name: name,
     ids: ids,
-    mapUrl: document.getElementById('rec-f-map').value.trim(),
+    mapUrl: composeMapUrl(document.getElementById('rec-f-map-edit').value, document.getElementById('rec-f-map-preview').value),
     type: document.getElementById('rec-f-type').value,
     access: access,
     ended: document.getElementById('rec-f-ended').checked,
@@ -361,6 +393,15 @@ function kakaoIconSvg() {
 }
 function editIconSvg() {
   return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+}
+function pencilIconSvg() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+}
+function eyeIconSvg() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+function previewIconSvg() {
+  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>';
 }
 function trashIconSvg() {
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
