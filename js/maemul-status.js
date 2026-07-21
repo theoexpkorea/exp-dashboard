@@ -166,9 +166,9 @@ var KPI_LABELS = [
 
 function renderKpi_(kpi) {
   var wrap = document.getElementById('kpi-grid');
-  wrap.innerHTML = KPI_LABELS.map(function (item) {
+  wrap.innerHTML = KPI_LABELS.map(function (item, idx) {
     var key = item[0], label = item[1], sub = item[2];
-    return '<div class="summary-card static">' +
+    return '<div class="summary-card static tint-' + (idx + 1) + '">' +
       '<div class="icon-badge">' + KPI_ICONS[key] + '</div>' +
       '<div class="title-row"><h3>' + label + '</h3></div>' +
       '<div class="stat">' + kpi[key].toLocaleString() + '</div>' +
@@ -223,8 +223,16 @@ var chartInstances = {};
 function destroyChart_(id) {
   if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
 }
+function chartFallback_(canvasId, msg) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  var wrap = canvas.closest('.chart-wrap');
+  if (wrap) wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-secondary);font-size:13px;">' + msg + '</div>';
+}
 
 function renderDonut_(canvasId, items) {
+  if (typeof Chart === 'undefined') { chartFallback_(canvasId, '차트 라이브러리를 불러오지 못했습니다'); return; }
+  try {
   destroyChart_(canvasId);
   var ctx = document.getElementById(canvasId).getContext('2d');
   chartInstances[canvasId] = new Chart(ctx, {
@@ -245,9 +253,12 @@ function renderDonut_(canvasId, items) {
       }
     }
   });
+  } catch (e) { chartFallback_(canvasId, '차트를 그리는 중 오류가 발생했습니다'); }
 }
 
 function renderBar_(canvasId, items, horizontal) {
+  if (typeof Chart === 'undefined') { chartFallback_(canvasId, '차트 라이브러리를 불러오지 못했습니다'); return; }
+  try {
   destroyChart_(canvasId);
   var ctx = document.getElementById(canvasId).getContext('2d');
   chartInstances[canvasId] = new Chart(ctx, {
@@ -272,9 +283,12 @@ function renderBar_(canvasId, items, horizontal) {
       }
     }
   });
+  } catch (e) { chartFallback_(canvasId, '차트를 그리는 중 오류가 발생했습니다'); }
 }
 
 function renderLine_(canvasId, months, counts) {
+  if (typeof Chart === 'undefined') { chartFallback_(canvasId, '차트 라이브러리를 불러오지 못했습니다'); return; }
+  try {
   destroyChart_(canvasId);
   var ctx = document.getElementById(canvasId).getContext('2d');
   chartInstances[canvasId] = new Chart(ctx, {
@@ -301,6 +315,7 @@ function renderLine_(canvasId, months, counts) {
       }
     }
   });
+  } catch (e) { chartFallback_(canvasId, '차트를 그리는 중 오류가 발생했습니다'); }
 }
 
 function renderAll_(data) {
