@@ -103,8 +103,8 @@ function parseMaemulCsv(rows) {
     total: num_(get_(rows, 58, 5))
   };
 
-  // 만기 임박 (rows 31-33, cols 4-5)
-  data.expiring = pairList_(rows, 31, 33, 4, 5);
+  // 만기 임박 (rows 31-34, cols 4-5) — 4번째 행은 "만기초과(지남)"
+  data.expiring = pairList_(rows, 31, 34, 4, 5);
 
   // 지역별 매물 현황 (rows 62-69, cols 1-2 및 4-5)
   var regions = [];
