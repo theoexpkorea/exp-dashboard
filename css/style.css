@@ -40,7 +40,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
@@ -49,15 +49,6 @@ html, body {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  /* 우하단에 은은한 허브 링 워터마크 — 뷰포트 기준 고정, 콘텐츠 짧은 페이지도 허전하지 않게 */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Ccircle cx='200' cy='200' r='128' fill='none' stroke='%232746E6' stroke-width='56' opacity='0.07'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right -70px bottom -70px;
-  background-attachment: fixed;
-  background-size: 380px 380px;
 }
 
 input, textarea {
@@ -120,6 +111,14 @@ a { color: inherit; text-decoration: none; }
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.topbar-mark {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  opacity: 0.55;
+  flex-shrink: 0;
 }
 
 .main-content {
