@@ -132,10 +132,10 @@ function parseMaemulCsv(rows) {
   return data;
 }
 
-function saveData_(data) {
+function saveData_(data, uploadedAt) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     data: data,
-    uploadedAt: new Date().toISOString()
+    uploadedAt: uploadedAt || new Date().toISOString()
   }));
 }
 function loadData_() {
@@ -146,6 +146,50 @@ function loadData_() {
   } catch (e) {
     return null;
   }
+}
+
+/* ---------------- 기기 간 동기화 (매물뷰/CRM과 동일한 Apps Script 프로젝트 재사용) ----------------
+   업로드 시: localStorage(즉시) + 서버(다른 기기용) 둘 다 저장
+   접속 시: localStorage로 즉시 표시 → 백그라운드로 서버 최신값 확인 후 있으면 교체 */
+function serverUrl_() {
+  return (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) ? DASHBOARD_LOCK.appsScriptUrl : null;
+}
+
+function setSyncStatus_(text, isError) {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = isError ? 'var(--danger)' : 'var(--text-secondary)';
+}
+
+function pushToServer_(data, uploadedAt) {
+  var url = serverUrl_();
+  if (!url) return;
+  setSyncStatus_('다른 기기로 동기화 중…');
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ mode: 'saveMaemulStatus', data: data, uploadedAt: uploadedAt })
+  }).then(function (res) { return res.json(); }).then(function (res) {
+    if (res && res.ok) { setSyncStatus_('다른 기기에도 동기화됨'); }
+    else { setSyncStatus_('동기화 실패 — 이 기기에만 저장됨', true); }
+  }).catch(function () {
+    setSyncStatus_('동기화 실패 — 이 기기에만 저장됨 (인터넷 연결 확인)', true);
+  });
+}
+
+function pullFromServer_() {
+  var url = serverUrl_();
+  if (!url || typeof fetchJsonp !== 'function') return;
+  fetchJsonp(url + '?mode=getMaemulStatus').then(function (res) {
+    if (!res || !res.data) return;
+    var local = loadData_();
+    var serverIsNewer = !local || !local.uploadedAt || new Date(res.uploadedAt) > new Date(local.uploadedAt);
+    if (serverIsNewer) {
+      saveData_(res.data, res.uploadedAt);
+      showContent_(loadData_());
+    }
+  }).catch(function () { /* 서버 응답 없으면 로컬 캐시로 계속 사용 */ });
 }
 
 /* ---------------- Rendering ---------------- */
@@ -398,8 +442,10 @@ function handleFile_(file) {
     complete: function (results) {
       var rows = results.data;
       var parsed = parseMaemulCsv(rows);
-      saveData_(parsed);
+      var ts = new Date().toISOString();
+      saveData_(parsed, ts);
       showContent_(loadData_());
+      pushToServer_(parsed, ts);
     },
     error: function () {
       alert('CSV 파일을 읽는 중 문제가 발생했습니다. 파일을 다시 확인해주세요.');
@@ -420,4 +466,6 @@ document.addEventListener('DOMContentLoaded', function () {
   if (stored && stored.data) {
     showContent_(stored);
   }
+  // 로컬 캐시가 없는 기기(예: 처음 여는 폰)에서도 서버에 저장된 최신 데이터를 받아와 표시
+  pullFromServer_();
 });
