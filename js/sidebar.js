@@ -12,12 +12,12 @@ const NAV_WORKAREAS = [
 ];
 
 const NAV_APPLINKS = [
-  { key: "app-maemul", label: "매물뷰", href: "https://theoexpkorea.github.io/exp-maemul/" },
-  { key: "app-client", label: "추천매물", href: "https://theoexpkorea.github.io/exp-client/" },
-  { key: "app-card", label: "명함스캔", href: "https://theoexpkorea.github.io/card-scanner/" },
-  { key: "app-contact", label: "상담신청", href: "https://theoexpkorea.github.io/exp-client/contact.html" },
-  { key: "app-crm", label: "CRM 관리", href: "https://theoexpkorea.github.io/exp-crm/" },
-  { key: "app-farming", label: "파밍서치", href: "https://theoexpkorea.github.io/exp-farming/" },
+  { key: "app-maemul", label: "매물뷰", href: "https://theoexpkorea.github.io/exp-maemul/", icon: "grid" },
+  { key: "app-client", label: "추천매물", href: "https://theoexpkorea.github.io/exp-client/", icon: "star" },
+  { key: "app-card", label: "명함스캔", href: "https://theoexpkorea.github.io/card-scanner/", icon: "idcard" },
+  { key: "app-contact", label: "상담신청", href: "https://theoexpkorea.github.io/exp-client/contact.html", icon: "message" },
+  { key: "app-crm", label: "CRM 관리", href: "https://theoexpkorea.github.io/exp-crm/", icon: "users" },
+  { key: "app-farming", label: "파밍서치", href: "https://theoexpkorea.github.io/exp-farming/", icon: "search" },
 ];
 
 const NAV_ICONS = {
@@ -27,6 +27,11 @@ const NAV_ICONS = {
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
   megaphone: '<path d="M3 10v4a1 1 0 0 0 1 1h2l4 3.5V5.5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M14 8.2a4.5 4.5 0 0 1 0 7.6M17.2 5.8a8.8 8.8 0 0 1 0 12.4"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
+  grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.3"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.3"/>',
+  star: '<path d="M12 3.2 14.7 9l6.3.6-4.7 4.2 1.4 6.2-5.7-3.4-5.7 3.4 1.4-6.2-4.7-4.2 6.3-.6Z"/>',
+  idcard: '<rect x="2.5" y="5" width="19" height="14" rx="2.2"/><circle cx="8.6" cy="11" r="2"/><path d="M6 15.7c.5-1.4 1.7-2.1 2.6-2.1s2.1.7 2.6 2.1"/><path d="M14 9h5M14 13h5"/>',
+  message: '<path d="M4 5.5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9.5l-4 3.5v-3.5H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.7"/><path d="m20 20-4.2-4.2"/>',
 };
 
 function svgIcon(name, size = 18) {
@@ -83,7 +88,7 @@ function renderSidebar(activeKey, opts = {}) {
           </button>
           <div class="nav-group-items">
             ${NAV_APPLINKS.map((i) => `<a class="nav-item" href="${i.href}" target="_blank" rel="noopener">
-              <span>${i.label}</span>
+              ${svgIcon(i.icon, 17)}<span>${i.label}</span>
             </a>`).join("")}
           </div>
         </div>

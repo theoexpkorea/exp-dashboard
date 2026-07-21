@@ -182,12 +182,14 @@ function setupPatternLock(overlay, creds, loadError) {
 
   let drawing = false;
   let sequence = [];
+  let errorState = false;
 
-  function reset(errorState) {
+  function reset(isError) {
     sequence = [];
+    errorState = false;
     dotEls.forEach((d) => d.classList.remove("active", "error"));
     svg.innerHTML = "";
-    errorEl.textContent = errorState ? "패턴이 올바르지 않습니다. 다시 시도하세요" : "패턴을 그려주세요";
+    errorEl.textContent = isError ? "패턴이 올바르지 않습니다. 다시 시도하세요" : "패턴을 그려주세요";
   }
 
   function addPoint(n) {
@@ -198,12 +200,13 @@ function setupPatternLock(overlay, creds, loadError) {
   }
 
   function drawLines() {
+    const lineColor = errorState ? "var(--danger)" : "var(--accent)";
     svg.innerHTML = sequence
       .map((n, i) => {
         if (i === 0) return "";
         const a = positions[sequence[i - 1]];
         const b = positions[n];
-        return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
+        return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${lineColor}" stroke-width="6" stroke-linecap="round"/>`;
       })
       .join("");
   }
@@ -215,9 +218,15 @@ function setupPatternLock(overlay, creds, loadError) {
     for (const dot of dotEls) {
       const n = Number(dot.dataset.n);
       const p = positions[n];
-      if (Math.hypot(p.x - x, p.y - y) < 24) return n;
+      if (Math.hypot(p.x - x, p.y - y) < 30) return n;
     }
     return null;
+  }
+
+  function vibrateError() {
+    if (navigator.vibrate) {
+      navigator.vibrate([80, 40, 80, 40, 120]);
+    }
   }
 
   function finish() {
@@ -229,8 +238,11 @@ function setupPatternLock(overlay, creds, loadError) {
     if (match) {
       unlockAndRemove(overlay);
     } else {
+      errorState = true;
       dotEls.forEach((d) => { if (d.classList.contains("active")) d.classList.add("error"); });
-      setTimeout(() => reset(true), 260);
+      drawLines();
+      vibrateError();
+      setTimeout(() => reset(true), 320);
     }
   }
 
