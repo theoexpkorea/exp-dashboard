@@ -409,8 +409,22 @@ a { color: inherit; text-decoration: none; }
   flex-direction: column;
   gap: 10px;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
+.summary-card.static { box-shadow: var(--shadow-sm); border-color: transparent; }
+.summary-card.tint-1 { background: linear-gradient(165deg, #EEF2FF 0%, var(--surface) 62%); }
+.summary-card.tint-2 { background: linear-gradient(165deg, #ECFEFF 0%, var(--surface) 62%); }
+.summary-card.tint-3 { background: linear-gradient(165deg, #F5F3FF 0%, var(--surface) 62%); }
+.summary-card.tint-4 { background: linear-gradient(165deg, #EFF6FF 0%, var(--surface) 62%); }
+.summary-card.tint-5 { background: linear-gradient(165deg, #F0FDFA 0%, var(--surface) 62%); }
+.summary-card.tint-6 { background: linear-gradient(165deg, #FAF5FF 0%, var(--surface) 62%); }
+.summary-card.tint-1 .icon-badge { background: #E0E7FF; color: #4338CA; }
+.summary-card.tint-2 .icon-badge { background: #CFFAFE; color: #0E7490; }
+.summary-card.tint-3 .icon-badge { background: #EDE9FE; color: #6D28D9; }
+.summary-card.tint-4 .icon-badge { background: #DBEAFE; color: #1D4ED8; }
+.summary-card.tint-5 .icon-badge { background: #CCFBF1; color: #0F766E; }
+.summary-card.tint-6 .icon-badge { background: #F3E8FF; color: #7E22CE; }
 .summary-card:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--border-strong);
@@ -585,8 +599,14 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+.grid-3-2 {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 16px;
+}
 @media (max-width: 760px) {
   .grid-2 { grid-template-columns: 1fr; }
+  .grid-3-2 { grid-template-columns: 1fr; }
 }
 
 .panel {
@@ -594,6 +614,9 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
+}
+.panel-narrow, .map-link-card.panel-narrow {
+  max-width: 640px;
 }
 .panel h3 {
   margin: 0 0 12px;
