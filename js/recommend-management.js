@@ -159,7 +159,7 @@ function copyKakaoLink(access, btnEl) {
   if (!access) return;
   var url = CLIENT_BASE_URL + '?id=' + encodeURIComponent(access);
   var done = function () {
-    showRecToast('링크를 복사했어요');
+    showRecToast('링크를 복사했어요.');
     if (btnEl) {
       btnEl.classList.add('copy-flash');
       setTimeout(function () { btnEl.classList.remove('copy-flash'); }, 900);
