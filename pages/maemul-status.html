@@ -35,8 +35,6 @@
       <div class="upload-bar">
         <div class="upload-meta">
           <div class="upload-basedate" id="upload-basedate">업로드된 데이터가 없습니다</div>
-          <div class="upload-updated" id="upload-updated"></div>
-          <div class="upload-updated" id="sync-status"></div>
         </div>
         <button class="btn-solid" id="upload-btn" type="button">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
@@ -55,11 +53,6 @@
       <div id="dash-content" class="hidden">
 
         <div class="card-grid" id="kpi-grid"></div>
-
-        <a class="quick-link" href="https://www.google.com/maps/d/u/0/viewer?hl=ko&mid=1cRN6AKabH4M2gIDOzLU_kH2HsHhbNK0&ll=37.44840691226422%2C126.87623830029499&z=11" target="_blank" rel="noopener">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.6A7 7 0 0 0 5 9.4C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.4" r="2.2"/></svg>
-          내 매물 지도 열기
-        </a>
 
         <div class="data-section grid-3-2 content-narrow">
           <div>
@@ -104,30 +97,19 @@
             <div class="chart-wrap"><canvas id="chart-newads"></canvas></div>
           </div>
           <div class="panel">
-            <h3>만기 임박 (90일 이내)</h3>
-            <div class="badge-list" id="badge-expiring"></div>
+            <h3>지역별 매물 현황</h3>
+            <div class="chart-wrap"><canvas id="chart-region"></canvas></div>
           </div>
         </div>
 
         <div class="data-section grid-2">
-          <div class="panel">
-            <h3>지역별 매물 현황</h3>
-            <div class="chart-wrap"><canvas id="chart-region"></canvas></div>
-          </div>
           <div class="panel">
             <h3>월별 신규 등록 추이</h3>
             <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
           </div>
-        </div>
-
-        <div class="data-section grid-2">
           <div class="panel">
             <h3>자기계약 누적 (매물종류별)</h3>
             <table class="data-table" id="table-selfcontract"></table>
-          </div>
-          <div class="panel">
-            <h3>자기계약 누적 그래프</h3>
-            <div class="chart-wrap"><canvas id="chart-selfcontract"></canvas></div>
           </div>
         </div>
 
