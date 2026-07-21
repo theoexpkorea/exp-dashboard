@@ -114,12 +114,17 @@ a { color: inherit; text-decoration: none; }
 }
 
 .topbar-mark {
+  display: none;
   margin-left: auto;
-  display: flex;
   align-items: center;
-  opacity: 0.55;
   flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  opacity: 0.65;
 }
+.topbar-mark .o { color: var(--accent); }
 
 .main-content {
   flex: 1;
@@ -352,6 +357,7 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 860px) {
   .hamburger-btn { display: inline-flex; }
+  .topbar-mark { display: flex; }
 
   .sidebar {
     position: fixed;
