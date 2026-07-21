@@ -5,7 +5,16 @@
 
 var STORAGE_KEY = 'theo_dashboard_maemul_csv_v1';
 
-var PALETTE = ['#2746E6', '#5A72EA', '#93A1F2', '#1B2E99', '#B7C1F6', '#0F2899', '#6F82EE', '#151C3D'];
+/* 잡지/신문 스타일 — 절제된 톤의 멀티 팔레트 (도넛용 순환 팔레트 + 섹션별 고유색) */
+var PALETTE = ['#2746E6', '#C2694A', '#4C8577', '#C99A2E', '#5B6B8C', '#8C4358', '#2D8C8C', '#946A48'];
+var CHART_COLORS = {
+  newListings: '#C2694A',   // terracotta
+  adChannels: '#4C8577',    // sage
+  newAds: '#C99A2E',        // mustard
+  selfContract: '#8C4358',  // wine
+  region: '#5B6B8C',        // slate
+  monthly: '#2746E6'        // brand navy
+};
 
 function get_(rows, r, c) {
   var row = rows[r];
@@ -242,24 +251,33 @@ function renderDonut_(canvasId, items) {
       datasets: [{
         data: items.map(function (i) { return i.value; }),
         backgroundColor: items.map(function (_, idx) { return PALETTE[idx % PALETTE.length]; }),
-        borderWidth: 0
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverOffset: 4
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: '64%',
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 12, family: "Pretendard" }, padding: 12 } }
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 11.5, family: "Pretendard" }, padding: 12, boxWidth: 9, boxHeight: 9, usePointStyle: true, pointStyle: 'circle' }
+        }
       }
     }
   });
   } catch (e) { chartFallback_(canvasId, '차트를 그리는 중 오류가 발생했습니다'); }
 }
 
-function renderBar_(canvasId, items, horizontal) {
+function renderBar_(canvasId, items, opts) {
+  opts = opts || {};
   if (typeof Chart === 'undefined') { chartFallback_(canvasId, '차트 라이브러리를 불러오지 못했습니다'); return; }
   try {
   destroyChart_(canvasId);
+  var horizontal = !!opts.horizontal;
+  var color = opts.color || '#2746E6';
   var ctx = document.getElementById(canvasId).getContext('2d');
   chartInstances[canvasId] = new Chart(ctx, {
     type: 'bar',
@@ -267,9 +285,9 @@ function renderBar_(canvasId, items, horizontal) {
       labels: items.map(function (i) { return i.name; }),
       datasets: [{
         data: items.map(function (i) { return i.value; }),
-        backgroundColor: '#2746E6',
-        borderRadius: 6,
-        maxBarThickness: 34
+        backgroundColor: color,
+        borderRadius: 4,
+        maxBarThickness: 28
       }]
     },
     options: {
@@ -278,8 +296,18 @@ function renderBar_(canvasId, items, horizontal) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: !horizontal }, ticks: { font: { size: 11.5, family: "Pretendard" } } },
-        y: { grid: { display: horizontal }, ticks: { font: { size: 11.5, family: "Pretendard" } }, beginAtZero: true }
+        x: {
+          grid: { display: false, drawBorder: false },
+          border: { display: false },
+          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86' },
+          beginAtZero: horizontal
+        },
+        y: {
+          grid: { display: false, drawBorder: false },
+          border: { display: false },
+          ticks: { font: { size: 11, family: "Pretendard" }, color: '#727A86' },
+          beginAtZero: !horizontal
+        }
       }
     }
   });
@@ -297,12 +325,13 @@ function renderLine_(canvasId, months, counts) {
       labels: months,
       datasets: [{
         data: counts,
-        borderColor: '#2746E6',
-        backgroundColor: 'rgba(39, 70, 230, 0.10)',
+        borderColor: CHART_COLORS.monthly,
+        backgroundColor: 'rgba(39, 70, 230, 0.08)',
         fill: true,
         tension: 0.35,
-        pointRadius: 3,
-        pointBackgroundColor: '#2746E6'
+        pointRadius: 2.5,
+        pointBackgroundColor: CHART_COLORS.monthly,
+        borderWidth: 2
       }]
     },
     options: {
@@ -310,8 +339,17 @@ function renderLine_(canvasId, months, counts) {
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { font: { size: 11, family: "Pretendard" } } },
-        y: { beginAtZero: true, ticks: { font: { size: 11, family: "Pretendard" } } }
+        x: {
+          grid: { display: false, drawBorder: false },
+          border: { display: false },
+          ticks: { font: { size: 10.5, family: "Pretendard" }, color: '#727A86', maxRotation: 0 }
+        },
+        y: {
+          grid: { color: 'rgba(21, 24, 30, 0.06)', drawBorder: false },
+          border: { display: false },
+          beginAtZero: true,
+          ticks: { font: { size: 10.5, family: "Pretendard" }, color: '#727A86' }
+        }
       }
     }
   });
@@ -327,10 +365,20 @@ function renderAll_(data) {
 
   renderDonut_('chart-dealtype', data.dealType);
   renderDonut_('chart-listingtype', data.listingType);
-  renderBar_('chart-newlistings', data.newListingsByType.rows, false);
-  renderBar_('chart-adchannels', data.adChannels, false);
-  renderBar_('chart-newads', data.newAdsByType, false);
-  renderBar_('chart-region', data.regions, true);
+  renderBar_('chart-newlistings', data.newListingsByType.rows, { color: CHART_COLORS.newListings });
+  renderBar_('chart-adchannels', data.adChannels, { color: CHART_COLORS.adChannels });
+  renderBar_('chart-newads', data.newAdsByType, { color: CHART_COLORS.newAds });
+  renderBar_('chart-selfcontract', data.selfContract.rows, { color: CHART_COLORS.selfContract });
+
+  // 지역별: 값이 0인 지역은 라벨이 빽빽해지고 안 잘리게 걸러낸다 (0건 지역은 표에 이미 다 있으니 제외해도 정보 손실 없음)
+  var activeRegions = data.regions.filter(function (r) { return r.value > 0; })
+    .sort(function (a, b) { return b.value - a.value; });
+  if (activeRegions.length) {
+    renderBar_('chart-region', activeRegions, { horizontal: true, color: CHART_COLORS.region });
+  } else {
+    chartFallback_('chart-region', '등록된 지역 데이터가 없습니다');
+  }
+
   renderLine_('chart-monthly', data.monthly.months, data.monthly.counts);
 }
 
