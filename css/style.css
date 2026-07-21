@@ -464,9 +464,9 @@ a { color: inherit; text-decoration: none; }
 /* 추천매물 rec-stat-card와 동일한 구조: 아이콘 왼쪽 + (숫자, 라벨) 오른쪽, 가로 한 줄 */
 .summary-card.row {
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  min-height: unset;
+  min-height: 76px;
   padding: 14px 16px;
 }
 .summary-card.row .icon-badge { flex-shrink: 0; width: 32px; height: 32px; }
