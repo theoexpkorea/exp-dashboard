@@ -5,6 +5,7 @@
 
 const NAV_WORKAREAS = [
   { key: "maemul", label: "매물현황", href: "pages/maemul-status.html", icon: "home" },
+  { key: "recommend", label: "추천매물", href: "pages/recommend-management.html", icon: "star" },
   { key: "farming", label: "파밍현황", href: "pages/farming-status.html", icon: "map" },
   { key: "customer", label: "고객관리", href: "pages/customer-management.html", icon: "users" },
   { key: "schedule", label: "일정관리", href: "pages/schedule-management.html", icon: "calendar" },

@@ -83,7 +83,8 @@ async function initLockScreen(basePrefix = "") {
   overlay.className = "lock-screen";
   overlay.id = "lock-screen";
 
-  const mobile = isMobileViewport();
+  const mobile = false; // 패턴락 비활성화 — 폰에서도 PC와 동일하게 텍스트 비번 사용
+  // 다시 패턴락을 쓰고 싶으면 위 줄을 `const mobile = isMobileViewport();` 로 되돌리면 됩니다.
   overlay.innerHTML = mobile ? patternLockMarkup() : passwordLockMarkup();
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>추천매물 · theo 업무현황</title>
+<link rel="icon" href="../favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#2746E6" />
+<meta property="og:image" content="../og-image.png" />
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <div class="main-col">
+    <header class="topbar">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="메뉴 열기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <span class="topbar-title">추천매물</span>
+    </header>
+
+    <main class="main-content">
+      <div class="page-head">
+        <h1>추천매물</h1>
+        <p>구글시트 실시간 연동 · 고객별 추천 매물 링크 관리</p>
+      </div>
+
+      <div class="placeholder-block">
+        <strong>연동 예정</strong>
+        고객 탭(고객코드·고객명·추천매물번호·접속코드·구글 My Maps 링크·종료 상태)과 추천멘트 탭(접속코드·매물번호·멘트)을
+        기반으로, 고객 링크 등록·추천 매물 구성·멘트 작성·종료 처리를 이 페이지 안에서 바로 처리하는 기능이 다음 단계에서 붙습니다.
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../js/sidebar.js"></script>
+<script src="../js/lock.js"></script>
+<script>
+  renderSidebar("recommend", { basePrefix: "../" });
+  initLockScreen("../");
+</script>
+</body>
+</html>
