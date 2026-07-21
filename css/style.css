@@ -466,7 +466,7 @@ a { color: inherit; text-decoration: none; }
   flex-direction: row;
   align-items: flex-start;
   gap: 12px;
-  min-height: 76px;
+  min-height: 100px;
   padding: 14px 16px;
 }
 .summary-card.row .icon-badge { flex-shrink: 0; width: 32px; height: 32px; }
