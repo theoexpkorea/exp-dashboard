@@ -252,8 +252,9 @@ function renderKpi_(kpi, expiring) {
       '<div class="stat-title">만기 임박</div>' +
       '<div class="badge-list mini horizontal">' + expiring.map(function (row) {
         var hasCount = row.value > 0;
-        return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '">' +
-          '<span>' + row.name + '</span>' +
+        var shortName = row.name.replace(/\s*\([^)]*\)\s*/, '').trim();
+        return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '" title="' + row.name + '">' +
+          '<span>' + shortName + '</span>' +
           '<span class="badge-count">' + row.value + '건</span>' +
           '</div>';
       }).join('') + '</div>' +
