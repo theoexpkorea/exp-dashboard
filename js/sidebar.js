@@ -33,6 +33,7 @@ const NAV_ICONS = {
   idcard: '<rect x="2.5" y="5" width="19" height="14" rx="2.2"/><circle cx="8.6" cy="11" r="2"/><path d="M6 15.7c.5-1.4 1.7-2.1 2.6-2.1s2.1.7 2.6 2.1"/><path d="M14 9h5M14 13h5"/>',
   message: '<path d="M4 5.5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9.5l-4 3.5v-3.5H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1Z"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.7"/><path d="m20 20-4.2-4.2"/>',
+  logout: '<path d="M8.5 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.5"/><path d="m15.5 16.5 4.5-4.5-4.5-4.5"/><path d="M20 12H9"/>',
 };
 
 function svgIcon(name, size = 18) {
@@ -95,11 +96,19 @@ function renderSidebar(activeKey, opts = {}) {
         </div>
       </nav>
 
-      <div class="sidebar-admin">
-        <div class="admin-avatar">T</div>
-        <div class="admin-meta">
-          <div class="admin-name">theo</div>
-          <div class="admin-org">관리자 · eXp Korea</div>
+      <div class="sidebar-admin-wrap">
+        <button type="button" class="sidebar-admin" id="admin-trigger">
+          <div class="admin-avatar">T</div>
+          <div class="admin-meta">
+            <div class="admin-name">theo</div>
+            <div class="admin-org">관리자 · eXp Korea</div>
+          </div>
+          ${svgIcon("chevron", 13).replace("<svg", '<svg class="admin-chevron"')}
+        </button>
+        <div class="admin-menu" id="admin-menu">
+          <button type="button" class="admin-menu-item" id="admin-logout">
+            ${svgIcon("logout", 16)}<span>로그아웃</span>
+          </button>
         </div>
       </div>
     </aside>
@@ -127,4 +136,26 @@ function renderSidebar(activeKey, opts = {}) {
   }
   if (hamburger) hamburger.addEventListener("click", openSidebar);
   scrim.addEventListener("click", closeSidebar);
+
+  // 관리자 프로필 클릭 → 로그아웃 드롭다운 토글
+  const adminTrigger = mount.querySelector("#admin-trigger");
+  const adminMenu = mount.querySelector("#admin-menu");
+  const logoutBtn = mount.querySelector("#admin-logout");
+
+  if (adminTrigger && adminMenu) {
+    adminTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      adminMenu.classList.toggle("open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!adminMenu.contains(e.target) && !adminTrigger.contains(e.target)) {
+        adminMenu.classList.remove("open");
+      }
+    });
+  }
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      if (typeof theoLogout === "function") theoLogout();
+    });
+  }
 }

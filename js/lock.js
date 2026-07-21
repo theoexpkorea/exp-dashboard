@@ -12,6 +12,16 @@ const DASHBOARD_LOCK = {
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbzDk9DYfD7okIfp4_MH5asXVxgroC9qlYGL08yHL_0dXPDfWElTdKglhQ-BQxWVoiil/exec",
 };
 
+// 사이드바 관리자 메뉴의 "로그아웃"에서 호출 — 세션 인증 해제 후 새로고침(잠금화면 재노출)
+function theoLogout() {
+  try {
+    sessionStorage.removeItem(DASHBOARD_LOCK.sessionKey);
+  } catch (e) {
+    /* 무시 */
+  }
+  location.reload();
+}
+
 function isMobileViewport() {
   return window.innerWidth <= 600;
 }
