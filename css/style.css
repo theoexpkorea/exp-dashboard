@@ -756,10 +756,10 @@ a { color: inherit; text-decoration: none; }
   padding: 1px 6px;
 }
 
-/* 만기임박처럼 라벨 여러개를 세로로 쌓지 않고 타이틀 바로 아래에 한 줄로 붙여 보여줄 때.
+/* 만기임박처럼 라벨 여러개를 세로로 쌓지 않고 타이틀 바로 아래에 붙여 보여줄 때.
    margin-top:auto를 안 줘서 타이틀 바로 아래 붙고, 남는 공간은 카드 하단에 남는다.
-   내 매물지도 카드의 설명 문구와 같은 위치감을 주기 위해 왼쪽 정렬 + 한 줄(nowrap)로 표시.
-   공간이 부족해도 서로 겹치지 않고 라벨만 말줄임(…) 처리되도록 안전장치를 둔다. */
+   폰(≤900px)에서는 만기임박 카드가 card-span-2로 풀폭을 쓰므로 한 줄(nowrap)로 충분히 들어가고,
+   브라우저(>900px)에서는 카드가 4분의1 폭이라 한 줄로는 좁아 겹치므로 2x2 그리드로 전환한다. */
 .badge-list.horizontal {
   flex-direction: row;
   flex-wrap: nowrap;
@@ -782,6 +782,17 @@ a { color: inherit; text-decoration: none; }
 .badge-list.horizontal .badge-row .badge-count {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+@media (min-width: 901px) {
+  .badge-list.horizontal {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+  }
+  .badge-list.horizontal .badge-row {
+    justify-content: space-between;
+  }
 }
 
 /* 폰 화면에서는 글자/여백을 한 단계 더 줄여 한 줄에 최대한 다 들어가게 (만기임박 카드는 아래
