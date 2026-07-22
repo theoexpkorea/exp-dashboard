@@ -246,13 +246,14 @@ function renderKpi_(kpi, expiring) {
   );
 
   cards.push(
-    '<div class="summary-card row static tint-6">' +
+    '<div class="summary-card row static tint-6 card-span-2">' +
     '<div class="icon-badge"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></div>' +
     '<div class="stat-body">' +
       '<div class="stat-title">만기 임박</div>' +
       '<div class="badge-list mini horizontal">' + expiring.map(function (row) {
         var hasCount = row.value > 0;
         var shortName = row.name.replace(/\s*\([^)]*\)\s*/, '').trim();
+        shortName = shortName.replace(/^[^\uAC00-\uD7A3A-Za-z0-9]+/, '').trim();
         if (shortName === '만기초과') shortName = '초과';
         return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '" title="' + row.name + '">' +
           '<span>' + shortName + '</span>' +
