@@ -120,5 +120,44 @@
     overlay.classList.add('open');
   }
 
-  window.DashUI = { initSelect, openCalendar, todayStr };
+  /* ===== native <select> 자동 래핑 (기존 페이지 JS를 안 건드리고 스타일만 교체) =====
+     select 태그는 그대로 두고 화면에서만 숨긴 뒤, 그 위에 커스텀 버튼+팝업을 얹는다.
+     선택 시 원본 select의 value를 갱신하고 change 이벤트를 그대로 발생시키므로
+     기존 페이지의 저장 로직(예: $('rec-f-type').value)은 수정 없이 그대로 동작한다. */
+  function wrapNativeSelect(selectEl) {
+    if (!selectEl || selectEl.dataset.dashWrapped) return;
+    selectEl.dataset.dashWrapped = '1';
+    selectEl.classList.add('visually-hidden');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'dash-picker-wrap';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dash-picker-btn';
+    btn.innerHTML = '<span data-role="label"></span><span class="car">▾</span>';
+    const pop = document.createElement('div');
+    pop.className = 'dash-select-pop';
+    wrap.appendChild(btn); wrap.appendChild(pop);
+    selectEl.insertAdjacentElement('afterend', wrap);
+
+    const options = Array.from(selectEl.options).map(o => o.textContent);
+    const valueByLabel = {};
+    Array.from(selectEl.options).forEach(o => { valueByLabel[o.textContent] = o.value; });
+    const initialLabel = selectEl.selectedOptions[0] ? selectEl.selectedOptions[0].textContent : options[0];
+
+    initSelect(btn, pop, options, initialLabel, label => {
+      selectEl.value = valueByLabel[label];
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+  function autoWrapSelects() {
+    document.querySelectorAll('select[data-dash-select]').forEach(wrapNativeSelect);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoWrapSelects);
+  } else {
+    autoWrapSelects();
+  }
+
+  window.DashUI = { initSelect, openCalendar, todayStr, wrapNativeSelect };
 })();
