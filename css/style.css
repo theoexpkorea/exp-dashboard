@@ -1907,6 +1907,16 @@ a { color: inherit; text-decoration: none; }
 .sched-dot.sched-type-edu      { background: #2746E6; }
 .sched-dot.sched-type-event    { background: #BE185D; }
 
+/* 스코프 탭 — 캘린더 알약과 동일 팔레트 (전체는 기존 rec-filter-chip.active 파랑 그대로 사용) */
+.rec-filter-chip[data-scope="교육"].active   { background: #EEF1FE; color: #2746E6; border-color: #C9D3FB; }
+.rec-filter-chip[data-scope="미팅"].active   { background: #CFFAFE; color: #0E7490; border-color: #A5F0F5; }
+.rec-filter-chip[data-scope="투어"].active   { background: #DBEAFE; color: #1D4ED8; border-color: #BBD8FD; }
+.rec-filter-chip[data-scope="가계약"].active { background: #FBF1E2; color: #9A5B14; border-color: #F0DBA6; }
+.rec-filter-chip[data-scope="계약"].active   { background: #FDECEF; color: #E0364F; border-color: #F9C9D1; }
+.rec-filter-chip[data-scope="중도금"].active { background: #EDE9FE; color: #6D28D9; border-color: #D8CEFB; }
+.rec-filter-chip[data-scope="잔금"].active   { background: #E0E7FF; color: #4338CA; border-color: #C3CDFA; }
+.rec-filter-chip[data-scope="행사"].active   { background: #FCE7F3; color: #BE185D; border-color: #F7C4DE; }
+
 .rec-stat-card.tint-sched-today .icon-badge { background: var(--accent-soft); color: var(--accent); }
 .rec-stat-card.tint-sched-week .icon-badge { background: #DCFCE7; color: #15803D; }
 .rec-stat-card.tint-sched-month .icon-badge { background: #EDE9FE; color: #6D28D9; }
