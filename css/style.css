@@ -1961,3 +1961,179 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer; font-family: inherit;
 }
 .sched-delete-btn:hover { opacity: 0.85; }
+
+/* ---------------- 즐겨찾기 패널 (우측, 넓은 화면 전용) ---------------- */
+
+.content-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.favorites-panel {
+  display: none;
+  width: 232px;
+  flex-shrink: 0;
+  position: sticky;
+  top: calc(var(--topbar-h) + 20px);
+  margin-top: 28px;
+  margin-right: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  max-height: calc(100vh - var(--topbar-h) - 40px);
+  overflow-y: auto;
+}
+
+@media (min-width: 1560px) {
+  .favorites-panel { display: block; }
+}
+
+.fav-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.fav-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+.fav-edit-toggle {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.fav-edit-toggle:hover { background: var(--bg); color: var(--text); }
+.fav-edit-toggle.on {
+  width: auto;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.fav-list { display: flex; flex-direction: column; gap: 2px; }
+.fav-empty { font-size: 12.5px; color: var(--text-muted); padding: 10px 4px; }
+
+.fav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px;
+  border-radius: var(--radius-sm);
+}
+.fav-item:hover { background: var(--bg); }
+.fav-item.dragging { opacity: 0.4; }
+.fav-item.editing { cursor: grab; }
+
+.fav-drag-handle { color: var(--text-muted); flex-shrink: 0; cursor: grab; }
+.fav-icon { border-radius: 4px; flex-shrink: 0; }
+
+.fav-link {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-link:hover { color: var(--accent); }
+
+.fav-name-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: var(--surface);
+}
+
+.fav-mini-btn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.fav-mini-btn:hover { background: var(--border); color: var(--text); }
+.fav-mini-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+
+.fav-add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.fav-add-input {
+  font-size: 12.5px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+.fav-add-btn {
+  margin-top: 2px;
+  padding: 7px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.fav-add-btn:hover { background: var(--accent-hover); }
+
+.fav-sort-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.fav-sort-btn:hover { background: var(--bg); color: var(--text); }
+
+/* 모바일 사이드바 안의 즐겨찾기 섹션 — 넓은 화면(우측 패널이 보일 때)엔 숨김 */
+.fav-mobile-group .fav-head { padding: 0 8px; }
+.fav-mobile-group .fav-list,
+.fav-mobile-group .fav-add-row,
+.fav-mobile-group .fav-sort-btn { padding-left: 8px; padding-right: 8px; }
+.fav-mobile-group .fav-add-row,
+.fav-mobile-group .fav-sort-btn { margin-left: 8px; margin-right: 8px; width: calc(100% - 16px); }
+
+@media (min-width: 1560px) {
+  .fav-mobile-group,
+  .fav-mobile-divider { display: none; }
+}
