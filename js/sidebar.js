@@ -94,6 +94,18 @@ function renderSidebar(activeKey, opts = {}) {
             </a>`).join("")}
           </div>
         </div>
+
+        <div class="nav-divider fav-mobile-divider"></div>
+
+        <div class="nav-group fav-mobile-group" data-group="favorites">
+          <button class="nav-group-label" type="button">
+            즐겨찾기
+            ${svgIcon("chevron", 14).replace("<svg", '<svg class="chevron"')}
+          </button>
+          <div class="nav-group-items">
+            <div data-fav-mount="mobile"></div>
+          </div>
+        </div>
       </nav>
 
       <div class="sidebar-admin-wrap">
