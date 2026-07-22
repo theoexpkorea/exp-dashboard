@@ -123,62 +123,82 @@
       <button class="rec-modal-close" id="formClose">✕</button>
     </div>
     <div class="rec-modal-body">
-      <div class="rec-toggle-grid" style="grid-template-columns:1fr 1fr;">
-        <label class="rec-toggle"><input type="radio" name="formScope" id="fScopeRoutine" value="routine" checked> 루틴 파밍</label>
-        <label class="rec-toggle"><input type="radio" name="formScope" id="fScopeCustomer" value="customer"> 고객 파밍</label>
+      <div class="dash-seg" id="fScopeSeg">
+        <button type="button" class="on" data-v="routine">루틴 파밍</button>
+        <button type="button" data-v="customer">고객 파밍</button>
       </div>
+
       <div class="rec-form-grid full hidden" id="custPickWrap">
-        <div class="rec-field"><label>고객 배정</label><select id="fCust"><option value="">고객 선택</option></select></div>
-      </div>
-      <div class="rec-form-grid">
-        <div class="rec-field"><label>파밍일자</label><input type="date" id="fDate"></div>
-        <div class="rec-field"><label>파밍여부</label>
-          <select id="fStatus">
-            <option value="파밍예정">파밍예정</option>
-            <option value="파밍완료">파밍완료</option>
-            <option value="파밍보류">파밍보류</option>
-            <option value="파밍취소">파밍취소</option>
-          </select>
+        <div class="rec-field">
+          <label>고객 배정</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="fCustBtn"><span data-role="label">고객 선택</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="fCustPop"></div>
+          </div>
         </div>
       </div>
-      <div class="rec-form-grid">
-        <div class="rec-field"><label>건물명</label><input type="text" id="fName" placeholder="예: 화영빌딩"></div>
-        <div class="rec-field"><label>주소</label><input type="text" id="fAddr" placeholder="예: 서울특별시 종로구 종로 128"></div>
+
+      <div class="rec-form-grid full">
+        <div class="rec-field">
+          <label>파밍일자</label>
+          <button type="button" class="dash-picker-btn" id="fDateBtn"><span data-role="label" id="fDateLabel"></span><span class="car">▾</span></button>
+        </div>
       </div>
+
+      <div class="rec-form-grid full">
+        <div class="rec-field">
+          <label>매물 링크</label>
+          <input type="text" id="fLink" placeholder="네이버 매물번호 또는 전체 URL(디스코·밸류맵 등)">
+          <div class="form-hint-text">숫자만 입력하면 네이버부동산 링크로 자동 변환됩니다</div>
+        </div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>건물명</label><input type="text" id="fName" placeholder="예: 동양섬유사옥"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>주소</label><input type="text" id="fAddr" placeholder="예: 서울특별시 중구 신당동 421-5"></div>
+      </div>
+
       <div class="rec-form-grid">
-        <div class="rec-field"><label>유형</label>
-          <select id="fType">
-            <option>사무실</option><option>상가</option><option>공장창고</option><option>지식산업센터</option>
-            <option>건물</option><option>토지(나대지)</option><option>아파트</option><option>오피스텔</option>
-            <option>재건축재개발</option><option>주택빌라</option><option>원투룸</option><option>분양</option>
-          </select>
+        <div class="rec-field">
+          <label>유형</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="fTypeBtn"><span data-role="label">사무실</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="fTypePop"></div>
+          </div>
         </div>
-        <div class="rec-field"><label>거래유형</label>
-          <select id="fDeal"><option>월세</option><option>전세</option><option>매매</option><option>단기임대</option></select>
+        <div class="rec-field">
+          <label>거래유형</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="fDealBtn"><span data-role="label">월세</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="fDealPop"></div>
+          </div>
         </div>
+      </div>
+
+      <div class="rec-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="rec-field"><label>층수</label><input type="text" id="fFloor" placeholder="4"></div>
+        <div class="rec-field"><label>총층</label><input type="text" id="fFloorAll" placeholder="8"></div>
+        <div class="rec-field"><label>전용면적(평)</label><input type="text" id="fArea" placeholder="55"></div>
       </div>
       <div class="rec-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="rec-field"><label>층수</label><input type="text" id="fFloor" placeholder="2"></div>
-        <div class="rec-field"><label>총층</label><input type="text" id="fFloorAll" placeholder="5"></div>
-        <div class="rec-field"><label>전용면적(평)</label><input type="text" id="fArea" placeholder="20.99"></div>
+        <div class="rec-field"><label id="fDepositLabel">보증금/매매가(만)</label><input type="text" id="fDeposit" placeholder="5000"></div>
+        <div class="rec-field"><label>월세(만)</label><input type="text" id="fRent" placeholder="400"></div>
+        <div class="rec-field"><label>관리비(만)</label><input type="text" id="fMgmt" placeholder="225"></div>
       </div>
-      <div class="rec-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="rec-field"><label id="fDepositLabel">보증금/매매가</label><input type="text" id="fDeposit" placeholder="5000"></div>
-        <div class="rec-field"><label>월세</label><input type="text" id="fRent" placeholder="490"></div>
-        <div class="rec-field"><label>관리비</label><input type="text" id="fMgmt" placeholder="10"></div>
+
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>특징/메모</label><textarea id="fMemo" placeholder="주차 가능, 컨디션 양호 등"></textarea></div>
       </div>
       <div class="rec-form-grid full">
-        <div class="rec-field"><label>매물링크 (네이버부동산 URL 또는 매물번호)</label><input type="text" id="fLink" placeholder="https://fin.land.naver.com/articles/... 또는 숫자만"></div>
+        <div class="rec-field"><label>파밍메모</label><textarea id="fFarmMemo" placeholder="현장 확인 사항, 진행 상황 등"></textarea></div>
       </div>
-      <div class="rec-form-grid full">
-        <div class="rec-field"><label>매물장번호 (매물뷰 연결용, 선택)</label><input type="text" id="fLedger" placeholder="선택 입력"></div>
+
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>등록일자</label><input type="text" id="fRegDate" placeholder="예: 2026-07-20"></div>
+        <div class="rec-field"><label>매물장번호</label><input type="text" id="fLedger" placeholder="예: 25-013"></div>
       </div>
-      <div class="rec-form-grid full">
-        <div class="rec-field"><label>메모</label><textarea id="fMemo" placeholder="현장 특이사항"></textarea></div>
-      </div>
-      <div class="rec-form-grid full">
-        <div class="rec-field"><label>파밍메모</label><textarea id="fFarmMemo" placeholder="파밍 진행 관련 메모"></textarea></div>
-      </div>
+
       <div class="rec-modal-error" id="formError"></div>
     </div>
     <div class="rec-modal-foot">
@@ -204,6 +224,7 @@
 
 <script src="../js/sidebar.js"></script>
 <script src="../js/lock.js"></script>
+<script src="../js/dash-widgets.js"></script>
 <script src="../js/farming-status.js"></script>
 <script>
   renderSidebar("farming", { basePrefix: "../" });
