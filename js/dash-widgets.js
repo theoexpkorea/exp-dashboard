@@ -13,43 +13,56 @@
      options: 문자열 배열, initial: 초기 선택값, onChange(value): 선택 시 콜백
      반환값: { get(), set(value) } */
   function initSelect(btnEl, popEl, options, initial, onChange) {
-    let current = initial;
     const labelEl = btnEl.querySelector('[data-role="label"]') || btnEl;
 
-    function renderPop() {
-      popEl.innerHTML = options.map(opt =>
-        '<div class="opt ' + (opt === current ? 'sel' : '') + '" data-val="' + opt + '">' +
-          '<span>' + opt + '</span><span class="ck">✓</span>' +
-        '</div>'
-      ).join('');
-    }
-    function close() { btnEl.classList.remove('open'); popEl.classList.remove('open'); }
-    function open() {
-      document.querySelectorAll('.dash-select-pop.open').forEach(p => { if (p !== popEl) { p.classList.remove('open'); p.previousElementSibling && p.previousElementSibling.classList.remove('open'); } });
-      renderPop();
-      btnEl.classList.add('open'); popEl.classList.add('open');
+    // 같은 버튼/팝업 쌍에 대해 리스너는 최초 1회만 부착한다.
+    // (옵션이 동적으로 바뀌는 드롭다운은 폼을 열 때마다 initSelect가 다시 호출되는데,
+    //  매번 addEventListener를 새로 붙이면 예전 리스너가 그대로 누적돼
+    //  클릭 한 번에 열기/닫기가 여러 번 겹쳐 실행되면서 "안 열리는" 것처럼 보이는 버그가 있었음)
+    let state = btnEl._dashSelectState;
+    if (!state) {
+      state = { options: [], current: initial, onChange: onChange };
+      btnEl._dashSelectState = state;
+
+      function renderPop() {
+        popEl.innerHTML = state.options.map(opt =>
+          '<div class="opt ' + (opt === state.current ? 'sel' : '') + '" data-val="' + opt + '">' +
+            '<span>' + opt + '</span><span class="ck">✓</span>' +
+          '</div>'
+        ).join('');
+      }
+      function close() { btnEl.classList.remove('open'); popEl.classList.remove('open'); }
+      function open() {
+        document.querySelectorAll('.dash-select-pop.open').forEach(p => { if (p !== popEl) { p.classList.remove('open'); p.previousElementSibling && p.previousElementSibling.classList.remove('open'); } });
+        renderPop();
+        btnEl.classList.add('open'); popEl.classList.add('open');
+      }
+
+      btnEl.addEventListener('click', e => {
+        e.stopPropagation();
+        popEl.classList.contains('open') ? close() : open();
+      });
+      popEl.addEventListener('click', e => {
+        const opt = e.target.closest('[data-val]'); if (!opt) return;
+        state.current = opt.dataset.val;
+        labelEl.textContent = state.current;
+        close();
+        if (state.onChange) state.onChange(state.current);
+      });
+      document.addEventListener('click', e => {
+        if (!btnEl.contains(e.target) && !popEl.contains(e.target)) close();
+      });
     }
 
-    btnEl.addEventListener('click', e => {
-      e.stopPropagation();
-      popEl.classList.contains('open') ? close() : open();
-    });
-    popEl.addEventListener('click', e => {
-      const opt = e.target.closest('[data-val]'); if (!opt) return;
-      current = opt.dataset.val;
-      labelEl.textContent = current;
-      close();
-      if (onChange) onChange(current);
-    });
-    document.addEventListener('click', e => {
-      if (!btnEl.contains(e.target) && !popEl.contains(e.target)) close();
-    });
-
-    labelEl.textContent = current || '';
+    // 재호출 시(옵션/초기값/콜백이 바뀔 수 있음)엔 상태만 갱신하고 리스너는 재부착하지 않음
+    state.options = options;
+    state.current = initial;
+    state.onChange = onChange;
+    labelEl.textContent = state.current || '';
 
     return {
-      get: () => current,
-      set: v => { current = v; labelEl.textContent = v || ''; }
+      get: () => state.current,
+      set: v => { state.current = v; labelEl.textContent = v || ''; }
     };
   }
 
