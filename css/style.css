@@ -1927,6 +1927,8 @@ a { color: inherit; text-decoration: none; }
 .sched-type-balance  { background: #E0E7FF; color: #4338CA; border-left-color: #4338CA; }
 .sched-type-edu      { background: #EEF1FE; color: #2746E6; border-left-color: #2746E6; }
 .sched-type-event    { background: #FCE7F3; color: #BE185D; border-left-color: #BE185D; }
+.sched-type-task      { background: #DCFCE7; color: #15803D; border-left-color: #15803D; }
+.sched-type-tm        { background: #FFEDD5; color: #C2410C; border-left-color: #C2410C; }
 
 .sched-dot.sched-type-meeting  { background: #0E7490; }
 .sched-dot.sched-type-tour     { background: #1D4ED8; }
@@ -1936,6 +1938,8 @@ a { color: inherit; text-decoration: none; }
 .sched-dot.sched-type-balance  { background: #4338CA; }
 .sched-dot.sched-type-edu      { background: #2746E6; }
 .sched-dot.sched-type-event    { background: #BE185D; }
+.sched-dot.sched-type-task     { background: #15803D; }
+.sched-dot.sched-type-tm       { background: #C2410C; }
 
 /* 스코프 탭 — 캘린더 알약과 동일 팔레트 (전체는 기존 rec-filter-chip.active 파랑 그대로 사용) */
 .rec-filter-chip[data-scope="교육"].active   { background: #EEF1FE; color: #2746E6; border-color: #C9D3FB; }
@@ -2140,4 +2144,14 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 1560px) {
   .fav-mobile-group,
   .fav-mobile-divider { display: none; }
+}
+
+/* 파밍현황/고객관리/일정관리 "오늘" KPI 카드 — 클릭하면 오늘 항목 패널이 열림 */
+#statTodayCard {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+#statTodayCard:hover {
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+  transform: translateY(-1px);
 }
