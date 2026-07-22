@@ -543,5 +543,10 @@ $('custModalBody').addEventListener('click', e => {
 $('prevBtn').addEventListener('click', () => { farmViewMonth--; if (farmViewMonth < 0) { farmViewMonth = 11; farmViewYear--; } farmRenderCalendar(); });
 $('nextBtn').addEventListener('click', () => { farmViewMonth++; if (farmViewMonth > 11) { farmViewMonth = 0; farmViewYear++; } farmRenderCalendar(); });
 $('refreshBtn').addEventListener('click', () => farmLoadData());
+$('todayBtn').addEventListener('click', () => {
+  farmViewYear = farmToday.getFullYear();
+  farmViewMonth = farmToday.getMonth();
+  farmRenderCalendar();
+});
 
 farmLoadData();
