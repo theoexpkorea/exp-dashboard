@@ -281,7 +281,7 @@ function crmRenderStats() {
   $('statContract').textContent = crmAllItems.filter(it => it.cat === 'CONTRACT').length + '건';
 }
 $('statGrid').addEventListener('click', e => {
-  if (e.target.closest('.tint-today')) {
+  if (e.target.closest('#statTodayCard')) {
     crmViewYear = crmToday.getFullYear(); crmViewMonth = crmToday.getMonth();
     crmRenderCalendar();
     const key = crmYmd(crmToday.getFullYear(), crmToday.getMonth(), crmToday.getDate());

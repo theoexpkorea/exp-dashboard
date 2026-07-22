@@ -632,6 +632,16 @@ $('todayBtn').addEventListener('click', () => {
   farmRenderCalendar();
 });
 
+$('statGrid').addEventListener('click', e => {
+  if (e.target.closest('#statTodayCard')) {
+    const y = farmToday.getFullYear(), m = farmToday.getMonth(), d = farmToday.getDate();
+    farmViewYear = y; farmViewMonth = m;
+    farmRenderCalendar();
+    const key = farmYmd(y, m, d);
+    farmOpenDayPanel(key, y, m, d, farmEventsByDate[key] || []);
+  }
+});
+
 /* 캐시가 있으면 즉시 그걸로 첫 화면을 그리고(로딩 스피너 없이), 최신 데이터는 뒤에서 조용히 받아온다.
    캐시가 아예 없는 경우(이 기기에서 처음 여는 순간)만 로딩 표시하며 기다린다. */
 (function farmInit() {

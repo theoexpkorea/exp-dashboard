@@ -6,11 +6,12 @@
    ============================================================ */
 
 const SCHED_DATA_URL = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
-const SCHED_TYPES = ['교육', '미팅', '투어', '가계약', '계약', '중도금', '잔금', '행사'];
+const SCHED_TYPES = ['교육', '미팅', '투어', '가계약', '계약', '중도금', '잔금', '행사', '작업', 'TM'];
 const SCHED_TYPE_CLASS = {
   '교육': 'sched-type-edu', '미팅': 'sched-type-meeting', '투어': 'sched-type-tour',
   '가계약': 'sched-type-preterm', '계약': 'sched-type-contract',
-  '중도금': 'sched-type-midpay', '잔금': 'sched-type-balance', '행사': 'sched-type-event'
+  '중도금': 'sched-type-midpay', '잔금': 'sched-type-balance', '행사': 'sched-type-event',
+  '작업': 'sched-type-task', 'TM': 'sched-type-tm'
 };
 
 function $(id) { return document.getElementById(id); }
@@ -270,6 +271,16 @@ function schedCloseDayPanel() { schedOverlay.classList.remove('open'); schedDayP
 schedOverlay.addEventListener('click', () => { schedCloseDayPanel(); schedCloseForm(); });
 $('dpClose').addEventListener('click', schedCloseDayPanel);
 $('dpAdd').addEventListener('click', () => schedOpenForm(null, schedPanelKey));
+
+$('statGrid').addEventListener('click', e => {
+  if (e.target.closest('#statTodayCard')) {
+    const y = schedToday.getFullYear(), m = schedToday.getMonth(), d = schedToday.getDate();
+    schedViewYear = y; schedViewMonth = m;
+    schedRenderCalendar();
+    const key = schedYmd(y, m, d);
+    schedOpenDayPanel(key, y, m, d, schedEventsByDate[key] || []);
+  }
+});
 
 function schedBuildItemEl(ev) {
   const item = document.createElement('div');
