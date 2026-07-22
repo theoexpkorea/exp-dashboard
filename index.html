@@ -14,7 +14,7 @@
 <meta property="og:description" content="파밍현황·매물현황·고객관리·일정관리를 한곳에서" />
 <meta property="og:image" content="og-image.png" />
 <meta property="og:type" content="website" />
-<link rel="stylesheet" href="css/style.css?v=20260722e" />
+<link rel="stylesheet" href="css/style.css?v=20260722g" />
 </head>
 <body>
 
@@ -29,6 +29,7 @@
       <a class="topbar-mark" href="./index.html" aria-label="홈으로">the<span class="o">o</span></a>
     </header>
 
+    <div class="content-row">
     <main class="main-content">
       <div class="page-head">
         <h1>종합현황</h1>
@@ -91,11 +92,14 @@
         </div>
       </div>
     </main>
+    <aside class="favorites-panel" data-fav-mount="desktop"></aside>
+    </div>
   </div>
 </div>
 
 <script src="js/sidebar.js"></script>
 <script src="js/lock.js"></script>
+<script src="js/favorites.js"></script>
 <script>
   renderSidebar(null, { basePrefix: "" });
   initLockScreen("");
