@@ -1789,3 +1789,75 @@ a { color: inherit; text-decoration: none; }
   opacity: 0.35;
   pointer-events: none;
 }
+
+/* ===== 고객관리 (customer-management) — 2026-07-22 =====
+   매도임대/가망고객/계약고객 CRM 통합 캘린더. exp-crm의 카테고리 색상(파랑/초록/보라)을
+   그대로 가져와 캘린더 점/알약, 태그, 스코프탭 색상에 재사용. 캘린더 그리드/일별패널은
+   farm-cal-*/farm-dp-* 를 그대로 재사용하고, 카테고리 색상만 이 블록에서 추가. */
+
+.rec-stat-card.tint-today .icon-badge { background: #FDECEC; color: #C0392B; }
+.rec-stat-card.tint-sale .icon-badge { background: #DBEAFE; color: #1D5FBF; }
+.rec-stat-card.tint-lead .icon-badge { background: #DCFCE7; color: #12805E; }
+.rec-stat-card.tint-contract .icon-badge { background: #EDE9FE; color: #6A3FB0; }
+
+.rec-filter-chip[data-scope="SALE"].active { background: #DCEBFD; color: #1D5FBF; border-color: #B9D8F9; }
+.rec-filter-chip[data-scope="LEAD"].active { background: #DCF3E9; color: #12805E; border-color: #B7E5D2; }
+.rec-filter-chip[data-scope="CONTRACT"].active { background: #EBE3FB; color: #6A3FB0; border-color: #D5C4F5; }
+
+/* 캘린더 알약/도트 — 카테고리 색상, 연체는 색상 무관하게 빨강으로 덮어씀(더 급한 신호) */
+.cust-pill { font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.cust-pill.cat-SALE { background: #DCEBFD; color: #1D5FBF; }
+.cust-pill.cat-LEAD { background: #DCF3E9; color: #12805E; }
+.cust-pill.cat-CONTRACT { background: #EBE3FB; color: #6A3FB0; }
+.cust-pill.overdue { background: var(--danger-soft); color: var(--danger); font-weight: 800; }
+
+.cust-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cust-dot.cat-SALE { background: #1D5FBF; }
+.cust-dot.cat-LEAD { background: #12805E; }
+.cust-dot.cat-CONTRACT { background: #6A3FB0; }
+.cust-dot.overdue { background: var(--danger); }
+
+/* 일별 패널 상단 카테고리 태그 */
+.cust-tag { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
+.cust-tag.cat-SALE { background: #DCEBFD; color: #1D5FBF; }
+.cust-tag.cat-LEAD { background: #DCF3E9; color: #12805E; }
+.cust-tag.cat-CONTRACT { background: #EBE3FB; color: #6A3FB0; }
+.cust-status-tag { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.cust-dday-badge { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-left: auto; flex-shrink: 0; }
+.cust-dday-badge.overdue { background: var(--danger-soft); color: var(--danger); }
+.cust-dday-badge.today { background: #FBF1E2; color: #9A5B14; }
+.cust-dday-badge.upcoming { background: #E7F4ED; color: #1F7A4D; }
+
+.cust-name-row { font-size: 14.5px; font-weight: 800; margin: 7px 0 2px; }
+.cust-name-row a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.cust-name-row a:hover { color: var(--accent); }
+.cust-sub-row { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.cust-sub-row a { color: var(--accent); font-weight: 700; text-decoration: none; }
+
+/* 연락완료/연락예정 토글 버튼 */
+.cust-done-btn {
+  width: 100%; height: 38px; border-radius: 9px; border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 13px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  font-family: inherit; margin-top: 4px;
+}
+.cust-done-btn.done { background: #1F7A4D; color: #fff; border-color: #1F7A4D; }
+.cust-done-btn:hover { opacity: 0.88; }
+
+/* 연락완료 처리 인라인 패널 */
+.cust-contact-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.cust-contact-panel.show { display: block; }
+.cust-contact-panel .rec-field { margin-bottom: 8px; }
+.cust-contact-preview { font-size: 11.5px; color: var(--text-secondary); background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; line-height: 1.4; }
+.cust-contact-preview b { color: var(--text); font-weight: 800; }
+.cust-contact-actions { display: flex; gap: 8px; margin-top: 4px; }
+.cust-contact-actions button { flex: 1; height: 38px; border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; border: none; }
+.cust-contact-cancel { background: var(--bg); color: var(--text); }
+.cust-contact-save { background: var(--accent); color: #fff; }
+
+@media (max-width: 480px) {
+  .rec-stat-card.tint-today .icon-badge,
+  .rec-stat-card.tint-sale .icon-badge,
+  .rec-stat-card.tint-lead .icon-badge,
+  .rec-stat-card.tint-contract .icon-badge { width: 28px; height: 28px; }
+}
