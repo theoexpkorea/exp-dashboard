@@ -244,6 +244,7 @@ function farmOpenDayPanel(key, y, m, d, events) {
       item.className = 'farm-dp-item';
       const cls = FARM_STATUS_CLASS[ev.파밍여부] || 'plan';
       item.innerHTML =
+        '<div class="farm-dp-idchip">' + (ev.매물ID || '') + '</div>' +
         '<div class="farm-dp-item-top">' +
           '<button class="farm-dp-tag ' + cls + '" data-cycle="' + (ev.매물ID || '') + '" style="border:none;cursor:pointer;font-family:inherit;">' + (ev.파밍여부 || '파밍예정') + '</button>' +
           (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
