@@ -216,6 +216,7 @@ var KPI_LABELS = [
   ['totalLeads', '총 가망고객', '전체 가망고객 수'],
   ['newLeadsMonth', '이번달 신규 고객', '이번 달 신규 접수']
 ];
+var KPI_UNITS = ['개', '개', '건', '건', '명', '명']; // KPI_LABELS와 같은 순서 — 매물/공실=개, 등록/광고=건, 고객=명
 
 var MAP_URL = 'https://www.google.com/maps/d/u/1/?hl=ko';
 
@@ -227,7 +228,7 @@ function renderKpi_(kpi, expiring) {
     return '<div class="summary-card row static tint-' + pairTint[idx] + '">' +
       '<div class="icon-badge">' + KPI_ICONS[key] + '</div>' +
       '<div class="stat-body">' +
-        '<div class="stat">' + kpi[key].toLocaleString() + '</div>' +
+        '<div class="stat">' + kpi[key].toLocaleString() + KPI_UNITS[idx] + '</div>' +
         '<div class="stat-label">' + label + '</div>' +
       '</div>' +
       '</div>';
