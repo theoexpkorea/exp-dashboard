@@ -29,19 +29,154 @@
     <main class="main-content">
       <div class="page-head">
         <h1>일정관리</h1>
-        <p>매물장 필터뷰 시트 내 '일정관리' 탭 신설 예정</p>
+        <p>구글시트 실시간 연동 · 교육·미팅·투어·가계약·계약·중도금·잔금·행사 일정 캘린더</p>
       </div>
 
-      <div class="placeholder-block">
-        <strong>연동 예정</strong>
-        날짜/시간/이벤트타입/제목/메모 입력 + 캘린더 클릭 연동(추가↔수정 전환)이 다음 단계에서 붙습니다.
+      <div class="rec-kpi-grid" id="statGrid">
+        <div class="rec-stat-card tint-sched-today">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/><circle cx="12" cy="15.2" r="1.6" fill="currentColor" stroke="none"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statToday">-</div><div class="stat-label">오늘 일정</div></div>
+        </div>
+        <div class="rec-stat-card tint-sched-week">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17M7 14h3M7 17h6"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statWeek">-</div><div class="stat-label">이번주 일정</div></div>
+        </div>
+        <div class="rec-stat-card tint-sched-month">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statMonth">-</div><div class="stat-label">이번달 일정</div></div>
+        </div>
       </div>
+
+      <div class="farm-scope-row">
+        <div class="rec-filters" id="scopeTabs">
+          <button class="rec-filter-chip active" data-scope="all">전체</button>
+          <button class="rec-filter-chip" data-scope="교육">교육</button>
+          <button class="rec-filter-chip" data-scope="미팅">미팅</button>
+          <button class="rec-filter-chip" data-scope="투어">투어</button>
+          <button class="rec-filter-chip" data-scope="가계약">가계약</button>
+          <button class="rec-filter-chip" data-scope="계약">계약</button>
+          <button class="rec-filter-chip" data-scope="중도금">중도금</button>
+          <button class="rec-filter-chip" data-scope="잔금">잔금</button>
+          <button class="rec-filter-chip" data-scope="행사">행사</button>
+        </div>
+      </div>
+
+      <div class="farm-toolbar">
+        <button class="farm-tool-btn" id="refreshBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
+          새로고침
+        </button>
+        <button class="farm-tool-btn" id="todayBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/><circle cx="12" cy="15.2" r="1.6" fill="currentColor" stroke="none"/></svg>
+          오늘
+        </button>
+        <div class="farm-month-nav">
+          <button class="farm-nav-btn" id="prevBtn">‹</button>
+          <div class="farm-month-label" id="monthLabel">-</div>
+          <button class="farm-nav-btn" id="nextBtn">›</button>
+        </div>
+      </div>
+
+      <div class="farm-cal-card">
+        <div class="farm-cal-weekdays">
+          <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+        </div>
+        <div class="farm-cal-grid" id="calGrid"></div>
+        <div class="farm-cal-loading" id="calLoading">불러오는 중...</div>
+      </div>
+
+      <div class="farm-legend">
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#0E7490;"></span>교육/미팅/투어</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#9A5B14;"></span>가계약</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#E0364F;"></span>계약</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#6D28D9;"></span>중도금/잔금</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#BE185D;"></span>행사</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:var(--danger);"></span>공휴일</div>
+      </div>
+
+      <div class="farm-note">날짜 칸을 클릭하면 그날 일정이 옆에 열립니다. 이미 일정이 있는 항목을 누르면 바로 수정할 수 있어요.</div>
     </main>
   </div>
 </div>
 
+<!-- 일정 등록 FAB -->
+<button class="rec-fab" id="addBtn" style="right:24px;bottom:24px;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  일정 등록
+</button>
+
+<!-- 일별 상세 슬라이드 패널 -->
+<div class="farm-overlay" id="overlay"></div>
+<div class="farm-day-panel" id="dayPanel">
+  <div class="farm-dp-head">
+    <div><div class="farm-dp-title" id="dpTitle">-</div><div class="farm-dp-sub" id="dpSub">-</div></div>
+    <button class="farm-dp-close" id="dpClose">✕</button>
+  </div>
+  <div class="farm-dp-body" id="dpBody"></div>
+  <button class="farm-dp-add" id="dpAdd">＋ 이 날짜에 일정 추가</button>
+</div>
+
+<!-- 등록/수정 모달 -->
+<div class="rec-modal-overlay" id="formOverlay">
+  <div class="rec-modal">
+    <div class="rec-modal-head">
+      <h2 id="formTitle">일정 등록</h2>
+      <button class="rec-modal-close" id="formClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-form-grid">
+        <div class="rec-field">
+          <label>날짜</label>
+          <button type="button" class="dash-picker-btn" id="fDateBtn"><span data-role="label" id="fDateLabel"></span><span class="car">▾</span></button>
+        </div>
+        <div class="rec-field">
+          <label>시간</label>
+          <input type="time" id="fTime">
+        </div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field">
+          <label>이벤트 타입</label>
+          <select id="fType" data-dash-select>
+            <option value="교육">교육</option>
+            <option value="미팅">미팅</option>
+            <option value="투어">투어</option>
+            <option value="가계약">가계약</option>
+            <option value="계약">계약</option>
+            <option value="중도금">중도금</option>
+            <option value="잔금">잔금</option>
+            <option value="행사">행사</option>
+          </select>
+        </div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>제목</label><input type="text" id="fTitle" placeholder="예: OO빌딩 임대인 미팅"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>메모</label><textarea id="fMemo" placeholder="추가로 남길 내용"></textarea></div>
+      </div>
+      <div class="rec-modal-error" id="formError"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="sched-delete-btn hidden" id="formDelete">삭제</button>
+      <button class="btn-soft" id="formCancel" style="margin-left:auto;">취소</button>
+      <button class="btn-solid" id="formSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="rec-toast" id="toast"></div>
+
 <script src="../js/sidebar.js"></script>
 <script src="../js/lock.js"></script>
+<script src="../js/dash-widgets.js"></script>
+<script src="../js/schedule-management.js"></script>
 <script>
   renderSidebar("schedule", { basePrefix: "../" });
   initLockScreen("../");
