@@ -165,12 +165,12 @@ function farmRenderCalendar() {
 
     const events = farmEventsByDate[key] || [];
     if (!isOutside) {
-      monthCount += events.length;
       events.forEach(ev => {
         if (ev.파밍여부 === '파밍완료') doneCount++;
         else if (ev.파밍여부 !== '파밍취소') planCount++;
+        if (ev.파밍여부 !== '파밍취소') monthCount++; // 취소 건은 "이번 달 파밍" 집계에서 제외
       });
-      if (isToday) todayCount = events.length;
+      if (isToday) todayCount = events.filter(ev => ev.파밍여부 !== '파밍취소').length;
     }
 
     if (farmIsMobile()) {
