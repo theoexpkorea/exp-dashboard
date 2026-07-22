@@ -282,10 +282,7 @@ function crmRenderStats() {
 }
 $('statGrid').addEventListener('click', e => {
   if (e.target.closest('#statTodayCard')) {
-    crmViewYear = crmToday.getFullYear(); crmViewMonth = crmToday.getMonth();
-    crmRenderCalendar();
-    const key = crmYmd(crmToday.getFullYear(), crmToday.getMonth(), crmToday.getDate());
-    crmOpenDayPanel(key, crmToday.getFullYear(), crmToday.getMonth(), crmToday.getDate(), crmEventsByDate[key] || []);
+    crmOpenTodayPanel();
   }
 });
 
@@ -294,8 +291,10 @@ const crmOverlay = $('overlay');
 const crmDayPanel = $('dayPanel');
 const crmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let crmPanelKey = null, crmPanelYmd = [0, 0, 0];
+let crmPanelMode = 'date'; // 'date' | 'today' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
 
 function crmOpenDayPanel(key, y, m, d, events) {
+  crmPanelMode = 'date';
   crmPanelKey = key;
   crmPanelYmd = [y, m, d];
   const wd = crmWeekdayNames[new Date(y, m, d).getDay()];
@@ -307,6 +306,26 @@ function crmOpenDayPanel(key, y, m, d, events) {
     body.innerHTML = '<div class="farm-dp-empty">이 날짜가 다음연락일인 고객이 없습니다.</div>';
   } else {
     events.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
+  }
+  crmOverlay.classList.add('open');
+  crmDayPanel.classList.add('open');
+}
+
+// "오늘 처리" 카드 클릭 전용 — 오늘이 정확히 next인 것뿐 아니라 지난(연체) 것까지 전부 모아서 보여줌
+// (statToday 뱃지 집계와 동일한 기준: crmDDay(nextContact) <= 0)
+function crmOpenTodayPanel() {
+  crmPanelMode = 'today';
+  const list = crmAllItems
+    .filter(it => { const x = crmDDay(it.nextContact); return x !== null && x <= 0; })
+    .sort((a, b) => (a.nextContact || '').localeCompare(b.nextContact || ''));
+  $('dpTitle').textContent = '오늘 처리';
+  $('dpSub').textContent = list.length ? list.length + '건 (오늘 + 지난 연락 예정 포함)' : '처리할 항목이 없습니다';
+  const body = $('dpBody');
+  body.innerHTML = '';
+  if (list.length === 0) {
+    body.innerHTML = '<div class="farm-dp-empty">오늘 처리할 고객이 없습니다.</div>';
+  } else {
+    list.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
   }
   crmOverlay.classList.add('open');
   crmDayPanel.classList.add('open');
@@ -446,8 +465,13 @@ async function crmSaveContact(cat, row, key, btnEl) {
       crmBucket();
       crmRenderCalendar();
       crmToast('저장됐어요 · 다음 연락일 ' + (res.nextContact || ''));
-      // 패널을 그 날짜 기준으로 다시 그림 (해당 항목의 next가 바뀌어 다른 날짜로 이동했을 수 있음)
-      crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
+      // 패널을 열었던 기준으로 다시 그림 — 날짜별 패널이면 그 날짜 기준, "오늘 처리" 통합 패널이면 최신 기준으로 재필터링
+      // (저장 후 next가 바뀌면 오늘 처리 목록에서 자연스럽게 빠지거나, 다른 날짜 패널이면 그 날짜에서 사라질 수 있음)
+      if (crmPanelMode === 'today') {
+        crmOpenTodayPanel();
+      } else {
+        crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
+      }
     } else {
       crmToast('저장에 실패했어요. 다시 시도해 주세요.');
     }
