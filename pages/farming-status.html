@@ -27,8 +27,6 @@
     </header>
 
     <main class="main-content">
-      <div class="farm-warn-bar">⚠ 이 페이지는 파밍서치(exp-farming) 실제 백엔드와 같은 구글시트에 연결됩니다. 등록·수정은 실제 데이터에 바로 반영돼요.</div>
-
       <div class="page-head">
         <h1>파밍현황</h1>
         <p>파밍서치 실시간 연동 · 날짜별 파밍 이력 캘린더</p>
@@ -59,6 +57,15 @@
           </div>
           <div class="rec-stat-body"><div class="stat" id="statToday">-</div><div class="stat-label">오늘 파밍</div></div>
         </div>
+      </div>
+
+      <div class="farm-scope-row">
+        <div class="rec-filters" id="scopeTabs">
+          <button class="rec-filter-chip active" data-scope="all">전체파밍</button>
+          <button class="rec-filter-chip" data-scope="routine">루틴파밍</button>
+          <button class="rec-filter-chip" data-scope="customer">고객파밍</button>
+        </div>
+        <button class="btn-soft" id="custListBtn">고객조건 보기</button>
       </div>
 
       <div class="farm-toolbar">
@@ -116,6 +123,13 @@
       <button class="rec-modal-close" id="formClose">✕</button>
     </div>
     <div class="rec-modal-body">
+      <div class="rec-toggle-grid" style="grid-template-columns:1fr 1fr;">
+        <label class="rec-toggle"><input type="radio" name="formScope" id="fScopeRoutine" value="routine" checked> 루틴 파밍</label>
+        <label class="rec-toggle"><input type="radio" name="formScope" id="fScopeCustomer" value="customer"> 고객 파밍</label>
+      </div>
+      <div class="rec-form-grid full hidden" id="custPickWrap">
+        <div class="rec-field"><label>고객 배정</label><select id="fCust"><option value="">고객 선택</option></select></div>
+      </div>
       <div class="rec-form-grid">
         <div class="rec-field"><label>파밍일자</label><input type="date" id="fDate"></div>
         <div class="rec-field"><label>파밍여부</label>
@@ -172,6 +186,17 @@
       <button class="btn-soft" id="formCancel" style="margin-left:auto;">취소</button>
       <button class="btn-solid" id="formSave" style="margin-left:0;background:var(--accent);">저장</button>
     </div>
+  </div>
+</div>
+
+<!-- 고객조건 보기 -->
+<div class="rec-modal-overlay" id="custOverlay">
+  <div class="rec-modal" style="max-width:420px;">
+    <div class="rec-modal-head">
+      <h2 id="custModalTitle">고객조건 보기</h2>
+      <button class="rec-modal-close" id="custModalClose">✕</button>
+    </div>
+    <div class="rec-modal-body" id="custModalBody"></div>
   </div>
 </div>
 
