@@ -20,18 +20,41 @@ function serverUrl2_() {
 
 /* ---------------- 데이터 로드 ---------------- */
 
-function loadRecommendList() {
+/* 로컬 캐시 ("화면은 캐시로 즉시, 네트워크는 조용히 뒤에서" 원칙 — 매물뷰 비번 캐싱/파밍현황과 동일 패턴).
+   구글시트를 매번 라이브로 읽는 JSONP라 첫 로딩이 느릴 수밖에 없어서, 마지막 응답을 저장해뒀다가
+   다음 방문 땐 그걸로 즉시 렌더하고, 최신 데이터는 뒤에서 받아와 화면/캐시를 조용히 교체한다. */
+var REC_CACHE_KEY = 'theo_dashboard_recommend_cache_v1';
+function recReadCache() {
+  try {
+    var raw = localStorage.getItem(REC_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function recWriteCache(res) {
+  try {
+    localStorage.setItem(REC_CACHE_KEY, JSON.stringify({
+      clients: (res && res.clients) || [],
+      notes: (res && res.notes) || [],
+      savedAt: Date.now()
+    }));
+  } catch (e) {}
+}
+
+/* silent=true면 "불러오는 중…" 표시나 실패 문구로 화면을 덮지 않고 조용히 갱신만 시도한다
+   (이미 캐시된 데이터가 화면에 떠 있는 상태에서 백그라운드로 최신화할 때 사용). */
+function loadRecommendList(silent) {
   var url = serverUrl2_();
   if (!url || typeof fetchJsonp !== 'function') return;
   var listEl = document.getElementById('rec-tbody');
-  if (listEl) listEl.innerHTML = '<tr><td colspan="5" class="rec-empty">불러오는 중…</td></tr>';
+  if (!silent && listEl) listEl.innerHTML = '<tr><td colspan="5" class="rec-empty">불러오는 중…</td></tr>';
 
   fetchJsonp(url + '?mode=recommendList').then(function (res) {
     recState.clients = (res && res.clients) || [];
     recState.notes = (res && res.notes) || [];
     renderRecommend();
+    recWriteCache(res);
   }).catch(function () {
-    if (listEl) listEl.innerHTML = '<tr><td colspan="5" class="rec-empty">불러오지 못했습니다. 새로고침 해주세요.</td></tr>';
+    if (!silent && listEl) listEl.innerHTML = '<tr><td colspan="5" class="rec-empty">불러오지 못했습니다. 새로고침 해주세요.</td></tr>';
   });
 }
 
@@ -413,7 +436,15 @@ function plusIconSvg() {
 /* ---------------- 부팅 ---------------- */
 
 document.addEventListener('DOMContentLoaded', function () {
-  loadRecommendList();
+  var cached = recReadCache();
+  if (cached) {
+    recState.clients = cached.clients || [];
+    recState.notes = cached.notes || [];
+    renderRecommend();
+    loadRecommendList(true);
+  } else {
+    loadRecommendList();
+  }
   setupRecFab();
 
   document.getElementById('rec-search').addEventListener('input', function (e) {

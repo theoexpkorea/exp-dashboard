@@ -77,6 +77,28 @@ function farmCustName(id) {
   return c ? c.고객명 : id;
 }
 
+/* ===== 로컬 캐시 (매물뷰/CRM 비번 캐싱과 동일한 원칙: "화면은 캐시로 즉시, 네트워크는 조용히 뒤에서") =====
+   구글시트를 매번 라이브로 읽어오는 JSONP 특성상 첫 로딩이 느릴 수밖에 없어서,
+   마지막으로 받은 응답을 localStorage에 저장해뒀다가 다음 방문 때 즉시 그걸로 렌더하고
+   최신 데이터는 뒤에서 조용히 받아와 화면/캐시를 교체한다. */
+const FARM_CACHE_KEY = 'theo_dashboard_farm_cache_v1';
+function farmReadCache() {
+  try {
+    const raw = localStorage.getItem(FARM_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function farmWriteCache(d) {
+  try {
+    localStorage.setItem(FARM_CACHE_KEY, JSON.stringify({
+      properties: d.properties || [],
+      customers: d.customers || [],
+      holidays: d.holidays || [],
+      savedAt: Date.now()
+    }));
+  } catch (e) {}
+}
+
 async function farmLoadData(silent) {
   if (!silent) $('calLoading').style.display = 'flex';
   try {
@@ -86,6 +108,7 @@ async function farmLoadData(silent) {
     farmHolidays = new Set((d.holidays || []).filter(Boolean));
     farmBucket();
     farmRenderCalendar();
+    farmWriteCache(d);
     if (!silent) farmToast('불러오기 완료');
   } catch (e) {
     farmToast('불러오기 실패 — 네트워크를 확인해줘');
@@ -549,4 +572,18 @@ $('todayBtn').addEventListener('click', () => {
   farmRenderCalendar();
 });
 
-farmLoadData();
+/* 캐시가 있으면 즉시 그걸로 첫 화면을 그리고(로딩 스피너 없이), 최신 데이터는 뒤에서 조용히 받아온다.
+   캐시가 아예 없는 경우(이 기기에서 처음 여는 순간)만 로딩 표시하며 기다린다. */
+(function farmInit() {
+  const cached = farmReadCache();
+  if (cached) {
+    farmProperties = cached.properties || [];
+    farmCustomers = cached.customers || [];
+    farmHolidays = new Set((cached.holidays || []).filter(Boolean));
+    farmBucket();
+    farmRenderCalendar();
+    farmLoadData(true);
+  } else {
+    farmLoadData();
+  }
+})();
