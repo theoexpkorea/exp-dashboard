@@ -114,7 +114,7 @@
         </div>
         <div class="rec-field">
           <label>구분</label>
-          <select id="rec-f-type">
+          <select id="rec-f-type" data-dash-select>
             <option value="중개사">중개사 (문의 버튼 숨김)</option>
             <option value="고객">고객 (문의 버튼 노출)</option>
           </select>
@@ -161,6 +161,7 @@
 
 <script src="../js/sidebar.js"></script>
 <script src="../js/lock.js"></script>
+<script src="../js/dash-widgets.js"></script>
 <script src="../js/recommend-management.js"></script>
 <script>
   renderSidebar("recommend", { basePrefix: "../" });
