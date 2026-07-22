@@ -368,19 +368,50 @@ function deleteRecClient() {
   }).catch(function () { alert('서버에 연결할 수 없습니다.'); });
 }
 
-/* ---------------- 드래그 가능한 등록 FAB ---------------- */
+/* ---------------- 드래그 가능한 등록 FAB ----------------
+   파밍현황(farming-status.js)과 동일한 방식: 뷰포트 기준 left/top clamp + localStorage 저장.
+   이전엔 위치를 저장하지 않아서 다른 카테고리로 이동했다 돌아오거나 새로고침하면
+   항상 우측 하단 기본값으로 되돌아갔음 — 이제 마지막 위치를 기억함. */
+
+const REC_FAB_POS_KEY = 'theo_dashboard_recommend_fab_pos';
 
 function setupRecFab() {
   var fab = document.getElementById('rec-fab');
   if (!fab) return;
 
   var margin = 16;
-  fab.style.right = margin + 'px';
-  fab.style.bottom = (margin + 12) + 'px';
+
+  function clampPos(left, top) {
+    var w = fab.offsetWidth, h = fab.offsetHeight;
+    var maxLeft = Math.max(margin, window.innerWidth - w - margin);
+    var maxTop = Math.max(margin, window.innerHeight - h - margin);
+    return { left: clamp_(left, margin, maxLeft), top: clamp_(top, margin, maxTop) };
+  }
+  function applyPos(left, top) {
+    fab.style.left = left + 'px';
+    fab.style.top = top + 'px';
+    fab.style.right = 'auto';
+    fab.style.bottom = 'auto';
+  }
+
+  var restored = false;
+  try {
+    var saved = JSON.parse(localStorage.getItem(REC_FAB_POS_KEY));
+    if (saved && typeof saved.left === 'number') {
+      var c0 = clampPos(saved.left, saved.top);
+      applyPos(c0.left, c0.top);
+      restored = true;
+    }
+  } catch (e) {}
+  if (!restored) {
+    // 저장된 위치가 없을 때만 기본값(우측 하단) 사용
+    fab.style.right = margin + 'px';
+    fab.style.bottom = (margin + 12) + 'px';
+  }
 
   var dragging = false;
   var moved = false;
-  var startX, startY, startRight, startBottom;
+  var startX, startY, origLeft, origTop;
 
   fab.addEventListener('pointerdown', function (e) {
     dragging = true;
@@ -389,22 +420,35 @@ function setupRecFab() {
     startX = e.clientX;
     startY = e.clientY;
     var rect = fab.getBoundingClientRect();
-    startRight = window.innerWidth - rect.right;
-    startBottom = window.innerHeight - rect.bottom;
+    origLeft = rect.left;
+    origTop = rect.top;
   });
   fab.addEventListener('pointermove', function (e) {
     if (!dragging) return;
     var dx = e.clientX - startX;
     var dy = e.clientY - startY;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
-    var newRight = clamp_(startRight - dx, margin, window.innerWidth - fab.offsetWidth - margin);
-    var newBottom = clamp_(startBottom - dy, margin, window.innerHeight - fab.offsetHeight - margin);
-    fab.style.right = newRight + 'px';
-    fab.style.bottom = newBottom + 'px';
+    if (!moved) return;
+    var c = clampPos(origLeft + dx, origTop + dy);
+    applyPos(c.left, c.top);
   });
-  fab.addEventListener('pointerup', function () {
+  function onUp() {
+    if (!dragging) return;
     dragging = false;
-    if (!moved) openRecModal(null);
+    if (moved) {
+      var r = fab.getBoundingClientRect();
+      try { localStorage.setItem(REC_FAB_POS_KEY, JSON.stringify({ left: r.left, top: r.top })); } catch (er) {}
+    } else {
+      openRecModal(null);
+    }
+  }
+  fab.addEventListener('pointerup', onUp);
+  fab.addEventListener('pointercancel', function () { dragging = false; });
+
+  window.addEventListener('resize', function () {
+    var r = fab.getBoundingClientRect();
+    var c = clampPos(r.left, r.top);
+    applyPos(c.left, c.top);
   });
 }
 function clamp_(v, min, max) { return Math.max(min, Math.min(max, v)); }
