@@ -1950,6 +1950,8 @@ a { color: inherit; text-decoration: none; }
 .rec-filter-chip[data-scope="중도금"].active { background: #EDE9FE; color: #6D28D9; border-color: #D8CEFB; }
 .rec-filter-chip[data-scope="잔금"].active   { background: #E0E7FF; color: #4338CA; border-color: #C3CDFA; }
 .rec-filter-chip[data-scope="행사"].active   { background: #FCE7F3; color: #BE185D; border-color: #F7C4DE; }
+.rec-filter-chip[data-scope="작업"].active   { background: #DCFCE7; color: #15803D; border-color: #A9E6C3; }
+.rec-filter-chip[data-scope="TM"].active     { background: #FFEDD5; color: #C2410C; border-color: #FBCBA0; }
 
 .rec-stat-card.tint-sched-today .icon-badge { background: var(--accent-soft); color: var(--accent); }
 .rec-stat-card.tint-sched-week .icon-badge { background: #DCFCE7; color: #15803D; }
