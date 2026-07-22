@@ -591,6 +591,28 @@ $('custModalBody').addEventListener('click', e => {
   farmRenderCustDetail(row.dataset.cust);
 });
 
+/* ===== 캘린더 좌우 스와이프 → 월 이동 (모바일) ===== */
+(function () {
+  var card = document.querySelector('.farm-cal-card');
+  if (!card) return;
+  var startX = 0, startY = 0, tracking = false;
+  card.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+  card.addEventListener('touchend', function (e) {
+    if (!tracking) return;
+    tracking = false;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) $('nextBtn').click(); else $('prevBtn').click();
+    }
+  }, { passive: true });
+})();
+
 /* ===== 네비게이션 ===== */
 $('prevBtn').addEventListener('click', () => { farmViewMonth--; if (farmViewMonth < 0) { farmViewMonth = 11; farmViewYear--; } farmRenderCalendar(); });
 $('nextBtn').addEventListener('click', () => { farmViewMonth++; if (farmViewMonth > 11) { farmViewMonth = 0; farmViewYear++; } farmRenderCalendar(); });
