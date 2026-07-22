@@ -1726,9 +1726,13 @@ a { color: inherit; text-decoration: none; }
   border-radius: 8px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer;
 }
 .dash-time-item:hover { background: var(--bg); }
-.dash-time-item.sel { background: var(--accent); color: #fff; }
+.dash-time-item.sel { background: var(--accent-soft); color: var(--accent); }
 .dash-time-foot { margin-top: 12px; }
-.dash-time-foot .btn-solid { width: 100%; }
+.dash-time-foot .btn-solid {
+  width: 100%; display: flex; align-items: center; justify-content: center; text-align: center;
+  background: var(--accent-soft); color: var(--accent); font-weight: 800;
+}
+.dash-time-foot .btn-solid:hover { background: #DCE3FB; }
 
 /* 세그먼트 토글 (루틴/고객 파밍 등) */
 .dash-seg { display: flex; background: var(--bg); border-radius: var(--radius-md); padding: 4px; margin-bottom: 4px; }
@@ -1907,18 +1911,24 @@ a { color: inherit; text-decoration: none; }
    교육/미팅/투어/가계약/계약/중도금/잔금/행사 8종 이벤트 타입. 파밍현황/고객관리와 동일한
    farm-cal-*/farm-dp-* 캘린더 골격을 재사용하고, 타입별 색상만 이 블록에서 추가. */
 
-.sched-pill { font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.sched-pill {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.5;
+  background: var(--bg); color: var(--text-secondary); /* 타입 클래스가 안 붙는 경우를 위한 기본값 */
+  border-left: 3px solid var(--border-strong);
+  cursor: pointer;
+}
 .sched-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .sched-tag { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
 
-.sched-type-meeting  { background: #CFFAFE; color: #0E7490; }
-.sched-type-tour     { background: #DBEAFE; color: #1D4ED8; }
-.sched-type-preterm  { background: #FBF1E2; color: #9A5B14; }
-.sched-type-contract { background: #FDECEF; color: #E0364F; }
-.sched-type-midpay   { background: #EDE9FE; color: #6D28D9; }
-.sched-type-balance  { background: #E0E7FF; color: #4338CA; }
-.sched-type-edu      { background: #EEF1FE; color: #2746E6; }
-.sched-type-event    { background: #FCE7F3; color: #BE185D; }
+.sched-type-meeting  { background: #CFFAFE; color: #0E7490; border-left-color: #0E7490; }
+.sched-type-tour     { background: #DBEAFE; color: #1D4ED8; border-left-color: #1D4ED8; }
+.sched-type-preterm  { background: #FBF1E2; color: #9A5B14; border-left-color: #9A5B14; }
+.sched-type-contract { background: #FDECEF; color: #E0364F; border-left-color: #E0364F; }
+.sched-type-midpay   { background: #EDE9FE; color: #6D28D9; border-left-color: #6D28D9; }
+.sched-type-balance  { background: #E0E7FF; color: #4338CA; border-left-color: #4338CA; }
+.sched-type-edu      { background: #EEF1FE; color: #2746E6; border-left-color: #2746E6; }
+.sched-type-event    { background: #FCE7F3; color: #BE185D; border-left-color: #BE185D; }
 
 .sched-dot.sched-type-meeting  { background: #0E7490; }
 .sched-dot.sched-type-tour     { background: #1D4ED8; }
