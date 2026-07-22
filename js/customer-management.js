@@ -101,7 +101,7 @@ let crmAllItems = [];
 let crmStatusOptions = {};
 let crmScope = 'all'; // all | SALE | LEAD | CONTRACT
 let crmEventsByDate = {};
-let crmHolidays = new Set(); // 'YYYY-MM-DD' — 구글시트 '공휴일' 탭 (mode=crmList 응답의 holidays 필드, 있을 때만)
+let crmHolidays = new Map(); // 'YYYY-MM-DD' -> 명칭 — 구글시트 '공휴일' 탭 A열(날짜)/B열(명칭)
 
 function crmScopeMatch(it) { return crmScope === 'all' || it.cat === crmScope; }
 function crmBucket() {
@@ -120,7 +120,7 @@ function crmReadCache() {
   try { const raw = localStorage.getItem(CRM_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
 function crmWriteCache(items, statusOptions, holidays) {
-  try { localStorage.setItem(CRM_CACHE_KEY, JSON.stringify({ items: items || [], statusOptions: statusOptions || {}, holidays: holidays ? Array.from(holidays) : [], savedAt: Date.now() })); } catch (e) {}
+  try { localStorage.setItem(CRM_CACHE_KEY, JSON.stringify({ items: items || [], statusOptions: statusOptions || {}, holidays: holidays ? Array.from(holidays.entries()) : [], savedAt: Date.now() })); } catch (e) {}
 }
 
 async function crmLoadData(silent) {
@@ -130,7 +130,7 @@ async function crmLoadData(silent) {
     if (res && res.items) {
       crmAllItems = res.items;
       crmStatusOptions = res.statusOptions || {};
-      crmHolidays = new Set((res.holidays || []).filter(Boolean));
+      crmHolidays = new Map((res.holidays || []).filter(function (h) { return h && h.date; }).map(function (h) { return [h.date, h.name || '']; }));
       crmBucket();
       crmRenderCalendar();
       crmWriteCache(crmAllItems, crmStatusOptions, crmHolidays);
@@ -208,12 +208,21 @@ function crmRenderCalendar() {
     const key = crmYmd(cellY, cellM, dateNum);
     const isToday = (cellY === crmToday.getFullYear() && cellM === crmToday.getMonth() && dateNum === crmToday.getDate());
     if (isToday) cell.classList.add('today');
-    if (crmHolidays.has(key)) cell.classList.add('holiday');
+    const holidayName = crmHolidays.get(key);
+    if (holidayName !== undefined) cell.classList.add('holiday');
 
     const numEl = document.createElement('div');
     numEl.className = 'farm-date-num';
     numEl.textContent = dateNum;
     cell.appendChild(numEl);
+
+    if (holidayName) {
+      const hLabel = document.createElement('div');
+      hLabel.className = 'farm-holiday-label';
+      hLabel.textContent = holidayName;
+      hLabel.title = holidayName;
+      cell.appendChild(hLabel);
+    }
 
     const events = isOutside ? [] : (crmEventsByDate[key] || []);
     const isOverdue = crmDDay(key) < 0;
@@ -732,7 +741,7 @@ $('todayBtn').addEventListener('click', () => { crmViewYear = crmToday.getFullYe
   if (cached) {
     crmAllItems = cached.items || [];
     crmStatusOptions = cached.statusOptions || {};
-    crmHolidays = new Set((cached.holidays || []).filter(Boolean));
+    crmHolidays = new Map((cached.holidays || []).filter(function (h) { return Array.isArray(h) && h[0]; }));
     crmBucket();
     crmRenderCalendar();
     crmLoadData(true);

@@ -65,7 +65,7 @@ let farmViewYear = farmToday.getFullYear();
 let farmViewMonth = farmToday.getMonth();
 let farmProperties = [];
 let farmCustomers = [];
-let farmHolidays = new Set(); // 'YYYY-MM-DD' — Apps Script mode=data 응답의 holidays 필드 (있을 때만)
+let farmHolidays = new Map(); // 'YYYY-MM-DD' -> 명칭 — 구글시트 '공휴일' 탭 A열(날짜)/B열(명칭)
 let farmScope = 'all'; // all | routine | customer
 
 function farmScopeMatch(p) {
@@ -118,7 +118,7 @@ async function farmLoadData(silent) {
     const d = await farmJsonpRetry({ mode: 'data' });
     farmProperties = d.properties || [];
     farmCustomers = d.customers || [];
-    farmHolidays = new Set((d.holidays || []).filter(Boolean));
+    farmHolidays = new Map((d.holidays || []).filter(function (h) { return h && h.date; }).map(function (h) { return [h.date, h.name || '']; }));
     farmBucket();
     farmRenderCalendar();
     farmWriteCache(d);
@@ -192,12 +192,21 @@ function farmRenderCalendar() {
     const key = farmYmd(cellY, cellM, dateNum);
     const isToday = (cellY === farmToday.getFullYear() && cellM === farmToday.getMonth() && dateNum === farmToday.getDate());
     if (isToday) cell.classList.add('today');
-    if (farmHolidays.has(key)) cell.classList.add('holiday');
+    const holidayName = farmHolidays.get(key);
+    if (holidayName !== undefined) cell.classList.add('holiday');
 
     const numEl = document.createElement('div');
     numEl.className = 'farm-date-num';
     numEl.textContent = dateNum;
     cell.appendChild(numEl);
+
+    if (holidayName) {
+      const hLabel = document.createElement('div');
+      hLabel.className = 'farm-holiday-label';
+      hLabel.textContent = holidayName;
+      hLabel.title = holidayName;
+      cell.appendChild(hLabel);
+    }
 
     const events = farmEventsByDate[key] || [];
     if (!isOutside) {
@@ -630,7 +639,7 @@ $('todayBtn').addEventListener('click', () => {
   if (cached) {
     farmProperties = cached.properties || [];
     farmCustomers = cached.customers || [];
-    farmHolidays = new Set((cached.holidays || []).filter(Boolean));
+    farmHolidays = new Map((cached.holidays || []).filter(function (h) { return h && h.date; }).map(function (h) { return [h.date, h.name || '']; }));
     farmBucket();
     farmRenderCalendar();
     farmLoadData(true);
