@@ -48,16 +48,30 @@ const farmToday = new Date();
 let farmViewYear = farmToday.getFullYear();
 let farmViewMonth = farmToday.getMonth();
 let farmProperties = [];
-let farmEventsByDate = {};
+let farmCustomers = [];
+let farmHolidays = new Set(); // 'YYYY-MM-DD' — Apps Script mode=data 응답의 holidays 필드 (있을 때만)
+let farmScope = 'all'; // all | routine | customer
+
+function farmScopeMatch(p) {
+  if (farmScope === 'routine') return !p.고객ID;
+  if (farmScope === 'customer') return !!p.고객ID;
+  return true;
+}
 
 function farmBucket() {
   farmEventsByDate = {};
-  farmProperties.forEach(p => {
+  farmProperties.filter(farmScopeMatch).forEach(p => {
     const d = p.파밍일자;
     if (!d) return;
     if (!farmEventsByDate[d]) farmEventsByDate[d] = [];
     farmEventsByDate[d].push(p);
   });
+}
+let farmEventsByDate = {};
+
+function farmCustName(id) {
+  const c = farmCustomers.find(x => x.고객ID === id);
+  return c ? c.고객명 : id;
 }
 
 async function farmLoadData(silent) {
@@ -65,6 +79,8 @@ async function farmLoadData(silent) {
   try {
     const d = await farmJsonpRetry({ mode: 'data' });
     farmProperties = d.properties || [];
+    farmCustomers = d.customers || [];
+    farmHolidays = new Set((d.holidays || []).filter(Boolean));
     farmBucket();
     farmRenderCalendar();
     if (!silent) farmToast('불러오기 완료');
@@ -74,6 +90,27 @@ async function farmLoadData(silent) {
     $('calLoading').style.display = 'none';
   }
 }
+
+/* ===== 스코프 탭 (전체/루틴/고객) ===== */
+document.getElementById('scopeTabs').addEventListener('click', e => {
+  const btn = e.target.closest('[data-scope]'); if (!btn) return;
+  farmScope = btn.dataset.scope;
+  document.querySelectorAll('#scopeTabs .rec-filter-chip').forEach(b => b.classList.toggle('active', b === btn));
+  farmBucket();
+  farmRenderCalendar();
+});
+
+/* ===== 모바일 판별 (도트 렌더링 전환용) ===== */
+function farmIsMobile() { return window.matchMedia('(max-width: 760px)').matches; }
+let __farmLastMobile = farmIsMobile();
+let __farmResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(__farmResizeTimer);
+  __farmResizeTimer = setTimeout(() => {
+    const nowMobile = farmIsMobile();
+    if (nowMobile !== __farmLastMobile) { __farmLastMobile = nowMobile; farmRenderCalendar(); }
+  }, 150);
+});
 
 /* ===== 캘린더 렌더 ===== */
 function farmRenderCalendar() {
@@ -116,6 +153,7 @@ function farmRenderCalendar() {
     const key = farmYmd(cellY, cellM, dateNum);
     const isToday = (cellY === farmToday.getFullYear() && cellM === farmToday.getMonth() && dateNum === farmToday.getDate());
     if (isToday) cell.classList.add('today');
+    if (farmHolidays.has(key)) cell.classList.add('holiday');
 
     const numEl = document.createElement('div');
     numEl.className = 'farm-date-num';
@@ -132,20 +170,41 @@ function farmRenderCalendar() {
       if (isToday) todayCount = events.length;
     }
 
-    const maxShow = 3;
-    events.slice(0, maxShow).forEach(ev => {
-      const pill = document.createElement('div');
-      pill.className = 'farm-pill ' + (FARM_STATUS_CLASS[ev.파밍여부] || 'plan');
-      const label = ev.건물명 || ev.주소 || '(이름없음)';
-      pill.textContent = label;
-      pill.title = label;
-      cell.appendChild(pill);
-    });
-    if (events.length > maxShow) {
-      const more = document.createElement('div');
-      more.className = 'farm-more';
-      more.textContent = '+' + (events.length - maxShow) + '개 더보기';
-      cell.appendChild(more);
+    if (farmIsMobile()) {
+      // 폰 화면 — 텍스트 대신 상태 도트만 (칸이 찌그러지지 않도록)
+      if (events.length) {
+        const dotRow = document.createElement('div');
+        dotRow.className = 'farm-dot-row';
+        const maxDots = 6;
+        events.slice(0, maxDots).forEach(ev => {
+          const dot = document.createElement('span');
+          dot.className = 'farm-dot ' + (FARM_STATUS_CLASS[ev.파밍여부] || 'plan');
+          dotRow.appendChild(dot);
+        });
+        if (events.length > maxDots) {
+          const more = document.createElement('span');
+          more.className = 'farm-dot-more';
+          more.textContent = '+' + (events.length - maxDots);
+          dotRow.appendChild(more);
+        }
+        cell.appendChild(dotRow);
+      }
+    } else {
+      const maxShow = 3;
+      events.slice(0, maxShow).forEach(ev => {
+        const pill = document.createElement('div');
+        pill.className = 'farm-pill ' + (FARM_STATUS_CLASS[ev.파밍여부] || 'plan');
+        const label = ev.건물명 || ev.주소 || '(이름없음)';
+        pill.textContent = label;
+        pill.title = label;
+        cell.appendChild(pill);
+      });
+      if (events.length > maxShow) {
+        const more = document.createElement('div');
+        more.className = 'farm-more';
+        more.textContent = '+' + (events.length - maxShow) + '개 더보기';
+        cell.appendChild(more);
+      }
     }
 
     cell.addEventListener('click', ((k, yy, mo, dd, evs) => () => farmOpenDayPanel(k, yy, mo, dd, evs))(key, cellY, cellM, dateNum, events));
@@ -182,7 +241,8 @@ function farmOpenDayPanel(key, y, m, d, events) {
       item.innerHTML =
         '<div class="farm-dp-item-top">' +
           '<span class="farm-dp-tag ' + cls + '">' + (ev.파밍여부 || '파밍예정') + '</span>' +
-          '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '">수정</button>' +
+          (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
+          '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '" style="margin-left:auto;">수정</button>' +
         '</div>' +
         '<div class="farm-dp-addr">' + (ev.건물명 || ev.주소 || '(이름없음)') + '</div>' +
         (ev.건물명 && ev.주소 ? '<div class="farm-dp-sub2">' + ev.주소 + '</div>' : '') +
@@ -216,11 +276,26 @@ $('dpAdd').addEventListener('click', () => farmOpenForm(null, farmCurrentPanelKe
 const farmFormOverlay = $('formOverlay');
 let farmEditingId = null;
 
+function farmPopulateCustSelect(selectedId) {
+  const sel = $('fCust');
+  const sorted = [...farmCustomers].sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
+  sel.innerHTML = '<option value="">고객 선택</option>' +
+    sorted.map(c => '<option value="' + c.고객ID + '">' + c.고객ID + ' · ' + (c.고객명 || '') + '</option>').join('');
+  sel.value = selectedId || '';
+}
+
 function farmOpenForm(existing, dateForNew) {
   farmEditingId = existing ? existing.매물ID : null;
   $('formTitle').textContent = existing ? '파밍 수정' : '파밍 등록';
   $('formError').textContent = '';
   $('formDelete').classList.toggle('hidden', !existing);
+
+  const isCustScope = existing ? !!existing.고객ID : (farmScope === 'customer');
+  $('fScopeRoutine').checked = !isCustScope;
+  $('fScopeCustomer').checked = isCustScope;
+  $('custPickWrap').classList.toggle('hidden', !isCustScope);
+  farmPopulateCustSelect(existing ? existing.고객ID : '');
+
   $('fDate').value = existing ? existing.파밍일자 : (dateForNew || farmYmd(farmToday.getFullYear(), farmToday.getMonth(), farmToday.getDate()));
   $('fStatus').value = existing ? (existing.파밍여부 || '파밍예정') : '파밍예정';
   $('fName').value = existing ? (existing.건물명 || '') : '';
@@ -244,7 +319,13 @@ function farmOpenForm(existing, dateForNew) {
 function farmCloseForm() { farmFormOverlay.classList.remove('show'); }
 $('formClose').addEventListener('click', farmCloseForm);
 $('formCancel').addEventListener('click', farmCloseForm);
-$('addBtn').addEventListener('click', () => farmOpenForm(null, null));
+$('addBtn').addEventListener('click', () => { if (!$('addBtn').dataset.justDragged) farmOpenForm(null, null); });
+
+['fScopeRoutine', 'fScopeCustomer'].forEach(id => {
+  $(id).addEventListener('change', () => {
+    $('custPickWrap').classList.toggle('hidden', !$('fScopeCustomer').checked);
+  });
+});
 
 $('fDeal').addEventListener('change', function () {
   $('fDepositLabel').textContent = this.value === '매매' ? '매매가' : '보증금';
@@ -274,6 +355,7 @@ $('formSave').addEventListener('click', async () => {
     매물장번호: $('fLedger').value.trim(),
     메모: $('fMemo').value.trim(),
     파밍메모: $('fFarmMemo').value.trim(),
+    고객ID: $('fScopeCustomer').checked ? $('fCust').value : '',
   };
   if (farmEditingId) payload.매물ID = farmEditingId;
 
@@ -303,6 +385,110 @@ $('formDelete').addEventListener('click', async () => {
   } catch (e) {
     farmToast('삭제 전송 실패');
   }
+});
+
+/* ===== FAB 드래그 이동 (파밍서치와 동일 방식: 뷰포트 기준 clamp + localStorage 저장) ===== */
+(function () {
+  const fab = $('addBtn');
+  const POS_KEY = 'theo_dashboard_farm_fab_pos';
+  const margin = 4;
+
+  function clamp(left, top) {
+    const w = fab.offsetWidth, h = fab.offsetHeight;
+    const maxLeft = Math.max(margin, window.innerWidth - w - margin);
+    const maxTop = Math.max(margin, window.innerHeight - h - margin);
+    return { left: Math.min(Math.max(left, margin), maxLeft), top: Math.min(Math.max(top, margin), maxTop) };
+  }
+  function applyPos(left, top) {
+    fab.style.left = left + 'px'; fab.style.top = top + 'px';
+    fab.style.right = 'auto'; fab.style.bottom = 'auto';
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem(POS_KEY));
+    if (saved && typeof saved.left === 'number') {
+      const c = clamp(saved.left, saved.top);
+      applyPos(c.left, c.top);
+    }
+  } catch (e) {}
+
+  let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+  fab.addEventListener('pointerdown', e => {
+    dragging = true; moved = false;
+    const r = fab.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY; origLeft = r.left; origTop = r.top;
+    fab.setPointerCapture(e.pointerId);
+  });
+  fab.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (!moved) return;
+    const c = clamp(origLeft + dx, origTop + dy);
+    applyPos(c.left, c.top);
+  });
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    if (moved) {
+      const r = fab.getBoundingClientRect();
+      try { localStorage.setItem(POS_KEY, JSON.stringify({ left: r.left, top: r.top })); } catch (er) {}
+      fab.dataset.justDragged = '1';
+      setTimeout(() => { delete fab.dataset.justDragged; }, 80);
+    }
+  }
+  fab.addEventListener('pointerup', onUp);
+  fab.addEventListener('pointercancel', onUp);
+
+  window.addEventListener('resize', () => {
+    const r = fab.getBoundingClientRect();
+    const c = clamp(r.left, r.top);
+    applyPos(c.left, c.top);
+  });
+})();
+
+/* ===== 고객조건 보기 (목록 ↔ 상세) ===== */
+const farmCustOverlay = $('custOverlay');
+function farmSortedCustomers() {
+  return [...farmCustomers].sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
+}
+function farmRenderCustList() {
+  $('custModalTitle').textContent = '고객조건 보기';
+  const list = farmSortedCustomers();
+  $('custModalBody').innerHTML = list.length ? list.map(c =>
+    '<div class="farm-cust-row" data-cust="' + c.고객ID + '">' +
+      '<div class="farm-cust-name">' + c.고객ID + ' · ' + (c.고객명 || '') + '</div>' +
+      '<div class="farm-cust-meta">' + [c.희망지역, c.희망거래유형, (c.평수최소 || '?') + '~' + (c.평수최대 || '?') + '평'].filter(Boolean).join(' · ') + (c.연락처 ? ' · ' + c.연락처 : '') + '</div>' +
+    '</div>'
+  ).join('') : '<div class="farm-cust-empty">등록된 고객이 없습니다.</div>';
+}
+function farmRenderCustDetail(id) {
+  const c = farmCustomers.find(x => x.고객ID === id);
+  if (!c) return;
+  $('custModalTitle').textContent = c.고객ID;
+  const tel = c.연락처 ? '<a href="tel:' + c.연락처 + '" style="color:var(--accent);font-weight:700;text-decoration:none;">' + c.연락처 + '</a>' : '-';
+  const rows = [
+    ['고객명', c.고객명 || '-'],
+    ['연락처', tel, true],
+    ['희망 지역', c.희망지역 || '-'],
+    ['희망 거래유형', c.희망거래유형 || '-'],
+    ['평수(최소)', c.평수최소 ? c.평수최소 + '평' : '-'],
+    ['평수(최대)', c.평수최대 ? c.평수최대 + '평' : '-'],
+    ['예산 보증금/매매가', c.예산보증금매매가 || '-'],
+    ['예산 월세', c.예산월세 || '-'],
+    ['희망 층수', c.희망층수 || '-'],
+    ['기타 요청사항', c.기타요청 || '-'],
+  ];
+  $('custModalBody').innerHTML =
+    '<button class="farm-cust-back" id="custBackBtn">← 목록으로</button>' +
+    rows.map(([k, v, raw]) => '<div class="farm-cust-detail-row"><div class="k">' + k + '</div><div class="v">' + (raw ? v : v) + '</div></div>').join('');
+  $('custBackBtn').addEventListener('click', farmRenderCustList);
+}
+$('custListBtn').addEventListener('click', () => { farmRenderCustList(); farmCustOverlay.classList.add('show'); });
+$('custModalClose').addEventListener('click', () => farmCustOverlay.classList.remove('show'));
+farmCustOverlay.addEventListener('click', e => { if (e.target === farmCustOverlay) farmCustOverlay.classList.remove('show'); });
+$('custModalBody').addEventListener('click', e => {
+  const row = e.target.closest('[data-cust]'); if (!row) return;
+  farmRenderCustDetail(row.dataset.cust);
 });
 
 /* ===== 네비게이션 ===== */
