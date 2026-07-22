@@ -1708,6 +1708,28 @@ a { color: inherit; text-decoration: none; }
 .dash-cal-day.today { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
 .dash-cal-day.sel { background: var(--accent); color: #fff; }
 
+/* 시간 선택 팝업 (일정 등록/수정 폼) */
+.dash-time-overlay {
+  position: fixed; inset: 0; z-index: 130; background: rgba(16,24,40,.45);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.dash-time-overlay.open { display: flex; }
+.dash-time-box { width: 100%; max-width: 300px; background: var(--surface); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-lg); }
+.dash-time-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.dash-time-head .title { font-weight: 800; font-size: 15px; }
+.dash-time-head button { width: 30px; height: 30px; border-radius: 9px; background: var(--bg); color: var(--text-secondary); border: none; cursor: pointer; font-family: inherit; font-size: 14px; }
+.dash-time-head button:hover { background: var(--accent-soft); color: var(--accent); }
+.dash-time-cols { display: flex; gap: 8px; }
+.dash-time-col { flex: 1; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px; }
+.dash-time-item {
+  display: flex; align-items: center; justify-content: center; height: 38px;
+  border-radius: 8px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer;
+}
+.dash-time-item:hover { background: var(--bg); }
+.dash-time-item.sel { background: var(--accent); color: #fff; }
+.dash-time-foot { margin-top: 12px; }
+.dash-time-foot .btn-solid { width: 100%; }
+
 /* 세그먼트 토글 (루틴/고객 파밍 등) */
 .dash-seg { display: flex; background: var(--bg); border-radius: var(--radius-md); padding: 4px; margin-bottom: 4px; }
 .dash-seg button {
