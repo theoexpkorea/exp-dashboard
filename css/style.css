@@ -1726,3 +1726,66 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+/* ===== 파밍현황 카드 추가분 (2026-07-22) =====
+   고객조건 적합여부 태그 + 네이버지도/매물광고 링크 버튼
+   (파밍서치 index.html의 .tag.fit-* / .link-btn 패턴을 대시보드 톤으로 재구현) */
+
+.farm-fit-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.farm-fit-tag.fit-ok {
+  background: #E7F4ED;
+  color: #1F7A4D;
+}
+.farm-fit-tag.fit-check {
+  background: #FDF3DA;
+  color: #9A6B0A;
+}
+.farm-fit-tag.fit-bad {
+  background: #FBE9E9;
+  color: var(--danger, #D64545);
+}
+.farm-fit-tag.fit-none {
+  background: #EEF0F3;
+  color: var(--text-secondary, #727A86);
+}
+
+.farm-dp-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.farm-dp-link-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border, #E6E8EC);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text, #15181E);
+  text-decoration: none;
+  background: var(--surface, #FFFFFF);
+  cursor: pointer;
+}
+.farm-dp-link-btn:hover {
+  background: var(--accent-soft, #EEF1FE);
+  border-color: var(--accent, #2746E6);
+  color: var(--accent, #2746E6);
+}
+.farm-dp-link-btn svg {
+  flex-shrink: 0;
+}
+.farm-dp-link-btn.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
