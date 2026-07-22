@@ -25,6 +25,19 @@ function farmFmtNum(v) {
   return isNaN(n) ? '-' : n.toLocaleString('ko-KR');
 }
 
+/* ===== 네이버지도 / 매물광고 링크, 고객조건 적합여부 태그 (파밍서치 index.html과 동일 로직) ===== */
+function farmMapUrl(addr) { return 'https://map.naver.com/p/search/' + encodeURIComponent(addr); }
+function farmPropLinkUrl(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (/^\d+$/.test(s)) return 'https://fin.land.naver.com/articles/' + s;
+  if (/^https?:\/\//.test(s)) return s;
+  return '';
+}
+const FARM_FIT_CLASS = { '적합': 'ok', '적합(예산확인)': 'check', '조건미달': 'bad', '고객정보없음': 'none' };
+const FARM_ICON_MAP = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+const FARM_ICON_LINK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1 1"/><path d="M14.5 9.5a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1-1"/></svg>';
+
 /* ===== JSONP ===== */
 function farmJsonp(params, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -266,11 +279,17 @@ function farmOpenDayPanel(key, y, m, d, events) {
       const item = document.createElement('div');
       item.className = 'farm-dp-item';
       const cls = FARM_STATUS_CLASS[ev.파밍여부] || 'plan';
+      const fit = ev.적합여부;
+      const fitCls = fit ? (FARM_FIT_CLASS[fit] || 'none') : '';
+      const mapHref = ev.주소 ? farmMapUrl(ev.주소) : '';
+      const listHref = farmPropLinkUrl(ev.매물링크);
       item.innerHTML =
         '<div class="farm-dp-idchip">' + (ev.매물ID || '') + '</div>' +
         '<div class="farm-dp-item-top">' +
           '<button class="farm-dp-tag ' + cls + '" data-cycle="' + (ev.매물ID || '') + '" style="border:none;cursor:pointer;font-family:inherit;">' + (ev.파밍여부 || '파밍예정') + '</button>' +
           (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
+          // 고객파밍(고객ID 있음)일 때만 고객조건 적합여부 표시 — 루틴파밍엔 해당 없음
+          (ev.고객ID && fit ? '<span class="farm-fit-tag fit-' + fitCls + '">' + fit + '</span>' : '') +
           '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '" style="margin-left:auto;">수정</button>' +
         '</div>' +
         '<div class="farm-dp-addr">' + (ev.건물명 || ev.주소 || '(이름없음)') + '</div>' +
@@ -281,9 +300,19 @@ function farmOpenDayPanel(key, y, m, d, events) {
           (ev.전용면적 ? '<span>평수 <b>' + ev.전용면적 + '평</b></span>' : '') +
           (ev.보증금매매가 ? '<span>보증금 <b>' + farmFmtNum(ev.보증금매매가) + '</b></span>' : '') +
           (ev.월세 ? '<span>월세 <b>' + farmFmtNum(ev.월세) + '</b></span>' : '') +
+          (ev.관리비 ? '<span>관리비 <b>' + farmFmtNum(ev.관리비) + '</b></span>' : '') +
+          (ev.평단가 !== undefined && ev.평단가 !== '' ? '<span>평단가 <b>' + ev.평단가 + '만</b></span>' : '') +
         '</div>' +
         (ev.메모 ? '<div class="farm-dp-memo">' + ev.메모 + '</div>' : '') +
-        (ev.파밍메모 ? '<div class="farm-dp-memo">파밍메모 · ' + ev.파밍메모 + '</div>' : '');
+        (ev.파밍메모 ? '<div class="farm-dp-memo">파밍메모 · ' + ev.파밍메모 + '</div>' : '') +
+        '<div class="farm-dp-links">' +
+          (mapHref
+            ? '<a class="farm-dp-link-btn" href="' + mapHref + '" target="_blank" rel="noopener">' + FARM_ICON_MAP + '네이버지도</a>'
+            : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_MAP + '네이버지도</span>') +
+          (listHref
+            ? '<a class="farm-dp-link-btn" href="' + listHref + '" target="_blank" rel="noopener">' + FARM_ICON_LINK + '매물광고</a>'
+            : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_LINK + '매물광고</span>') +
+        '</div>';
       body.appendChild(item);
     });
   }
