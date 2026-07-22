@@ -1795,7 +1795,7 @@ a { color: inherit; text-decoration: none; }
    그대로 가져와 캘린더 점/알약, 태그, 스코프탭 색상에 재사용. 캘린더 그리드/일별패널은
    farm-cal-*/farm-dp-* 를 그대로 재사용하고, 카테고리 색상만 이 블록에서 추가. */
 
-.rec-stat-card.tint-today .icon-badge { background: #FDECEC; color: #C0392B; }
+.rec-stat-card.tint-today .icon-badge { background: #FEE2E2 !important; color: #DC2626 !important; }
 .rec-stat-card.tint-sale .icon-badge { background: #DBEAFE; color: #1D5FBF; }
 .rec-stat-card.tint-lead .icon-badge { background: #DCFCE7; color: #12805E; }
 .rec-stat-card.tint-contract .icon-badge { background: #EDE9FE; color: #6A3FB0; }
@@ -1828,32 +1828,50 @@ a { color: inherit; text-decoration: none; }
 .cust-dday-badge.today { background: #FBF1E2; color: #9A5B14; }
 .cust-dday-badge.upcoming { background: #E7F4ED; color: #1F7A4D; }
 
-.cust-name-row { font-size: 14.5px; font-weight: 800; margin: 7px 0 2px; }
+.cust-name-row { font-size: 14.5px; font-weight: 800; margin: 11px 0 5px; }
 .cust-name-row a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
 .cust-name-row a:hover { color: var(--accent); }
-.cust-sub-row { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.cust-sub-row { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
 .cust-sub-row a { color: var(--accent); font-weight: 700; text-decoration: none; }
+
+/* 이음/코드/최종연락일-다음연락일 사이 여백 (farm-dp-sub2, farm-dp-specs 재사용 부분) */
+.farm-dp-item .farm-dp-sub2 { margin: 2px 0 12px; }
+.farm-dp-item .farm-dp-specs { margin: 10px 0 14px; gap: 8px 16px; }
 
 /* 연락완료/연락예정 토글 버튼 */
 .cust-done-btn {
-  width: 100%; height: 38px; border-radius: 9px; border: 1.5px solid var(--border);
+  width: 100%; height: 40px; border-radius: 9px; border: 1.5px solid var(--border);
   background: var(--bg); color: var(--text); font-size: 13px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
-  font-family: inherit; margin-top: 4px;
+  font-family: inherit; margin-top: 10px;
 }
 .cust-done-btn.done { background: #1F7A4D; color: #fff; border-color: #1F7A4D; }
 .cust-done-btn:hover { opacity: 0.88; }
 
-/* 연락완료 처리 인라인 패널 */
-.cust-contact-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+/* 연락완료 처리 인라인 패널 — 상태 / 미리보기 / 메모 / 취소·저장 사이 여백 넉넉하게 */
+.cust-contact-panel { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
 .cust-contact-panel.show { display: block; }
-.cust-contact-panel .rec-field { margin-bottom: 8px; }
-.cust-contact-preview { font-size: 11.5px; color: var(--text-secondary); background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; line-height: 1.4; }
+.cust-contact-panel .rec-field { margin-bottom: 14px; }
+.cust-contact-panel .rec-field:last-of-type { margin-bottom: 0; }
+.cust-contact-preview { font-size: 11.5px; color: var(--text-secondary); background: var(--bg); border-radius: 8px; padding: 9px 11px; margin-bottom: 14px; line-height: 1.5; }
 .cust-contact-preview b { color: var(--text); font-weight: 800; }
-.cust-contact-actions { display: flex; gap: 8px; margin-top: 4px; }
-.cust-contact-actions button { flex: 1; height: 38px; border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; border: none; }
+.cust-contact-actions { display: flex; gap: 10px; margin-top: 14px; }
+.cust-contact-actions button { flex: 1; height: 40px; border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; border: none; }
 .cust-contact-cancel { background: var(--bg); color: var(--text); }
 .cust-contact-save { background: var(--accent); color: #fff; }
+
+/* 카드 상단 태그(왼쪽) / 수정버튼·D-day(오른쪽) 그룹 분리 */
+.cust-tags-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cust-tags-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.cust-edit-btn {
+  width: 26px; height: 26px; border-radius: 8px; border: 0; background: transparent;
+  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; flex-shrink: 0;
+}
+.cust-edit-btn:hover { background: var(--bg); color: var(--accent); }
+
+/* 등록/수정 모달 — 필드 사이 간격 (rec-form-grid 래핑으로 기본 18px 간격 적용됨) */
+#formFields .dash-picker-btn { margin-bottom: 0; }
 
 @media (max-width: 480px) {
   .rec-stat-card.tint-today .icon-badge,
