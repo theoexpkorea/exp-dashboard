@@ -419,12 +419,7 @@ a { color: inherit; text-decoration: none; }
   transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 .summary-card.static { box-shadow: var(--shadow-sm); border-color: transparent; }
-.summary-card.tint-1 { background: linear-gradient(165deg, #EEF2FF 0%, var(--surface) 62%); }
-.summary-card.tint-2 { background: linear-gradient(165deg, #ECFEFF 0%, var(--surface) 62%); }
-.summary-card.tint-3 { background: linear-gradient(165deg, #F5F3FF 0%, var(--surface) 62%); }
-.summary-card.tint-4 { background: linear-gradient(165deg, #EFF6FF 0%, var(--surface) 62%); }
-.summary-card.tint-5 { background: linear-gradient(165deg, #F0FDFA 0%, var(--surface) 62%); }
-.summary-card.tint-6 { background: linear-gradient(165deg, #FAF5FF 0%, var(--surface) 62%); }
+/* 그라데이션 제거 — 카드는 항상 평평한 흰 배경, 아이콘 배지 색상으로만 구분 */
 .summary-card.tint-1 .icon-badge { background: #E0E7FF; color: #4338CA; }
 .summary-card.tint-2 .icon-badge { background: #CFFAFE; color: #0E7490; }
 .summary-card.tint-3 .icon-badge { background: #EDE9FE; color: #6D28D9; }
@@ -1428,6 +1423,160 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 .rec-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------------- Farming status (파밍현황) ---------------- */
+
+.farm-warn-bar {
+  background: #FFF6E5;
+  border: 1px solid #F0DBA6;
+  color: #8A6412;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.rec-stat-card.tint-plan .icon-badge { background: var(--accent-soft); color: var(--accent); }
+.rec-stat-card.tint-neutral .icon-badge { background: #E2E8F0; color: #475569; }
+
+.farm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.farm-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 6px;
+}
+.farm-nav-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 7px;
+  cursor: pointer; color: var(--text-secondary); font-size: 15px; font-family: inherit;
+}
+.farm-nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.farm-month-label { font-size: 14.5px; font-weight: 800; min-width: 96px; text-align: center; }
+
+.farm-cal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+.farm-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); }
+.farm-cal-weekdays div { padding: 10px 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.farm-cal-weekdays div.sun { color: var(--danger); }
+.farm-cal-weekdays div.sat { color: var(--accent); }
+.farm-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.farm-cal-cell {
+  min-height: 118px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 6px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.farm-cal-cell:hover { background: var(--bg); }
+.farm-cal-cell:nth-child(7n) { border-right: none; }
+.farm-cal-cell.outside { background: #FAFAFB; }
+.farm-cal-cell.outside .farm-date-num { color: var(--text-muted); }
+.farm-date-num {
+  font-size: 12.5px; font-weight: 700; color: var(--text);
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; margin-bottom: 2px;
+}
+.farm-cal-cell.sun .farm-date-num { color: var(--danger); }
+.farm-cal-cell.sat .farm-date-num { color: var(--accent); }
+.farm-cal-cell.today .farm-date-num { background: var(--text); color: #fff; }
+
+.farm-pill {
+  font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
+}
+.farm-pill.plan { background: var(--accent-soft); color: var(--accent); }
+.farm-pill.done { background: #E7F4ED; color: #1F7A4D; }
+.farm-pill.hold { background: #FBF1E2; color: #9A5B14; }
+.farm-pill.cancel { background: var(--bg); color: var(--text-muted); text-decoration: line-through; }
+.farm-more { font-size: 11px; font-weight: 700; color: var(--text-secondary); padding: 2px 7px; }
+
+.farm-cal-loading {
+  position: absolute; inset: 0; background: rgba(255,255,255,.85);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text-secondary); font-weight: 700;
+}
+
+.farm-legend { display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap; padding: 0 2px; }
+.farm-legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); }
+.farm-legend-swatch { width: 9px; height: 9px; border-radius: 3px; }
+
+.farm-note { margin-top: 14px; font-size: 11.5px; color: var(--text-secondary); line-height: 1.6; padding: 0 2px; }
+
+/* 일별 상세 슬라이드 패널 */
+.farm-overlay {
+  position: fixed; inset: 0; background: rgba(16,24,40,.4);
+  opacity: 0; pointer-events: none; transition: opacity 0.16s ease; z-index: 90;
+}
+.farm-overlay.open { opacity: 1; pointer-events: auto; }
+.farm-day-panel {
+  position: fixed; top: 0; right: 0; height: 100%;
+  width: 380px; max-width: 92vw;
+  background: var(--surface); box-shadow: var(--shadow-lg);
+  transform: translateX(100%); transition: transform 0.2s ease;
+  z-index: 91; display: flex; flex-direction: column;
+}
+.farm-day-panel.open { transform: translateX(0); }
+.farm-dp-head { padding: 20px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.farm-dp-title { font-size: 16px; font-weight: 800; }
+.farm-dp-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 3px; }
+.farm-dp-close {
+  border: none; background: transparent; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary); font-family: inherit;
+}
+.farm-dp-close:hover { background: var(--accent-soft); color: var(--accent); }
+.farm-dp-body { padding: 14px 16px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.farm-dp-empty { color: var(--text-secondary); font-size: 13px; padding: 30px 6px; text-align: center; }
+.farm-dp-item { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 13px; }
+.farm-dp-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
+.farm-dp-tag { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
+.farm-dp-tag.plan { background: var(--accent-soft); color: var(--accent); }
+.farm-dp-tag.done { background: #E7F4ED; color: #1F7A4D; }
+.farm-dp-tag.hold { background: #FBF1E2; color: #9A5B14; }
+.farm-dp-tag.cancel { background: var(--bg); color: var(--text-muted); }
+.farm-dp-edit-btn { font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer; background: none; border: none; padding: 2px 4px; font-family: inherit; }
+.farm-dp-edit-btn:hover { color: var(--accent); }
+.farm-dp-addr { font-size: 13.5px; font-weight: 700; line-height: 1.4; }
+.farm-dp-sub2 { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+.farm-dp-specs { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font-size: 11.5px; color: var(--text-secondary); }
+.farm-dp-specs b { color: var(--text); font-weight: 700; }
+.farm-dp-memo { font-size: 12px; color: var(--text-secondary); margin-top: 7px; line-height: 1.5; padding-top: 7px; border-top: 1px dashed var(--border); }
+.farm-dp-add {
+  margin: 10px 16px 16px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+  padding: 11px; text-align: center; font-size: 12.5px; font-weight: 700;
+  color: var(--text-secondary); cursor: pointer; background: transparent; font-family: inherit;
+}
+.farm-dp-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+@media (max-width: 760px) {
+  .farm-cal-cell { min-height: 84px; padding: 4px 4px 6px; }
+  .farm-pill { font-size: 10px; padding: 2px 5px; }
+  .farm-day-panel { width: 100%; max-width: 100%; }
+}
 
 /* ---------------- Utility ---------------- */
 
