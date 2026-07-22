@@ -295,11 +295,18 @@ function schedBuildItemEl(ev) {
 const schedFormOverlay = $('formOverlay');
 let schedEditItem = null; // null=등록, item객체=수정
 let schedFormDate = '';
+let schedFormTime = '';
 
 $('fDateBtn').addEventListener('click', () => {
   DashUI.openCalendar(schedFormDate, dateStr => {
     schedFormDate = dateStr;
     $('fDateLabel').textContent = dateStr;
+  });
+});
+$('fTimeBtn').addEventListener('click', () => {
+  DashUI.openTimePicker(schedFormTime, timeStr => {
+    schedFormTime = timeStr;
+    $('fTimeLabel').textContent = timeStr;
   });
 });
 
@@ -311,7 +318,8 @@ function schedOpenForm(existing, dateForNew) {
 
   schedFormDate = existing ? existing.date : (dateForNew || schedTodayStr());
   $('fDateLabel').textContent = schedFormDate;
-  $('fTime').value = existing ? (existing.time || '') : '';
+  schedFormTime = existing ? (existing.time || '') : '';
+  $('fTimeLabel').textContent = schedFormTime || '시간 선택';
   $('fType').value = existing ? (existing.type || SCHED_TYPES[0]) : SCHED_TYPES[0];
   $('fTitle').value = existing ? (existing.title || '') : '';
   $('fMemo').value = existing ? (existing.memo || '') : '';
@@ -333,7 +341,7 @@ $('formSave').addEventListener('click', async () => {
   if (!title) { $('formError').textContent = '제목을 입력해 주세요.'; return; }
   const payload = {
     date: schedFormDate || schedTodayStr(),
-    time: $('fTime').value || '',
+    time: schedFormTime || '',
     type: $('fType').value || SCHED_TYPES[0],
     title: title,
     memo: $('fMemo').value.trim()

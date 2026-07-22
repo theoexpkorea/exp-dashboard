@@ -133,6 +133,67 @@
     overlay.classList.add('open');
   }
 
+  /* ===== 시간 선택 팝업 (싱글톤 오버레이) =====
+     baseTimeStr: 'HH:MM' 초기값, callback(timeStr) 호출 */
+  let timeOverlay = null, hourCol = null, minCol = null, timeOnPick = null;
+  let selHour = 0, selMin = 0;
+
+  function ensureTimeOverlay() {
+    if (timeOverlay) return;
+    timeOverlay = document.createElement('div');
+    timeOverlay.className = 'dash-time-overlay';
+    timeOverlay.innerHTML =
+      '<div class="dash-time-box">' +
+        '<div class="dash-time-head"><span class="title">시간 선택</span><button type="button" data-role="close">✕</button></div>' +
+        '<div class="dash-time-cols">' +
+          '<div class="dash-time-col" data-col="h"></div>' +
+          '<div class="dash-time-col" data-col="m"></div>' +
+        '</div>' +
+        '<div class="dash-time-foot"><button type="button" class="btn-solid" data-role="confirm">확인</button></div>' +
+      '</div>';
+    document.body.appendChild(timeOverlay);
+    hourCol = timeOverlay.querySelector('[data-col="h"]');
+    minCol = timeOverlay.querySelector('[data-col="m"]');
+
+    let hh = '';
+    for (let h = 0; h < 24; h++) hh += '<div class="dash-time-item" data-h="' + h + '">' + pad(h) + '</div>';
+    hourCol.innerHTML = hh;
+    let mm = '';
+    for (let m = 0; m < 60; m += 5) mm += '<div class="dash-time-item" data-m="' + m + '">' + pad(m) + '</div>';
+    minCol.innerHTML = mm;
+
+    hourCol.addEventListener('click', e => {
+      const it = e.target.closest('[data-h]'); if (!it) return;
+      selHour = parseInt(it.dataset.h, 10);
+      hourCol.querySelectorAll('.dash-time-item').forEach(el => el.classList.toggle('sel', el === it));
+    });
+    minCol.addEventListener('click', e => {
+      const it = e.target.closest('[data-m]'); if (!it) return;
+      selMin = parseInt(it.dataset.m, 10);
+      minCol.querySelectorAll('.dash-time-item').forEach(el => el.classList.toggle('sel', el === it));
+    });
+    timeOverlay.querySelector('[data-role="close"]').addEventListener('click', () => timeOverlay.classList.remove('open'));
+    timeOverlay.querySelector('[data-role="confirm"]').addEventListener('click', () => {
+      timeOverlay.classList.remove('open');
+      const val = pad(selHour) + ':' + pad(selMin);
+      if (timeOnPick) timeOnPick(val);
+    });
+    timeOverlay.addEventListener('click', e => { if (e.target === timeOverlay) timeOverlay.classList.remove('open'); });
+  }
+
+  function openTimePicker(baseTimeStr, callback) {
+    ensureTimeOverlay();
+    const m = /^(\d{1,2}):(\d{1,2})$/.exec(baseTimeStr || '');
+    selHour = m ? Math.min(23, parseInt(m[1], 10)) : new Date().getHours();
+    selMin = m ? (Math.round(parseInt(m[2], 10) / 5) * 5) % 60 : 0;
+    timeOnPick = callback;
+    hourCol.querySelectorAll('.dash-time-item').forEach(el => el.classList.toggle('sel', parseInt(el.dataset.h, 10) === selHour));
+    minCol.querySelectorAll('.dash-time-item').forEach(el => el.classList.toggle('sel', parseInt(el.dataset.m, 10) === selMin));
+    timeOverlay.classList.add('open');
+    const selH = hourCol.querySelector('.sel'); if (selH) selH.scrollIntoView({ block: 'center' });
+    const selM = minCol.querySelector('.sel'); if (selM) selM.scrollIntoView({ block: 'center' });
+  }
+
   /* ===== native <select> 자동 래핑 (기존 페이지 JS를 안 건드리고 스타일만 교체) =====
      select 태그는 그대로 두고 화면에서만 숨긴 뒤, 그 위에 커스텀 버튼+팝업을 얹는다.
      선택 시 원본 select의 value를 갱신하고 change 이벤트를 그대로 발생시키므로
@@ -172,5 +233,5 @@
     autoWrapSelects();
   }
 
-  window.DashUI = { initSelect, openCalendar, todayStr, wrapNativeSelect };
+  window.DashUI = { initSelect, openCalendar, todayStr, wrapNativeSelect, openTimePicker };
 })();
