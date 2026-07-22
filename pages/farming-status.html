@@ -27,21 +27,159 @@
     </header>
 
     <main class="main-content">
+      <div class="farm-warn-bar">⚠ 이 페이지는 파밍서치(exp-farming) 실제 백엔드와 같은 구글시트에 연결됩니다. 등록·수정은 실제 데이터에 바로 반영돼요.</div>
+
       <div class="page-head">
         <h1>파밍현황</h1>
-        <p>구글시트 실시간 연동 · 파밍 이력 캘린더 뷰 예정</p>
+        <p>파밍서치 실시간 연동 · 날짜별 파밍 이력 캘린더</p>
       </div>
 
-      <div class="placeholder-block">
-        <strong>연동 예정</strong>
-        파밍 기록이 있는 시트/컬럼 확인 후 달력 뷰 + 파밍 기록 추가 기능이 다음 단계에서 붙습니다.
+      <div class="rec-kpi-grid" id="statGrid">
+        <div class="rec-stat-card tint-total">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statThisMonth">-</div><div class="stat-label">이번 달 파밍</div></div>
+        </div>
+        <div class="rec-stat-card tint-active">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statDone">-</div><div class="stat-label">파밍완료</div></div>
+        </div>
+        <div class="rec-stat-card tint-plan">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statPlan">-</div><div class="stat-label">파밍예정</div></div>
+        </div>
+        <div class="rec-stat-card tint-neutral">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20 3 17V5l6 3m0 12 6-3m-6 3V8m6 9 6 3V8l-6-3m0 12V5m0 0L9 8"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statToday">-</div><div class="stat-label">오늘 파밍</div></div>
+        </div>
       </div>
+
+      <div class="farm-toolbar">
+        <button class="btn-soft" id="refreshBtn">새로고침</button>
+        <button class="btn-soft" id="todayBtn">오늘</button>
+        <div class="farm-month-nav">
+          <button class="farm-nav-btn" id="prevBtn">‹</button>
+          <div class="farm-month-label" id="monthLabel">-</div>
+          <button class="farm-nav-btn" id="nextBtn">›</button>
+        </div>
+      </div>
+
+      <div class="farm-cal-card">
+        <div class="farm-cal-weekdays">
+          <div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div>
+        </div>
+        <div class="farm-cal-grid" id="calGrid"></div>
+        <div class="farm-cal-loading" id="calLoading">불러오는 중...</div>
+      </div>
+
+      <div class="farm-legend">
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:var(--accent);"></span>파밍예정</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#1F7A4D;"></span>파밍완료</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:#9A5B14;"></span>파밍보류</div>
+        <div class="farm-legend-item"><span class="farm-legend-swatch" style="background:var(--text-muted);"></span>파밍취소</div>
+      </div>
+
+      <div class="farm-note">날짜 칸을 클릭하면 해당일 파밍 기록이 옆에 열립니다.</div>
     </main>
   </div>
 </div>
 
+<!-- 등록 FAB -->
+<button class="rec-fab" id="addBtn" style="right:24px;bottom:24px;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  파밍 등록
+</button>
+
+<!-- 일별 상세 슬라이드 패널 -->
+<div class="farm-overlay" id="overlay"></div>
+<div class="farm-day-panel" id="dayPanel">
+  <div class="farm-dp-head">
+    <div><div class="farm-dp-title" id="dpTitle">-</div><div class="farm-dp-sub" id="dpSub">-</div></div>
+    <button class="farm-dp-close" id="dpClose">✕</button>
+  </div>
+  <div class="farm-dp-body" id="dpBody"></div>
+  <button class="farm-dp-add" id="dpAdd">＋ 이 날짜에 파밍 기록 추가</button>
+</div>
+
+<!-- 등록/수정 모달 -->
+<div class="rec-modal-overlay" id="formOverlay">
+  <div class="rec-modal">
+    <div class="rec-modal-head">
+      <h2 id="formTitle">파밍 등록</h2>
+      <button class="rec-modal-close" id="formClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>파밍일자</label><input type="date" id="fDate"></div>
+        <div class="rec-field"><label>파밍여부</label>
+          <select id="fStatus">
+            <option value="파밍예정">파밍예정</option>
+            <option value="파밍완료">파밍완료</option>
+            <option value="파밍보류">파밍보류</option>
+            <option value="파밍취소">파밍취소</option>
+          </select>
+        </div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>건물명</label><input type="text" id="fName" placeholder="예: 화영빌딩"></div>
+        <div class="rec-field"><label>주소</label><input type="text" id="fAddr" placeholder="예: 서울특별시 종로구 종로 128"></div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>유형</label>
+          <select id="fType">
+            <option>사무실</option><option>상가</option><option>공장창고</option><option>지식산업센터</option>
+            <option>건물</option><option>토지(나대지)</option><option>아파트</option><option>오피스텔</option>
+            <option>재건축재개발</option><option>주택빌라</option><option>원투룸</option><option>분양</option>
+          </select>
+        </div>
+        <div class="rec-field"><label>거래유형</label>
+          <select id="fDeal"><option>월세</option><option>전세</option><option>매매</option><option>단기임대</option></select>
+        </div>
+      </div>
+      <div class="rec-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="rec-field"><label>층수</label><input type="text" id="fFloor" placeholder="2"></div>
+        <div class="rec-field"><label>총층</label><input type="text" id="fFloorAll" placeholder="5"></div>
+        <div class="rec-field"><label>전용면적(평)</label><input type="text" id="fArea" placeholder="20.99"></div>
+      </div>
+      <div class="rec-form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="rec-field"><label id="fDepositLabel">보증금/매매가</label><input type="text" id="fDeposit" placeholder="5000"></div>
+        <div class="rec-field"><label>월세</label><input type="text" id="fRent" placeholder="490"></div>
+        <div class="rec-field"><label>관리비</label><input type="text" id="fMgmt" placeholder="10"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>매물링크 (네이버부동산 URL 또는 매물번호)</label><input type="text" id="fLink" placeholder="https://fin.land.naver.com/articles/... 또는 숫자만"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>매물장번호 (매물뷰 연결용, 선택)</label><input type="text" id="fLedger" placeholder="선택 입력"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>메모</label><textarea id="fMemo" placeholder="현장 특이사항"></textarea></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>파밍메모</label><textarea id="fFarmMemo" placeholder="파밍 진행 관련 메모"></textarea></div>
+      </div>
+      <div class="rec-modal-error" id="formError"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-danger-outline hidden" id="formDelete">삭제</button>
+      <button class="btn-soft" id="formCancel" style="margin-left:auto;">취소</button>
+      <button class="btn-solid" id="formSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="rec-toast" id="toast"></div>
+
 <script src="../js/sidebar.js"></script>
 <script src="../js/lock.js"></script>
+<script src="../js/farming-status.js"></script>
 <script>
   renderSidebar("farming", { basePrefix: "../" });
   initLockScreen("../");
