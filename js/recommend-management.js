@@ -117,7 +117,7 @@ function renderRecommend() {
           '<div class="rec-name">' + escapeHtml(c.name || '(이름없음)') + '</div>' +
           '<div class="rec-meta-row">' +
             '<span class="rec-access-tag">' + escapeHtml(c.access) + '</span>' +
-            (c.type ? '<span class="rec-type-tag">' + escapeHtml(c.type) + '</span>' : '') +
+            (c.type ? '<span class="rec-type-tag' + (c.type === '중개사' ? ' agent' : c.type === '고객' ? ' customer' : '') + '">' + escapeHtml(c.type) + '</span>' : '') +
           '</div>' +
         '</td>' +
         '<td class="col-center">' + statusHtml + '</td>' +

@@ -240,7 +240,7 @@ function renderKpi_(kpi, expiring) {
     '</div>' +
     '<div class="stat-body">' +
       '<div class="stat-title">내 매물 지도</div>' +
-      '<div class="stat-label">구글 My Maps 열기 →</div>' +
+      '<div class="stat-label">구글 My Maps 열기</div>' +
     '</div>' +
     '</a>'
   );
@@ -253,6 +253,7 @@ function renderKpi_(kpi, expiring) {
       '<div class="badge-list mini horizontal">' + expiring.map(function (row) {
         var hasCount = row.value > 0;
         var shortName = row.name.replace(/\s*\([^)]*\)\s*/, '').trim();
+        if (shortName === '만기초과') shortName = '초과';
         return '<div class="badge-row' + (hasCount ? ' has-count' : '') + '" title="' + row.name + '">' +
           '<span>' + shortName + '</span>' +
           '<span class="badge-count">' + row.value + '건</span>' +
