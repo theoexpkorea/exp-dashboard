@@ -101,6 +101,7 @@ let crmAllItems = [];
 let crmStatusOptions = {};
 let crmScope = 'all'; // all | SALE | LEAD | CONTRACT
 let crmEventsByDate = {};
+let crmHolidays = new Set(); // 'YYYY-MM-DD' — 구글시트 '공휴일' 탭 (mode=crmList 응답의 holidays 필드, 있을 때만)
 
 function crmScopeMatch(it) { return crmScope === 'all' || it.cat === crmScope; }
 function crmBucket() {
@@ -118,8 +119,8 @@ const CRM_CACHE_KEY = 'theo_dashboard_crm_cache_v1';
 function crmReadCache() {
   try { const raw = localStorage.getItem(CRM_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
-function crmWriteCache(items, statusOptions) {
-  try { localStorage.setItem(CRM_CACHE_KEY, JSON.stringify({ items: items || [], statusOptions: statusOptions || {}, savedAt: Date.now() })); } catch (e) {}
+function crmWriteCache(items, statusOptions, holidays) {
+  try { localStorage.setItem(CRM_CACHE_KEY, JSON.stringify({ items: items || [], statusOptions: statusOptions || {}, holidays: holidays ? Array.from(holidays) : [], savedAt: Date.now() })); } catch (e) {}
 }
 
 async function crmLoadData(silent) {
@@ -129,9 +130,10 @@ async function crmLoadData(silent) {
     if (res && res.items) {
       crmAllItems = res.items;
       crmStatusOptions = res.statusOptions || {};
+      crmHolidays = new Set((res.holidays || []).filter(Boolean));
       crmBucket();
       crmRenderCalendar();
-      crmWriteCache(crmAllItems, crmStatusOptions);
+      crmWriteCache(crmAllItems, crmStatusOptions, crmHolidays);
       if (!silent) crmToast('불러오기 완료');
     } else if (!silent) {
       crmToast('불러오기 실패 — 네트워크를 확인해줘');
@@ -206,6 +208,7 @@ function crmRenderCalendar() {
     const key = crmYmd(cellY, cellM, dateNum);
     const isToday = (cellY === crmToday.getFullYear() && cellM === crmToday.getMonth() && dateNum === crmToday.getDate());
     if (isToday) cell.classList.add('today');
+    if (crmHolidays.has(key)) cell.classList.add('holiday');
 
     const numEl = document.createElement('div');
     numEl.className = 'farm-date-num';
@@ -333,12 +336,18 @@ function crmBuildItemEl(ev) {
 
   const isDone = ev.lastContact === crmTodayStr();
   const statusOpts = crmStatusOptions[ev.cat] || [];
+  const editIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
   item.innerHTML =
     '<div class="farm-dp-item-top">' +
-      '<span class="cust-tag cat-' + ev.cat + '">' + CRM_CAT_LABEL[ev.cat] + '</span>' +
-      (ev.status ? '<span class="cust-status-tag"' + statusStyle + '>' + crmEsc(ev.status) + '</span>' : '') +
-      crmDDayBadge(ev.nextContact) +
+      '<div class="cust-tags-left">' +
+        '<span class="cust-tag cat-' + ev.cat + '">' + CRM_CAT_LABEL[ev.cat] + '</span>' +
+        (ev.status ? '<span class="cust-status-tag"' + statusStyle + '>' + crmEsc(ev.status) + '</span>' : '') +
+      '</div>' +
+      '<div class="cust-tags-right">' +
+        '<button type="button" class="cust-edit-btn" data-editbtn="1" aria-label="정보 수정">' + editIcon + '</button>' +
+        crmDDayBadge(ev.nextContact) +
+      '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
     '<div class="cust-sub-row">' + crmEsc(subText) + telHtml + '</div>' +
@@ -369,6 +378,9 @@ function crmBuildItemEl(ev) {
       if (prev) prev.innerHTML = '다음 연락일은 저장하면 <b>' + crmEstimateNext(ev.cat, selectEl.value) + '</b>(으)로 자동 계산돼요.';
     });
   }
+
+  const editBtn = item.querySelector('[data-editbtn]');
+  if (editBtn) editBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenEditForm(ev); });
 
   return item;
 }
@@ -445,17 +457,19 @@ let crmFormBaseDate = '';
 
 function crmFv(id) { const el = $(id); return el ? el.value.trim() : ''; }
 
+function crmField(labelText, innerHtml) {
+  return '<div class="rec-form-grid full"><div class="rec-field"><label>' + labelText + '</label>' + innerHtml + '</div></div>';
+}
 function crmStatusFieldHtml(cat, curVal) {
   const opts = crmStatusOptions[cat] || [];
   const label = cat === 'LEAD' ? '온도' : '상태';
-  return '<div class="rec-field"><label>' + label + '</label><select id="f_status" data-dash-select>' +
+  return crmField(label, '<select id="f_status" data-dash-select>' +
     opts.map(o => '<option value="' + crmEscAttr(o) + '"' + (o === curVal ? ' selected' : '') + '>' + crmEsc(o) + '</option>').join('') +
-    '</select></div>';
+    '</select>');
 }
 function crmBaseFieldHtml(cat) {
   const label = cat === 'CONTRACT' ? '계약일' : '접수일';
-  return '<div class="rec-field"><label>' + label + '</label>' +
-    '<button type="button" class="dash-picker-btn" id="f_baseBtn"><span data-role="label" id="f_baseLabel">' + crmFormBaseDate + '</span><span class="car">▾</span></button></div>';
+  return crmField(label, '<button type="button" class="dash-picker-btn" id="f_baseBtn"><span data-role="label" id="f_baseLabel">' + crmFormBaseDate + '</span><span class="car">▾</span></button>');
 }
 
 function crmFieldsHtml(cat, item) {
@@ -467,29 +481,29 @@ function crmFieldsHtml(cat, item) {
   const memoVal = item ? (item.memo || '') : '';
   const statusVal = item ? item.status : '';
 
-  const memoField = '<div class="rec-field"><label>메모</label><textarea id="f_memo" placeholder="통화·연락 메모">' + crmEsc(memoVal) + '</textarea></div>';
+  const memoField = crmField('메모', '<textarea id="f_memo" placeholder="통화·연락 메모">' + crmEsc(memoVal) + '</textarea>');
+  const idLabelSale = item ? '매물번호' : '매물번호 (선택 · 매물뷰 연동용)';
 
   if (cat === 'SALE') {
-    return (item ? '' : '<div class="rec-field"><label>매물번호 (선택 · 매물뷰 연동용)</label><input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="예: FS0002"></div>')
-      + (item ? '<div class="rec-field"><label>매물번호</label><input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="예: FS0002"></div>' : '')
-      + '<div class="rec-field"><label>성명</label><input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명"></div>'
-      + '<div class="rec-field"><label>연락처</label><input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000"></div>'
+    return crmField(idLabelSale, '<input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="예: FS0002">')
+      + crmField('성명', '<input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명">')
+      + crmField('연락처', '<input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000">')
       + crmBaseFieldHtml(cat) + crmStatusFieldHtml(cat, statusVal) + memoField;
   }
   if (cat === 'LEAD') {
-    return '<div class="rec-field"><label>고객번호</label><input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="엑셀마스터 고객번호"></div>'
-      + '<div class="rec-field"><label>고객명2 (카드 제목으로 표시)</label><input type="text" id="f_name2" value="' + crmEscAttr(name2Val) + '" placeholder="카드에 표시될 이름"></div>'
-      + '<div class="rec-field"><label>성명</label><input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명"></div>'
-      + '<div class="rec-field"><label>연락처</label><input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000"></div>'
+    return crmField('고객번호', '<input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="엑셀마스터 고객번호">')
+      + crmField('고객명2 (카드 제목으로 표시)', '<input type="text" id="f_name2" value="' + crmEscAttr(name2Val) + '" placeholder="카드에 표시될 이름">')
+      + crmField('성명', '<input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명">')
+      + crmField('연락처', '<input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000">')
       + crmBaseFieldHtml(cat) + crmStatusFieldHtml(cat, statusVal)
-      + '<div class="rec-field"><label>비고</label><textarea id="f_remark" placeholder="특이사항을 남겨보세요.">' + crmEsc(remarkVal) + '</textarea></div>'
+      + crmField('비고', '<textarea id="f_remark" placeholder="특이사항을 남겨보세요.">' + crmEsc(remarkVal) + '</textarea>')
       + memoField;
   }
-  return '<div class="rec-field"><label>고객번호</label><input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="엑셀마스터 고객번호"></div>'
-    + '<div class="rec-field"><label>성명</label><input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명"></div>'
-    + '<div class="rec-field"><label>연락처</label><input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000"></div>'
+  return crmField('고객번호', '<input type="text" id="f_id" value="' + crmEscAttr(idVal) + '" placeholder="엑셀마스터 고객번호">')
+    + crmField('성명', '<input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명">')
+    + crmField('연락처', '<input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000">')
     + crmBaseFieldHtml(cat) + crmStatusFieldHtml(cat, statusVal)
-    + '<div class="rec-field"><label>비고</label><textarea id="f_remark" placeholder="특이사항을 남겨보세요.">' + crmEsc(remarkVal) + '</textarea></div>'
+    + crmField('비고', '<textarea id="f_remark" placeholder="특이사항을 남겨보세요.">' + crmEsc(remarkVal) + '</textarea>')
     + memoField;
 }
 
@@ -505,6 +519,10 @@ function crmBuildForm() {
       });
     });
   }
+  // 상태/온도 select — 폼이 DOMContentLoaded 이후 동적으로 열리므로 dash-widgets.js의
+  // 자동 스캔(autoWrapSelects)이 못 잡아냄. 매번 열 때 수동으로 커스텀 드롭다운 래핑.
+  const statusSel = $('f_status');
+  if (statusSel && window.DashUI) DashUI.wrapNativeSelect(statusSel);
 }
 
 $('fCatSeg').addEventListener('click', e => {
@@ -692,6 +710,7 @@ $('todayBtn').addEventListener('click', () => { crmViewYear = crmToday.getFullYe
   if (cached) {
     crmAllItems = cached.items || [];
     crmStatusOptions = cached.statusOptions || {};
+    crmHolidays = new Set((cached.holidays || []).filter(Boolean));
     crmBucket();
     crmRenderCalendar();
     crmLoadData(true);

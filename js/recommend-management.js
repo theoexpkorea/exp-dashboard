@@ -87,8 +87,8 @@ function renderRecommendKpi() {
   var active = recState.clients.filter(function (c) { return !c.ended; }).length;
   var totalEl = document.getElementById('rec-kpi-total');
   var activeEl = document.getElementById('rec-kpi-active');
-  if (totalEl) totalEl.textContent = total;
-  if (activeEl) activeEl.textContent = active;
+  if (totalEl) totalEl.textContent = total + '건';
+  if (activeEl) activeEl.textContent = active + '건';
 }
 
 /* ---------------- 목록 렌더 ---------------- */
