@@ -221,7 +221,7 @@ function schedRenderCalendar() {
       const maxShow = 3;
       events.slice(0, maxShow).forEach(ev => {
         const pill = document.createElement('div');
-        pill.className = 'sched-pill ' + (SCHED_TYPE_CLASS[ev.type] || '');
+        pill.className = 'farm-pill sched-pill ' + (SCHED_TYPE_CLASS[ev.type] || '');
         const label = (ev.time ? ev.time + ' ' : '') + (ev.title || ev.type);
         pill.textContent = label;
         pill.title = ev.type + ' · ' + label;
