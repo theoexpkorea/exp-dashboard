@@ -129,6 +129,7 @@ async function fetchDashboardCredsFromServer() {
 
 async function initLockScreen(basePrefix = "") {
   if (isUnlocked()) {
+    document.documentElement.classList.remove("theo-locking"); // 인증된 세션 — 숨겨뒀던 화면 바로 노출
     startIdleWatchdog(); // 이미 이번 세션에 인증됨 — 대신 무활동 감시는 계속
     return;
   }
@@ -141,6 +142,7 @@ async function initLockScreen(basePrefix = "") {
   // 다시 패턴락을 쓰고 싶으면 위 줄을 `const mobile = isMobileViewport();` 로 되돌리면 됩니다.
   overlay.innerHTML = mobile ? patternLockMarkup() : passwordLockMarkup();
   document.body.appendChild(overlay);
+  document.documentElement.classList.remove("theo-locking"); // 오버레이가 이미 화면을 덮었으므로 이제 숨김 해제해도 안전
   document.body.style.overflow = "hidden";
 
   const errorEl = overlay.querySelector("#lock-error");
