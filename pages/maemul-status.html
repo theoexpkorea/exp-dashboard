@@ -47,16 +47,16 @@
         <p>엑셀 대시보드 시트 기준 (열람 전용)</p>
       </div>
 
-      <div class="upload-bar" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:10px;">
+      <div class="upload-bar" id="upload-bar-el" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:10px;">
         <div class="upload-meta" style="flex-shrink:0;">
           <div class="upload-basedate" id="upload-basedate">업로드된 데이터가 없습니다</div>
         </div>
-        <div class="upload-actions" style="display:flex; gap:8px; flex-shrink:0;">
+        <div class="upload-actions" id="upload-actions-el" style="display:flex; gap:8px; flex-shrink:0;">
           <button class="btn-solid" id="upload-btn" type="button" style="width:120px; justify-content:flex-start; padding-left:16px; white-space:nowrap;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
             CSV 업로드
           </button>
-          <a class="btn-solid" href="https://1drv.ms/x/c/0B196805DE9FB1C9/AUtUw9HNS6pLo3r2JI9POMg?e=UHikdt"
+          <a class="btn-solid" id="excel-link-btn" href="https://1drv.ms/x/c/0B196805DE9FB1C9/AUtUw9HNS6pLo3r2JI9POMg?e=UHikdt"
              target="_blank" rel="noopener" style="background:#217346; width:120px; justify-content:flex-start; padding-left:16px; white-space:nowrap;">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="1" width="14" height="14" rx="2" fill="white" fill-opacity="0.15"/>
@@ -67,6 +67,13 @@
         </div>
         <input type="file" id="csv-input" accept=".csv" class="hidden" />
       </div>
+      <style>
+        @media (max-width: 560px) {
+          #upload-bar-el { flex-wrap: wrap !important; }
+          #upload-actions-el { width: 100% !important; }
+          #upload-btn, #excel-link-btn { flex: 1 1 0 !important; width: auto !important; justify-content: center !important; padding-left: 14px !important; }
+        }
+      </style>
 
       <div id="empty-state" class="upload-empty">
         <strong>아직 업로드된 매물현황 CSV가 없습니다</strong>
