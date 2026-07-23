@@ -613,8 +613,19 @@ const CUST_DEAL_OPTIONS = ['무관', ...FARM_DEAL_OPTIONS];
 const farmCustDealSelect = DashUI.initSelect($('cfDealBtn'), $('cfDealPop'), CUST_DEAL_OPTIONS, '무관');
 let farmCustEditId = null;
 
+/* 구글/삼성 브라우저의 자동입력·카드 제안 팝업 방지 —
+   readonly 상태로 두었다가 사용자가 실제로 탭해서 포커스할 때만 입력 가능하게 풀어줌 */
+const CUST_FORM_TEXT_IDS = ['cfId','cfKind','cfName','cfPhone','cfArea','cfPyMin','cfPyMax','cfBudgetDeposit','cfBudgetRent','cfFloor'];
+function farmResetCustFormReadonly(){
+  CUST_FORM_TEXT_IDS.forEach(id => { const el = $(id); if (el) el.setAttribute('readonly', 'readonly'); });
+}
+$('custFormOverlay').addEventListener('focusin', e => {
+  if (e.target.matches('input[readonly]')) e.target.removeAttribute('readonly');
+});
+
 function farmOpenCustForm(id) {
   farmCustEditId = id || null;
+  farmResetCustFormReadonly();
   const c = farmCustEditId ? farmCustomers.find(x => x.고객ID === farmCustEditId) : null;
   $('custFormTitle').textContent = c ? '고객 수정' : '고객 추가';
   $('custFormError').textContent = '';
