@@ -589,16 +589,115 @@ function farmRenderCustDetail(id) {
   ];
   $('custModalBody').innerHTML =
     '<button class="farm-cust-back" id="custBackBtn">← 목록으로</button>' +
-    rows.map(([k, v, raw]) => '<div class="farm-cust-detail-row"><div class="k">' + k + '</div><div class="v">' + (raw ? v : v) + '</div></div>').join('');
+    rows.map(([k, v, raw]) => '<div class="farm-cust-detail-row"><div class="k">' + k + '</div><div class="v">' + (raw ? v : v) + '</div></div>').join('') +
+    '<div style="display:flex;gap:8px;margin-top:16px;">' +
+      '<button class="btn-soft" data-cust-edit="' + c.고객ID + '" style="flex:1;">수정</button>' +
+      '<button class="btn-danger-outline" data-cust-del="' + c.고객ID + '" style="flex:1;">삭제</button>' +
+    '</div>';
   $('custBackBtn').addEventListener('click', farmRenderCustList);
 }
 $('custListBtn').addEventListener('click', () => { farmRenderCustList(); farmCustOverlay.classList.add('show'); });
 $('custModalClose').addEventListener('click', () => farmCustOverlay.classList.remove('show'));
 farmCustOverlay.addEventListener('click', e => { if (e.target === farmCustOverlay) farmCustOverlay.classList.remove('show'); });
 $('custModalBody').addEventListener('click', e => {
+  const editBtn = e.target.closest('[data-cust-edit]');
+  if (editBtn) { farmOpenCustForm(editBtn.dataset.custEdit); return; }
+  const delBtn = e.target.closest('[data-cust-del]');
+  if (delBtn) { farmDeleteCustomer(delBtn.dataset.custDel); return; }
   const row = e.target.closest('[data-cust]'); if (!row) return;
   farmRenderCustDetail(row.dataset.cust);
 });
+
+/* ===== 고객 추가/수정/삭제 (파밍서치와 동일한 백엔드 mode 재사용: custAdd/custUpdate/custDelete) ===== */
+const CUST_DEAL_OPTIONS = ['무관', ...FARM_DEAL_OPTIONS];
+const farmCustDealSelect = DashUI.initSelect($('cfDealBtn'), $('cfDealPop'), CUST_DEAL_OPTIONS, '무관');
+let farmCustEditId = null;
+
+function farmOpenCustForm(id) {
+  farmCustEditId = id || null;
+  const c = farmCustEditId ? farmCustomers.find(x => x.고객ID === farmCustEditId) : null;
+  $('custFormTitle').textContent = c ? '고객 수정' : '고객 추가';
+  $('custFormError').textContent = '';
+  $('cfId').value = c ? c.고객ID : '';
+  $('cfId').disabled = !!c;
+  $('cfIdHint').textContent = c ? 'ID는 등록 후에는 변경할 수 없습니다' : '구글시트에 쓸 ID를 직접 입력하세요(예: SH-0009). 비워두면 자동 채번됩니다';
+  $('cfKind').value = c ? (c.고객구분 || '') : '';
+  $('cfName').value = c ? (c.고객명 || '') : '';
+  $('cfPhone').value = c ? (c.연락처 || '') : '';
+  $('cfArea').value = c ? (c.희망지역 || '') : '';
+  farmCustDealSelect.set(c ? (c.희망거래유형 || '무관') : '무관');
+  $('cfPyMin').value = c ? (c.평수최소 || '') : '';
+  $('cfPyMax').value = c ? (c.평수최대 || '') : '';
+  $('cfBudgetDeposit').value = c ? (c.예산보증금매매가 || '') : '';
+  $('cfBudgetRent').value = c ? (c.예산월세 || '') : '';
+  $('cfFloor').value = c ? (c.희망층수 || '') : '';
+  $('cfEtc').value = c ? (c.기타요청 || '') : '';
+  farmCustOverlay.classList.remove('show');
+  $('custFormOverlay').classList.add('show');
+}
+function farmCloseCustForm() { $('custFormOverlay').classList.remove('show'); }
+$('custFormClose').addEventListener('click', farmCloseCustForm);
+$('custFormCancel').addEventListener('click', farmCloseCustForm);
+$('custAddBtn').addEventListener('click', () => farmOpenCustForm(null));
+
+$('custFormSave').addEventListener('click', async () => {
+  const isEdit = !!farmCustEditId;
+  const name = $('cfName').value.trim();
+  if (!name) { $('custFormError').textContent = '고객명을 입력해줘'; return; }
+  const typedId = $('cfId').value.trim();
+  if (!isEdit && typedId && farmCustomers.some(x => x.고객ID === typedId)) {
+    $('custFormError').textContent = '이미 존재하는 고객ID입니다'; return;
+  }
+  $('custFormError').textContent = '';
+  const c = isEdit ? farmCustomers.find(x => x.고객ID === farmCustEditId) : { 고객ID: typedId || '(임시)' };
+  Object.assign(c, {
+    고객구분: $('cfKind').value.trim(),
+    고객명: name,
+    연락처: $('cfPhone').value.trim(),
+    희망지역: $('cfArea').value.trim(),
+    희망거래유형: farmCustDealSelect.get(),
+    평수최소: $('cfPyMin').value.trim(),
+    평수최대: $('cfPyMax').value.trim(),
+    예산보증금매매가: $('cfBudgetDeposit').value.trim(),
+    예산월세: $('cfBudgetRent').value.trim(),
+    희망층수: $('cfFloor').value.trim(),
+    기타요청: $('cfEtc').value.trim(),
+  });
+  if (!isEdit) farmCustomers.unshift(c);
+  farmCloseCustForm();
+  farmRenderCustList();
+  farmCustOverlay.classList.add('show');
+  farmToast(isEdit ? '수정 완료' : '고객 추가 완료');
+  const payload = { ...c };
+  if (!isEdit) payload.고객ID = typedId; // '(임시)' 대신 실제 입력값(빈 값이면 서버가 자동채번)을 전송
+  $('custFormSave').disabled = true;
+  try {
+    const res = await farmJsonp(isEdit ? { mode: 'custUpdate', ...payload } : { mode: 'custAdd', ...payload });
+    if (res && res.ok === false) {
+      farmToast('저장 실패: ' + (res.error === 'duplicate id' ? '이미 존재하는 고객ID입니다' : res.error));
+      if (!isEdit) farmCustomers = farmCustomers.filter(x => x !== c);
+      farmRenderCustList();
+      return;
+    }
+    if (!isEdit && res && res.고객ID) c.고객ID = res.고객ID;
+    await farmLoadData(true);
+    farmRenderCustList();
+  } catch (e) {
+    farmToast('전송 실패 — 시트에 반영 안됐을 수 있음');
+  } finally {
+    $('custFormSave').disabled = false;
+  }
+});
+
+function farmDeleteCustomer(id) {
+  if (!confirm('이 고객 조건을 삭제할까요? 배정된 매물의 적합여부 매칭이 끊어질 수 있습니다.')) return;
+  farmCustomers = farmCustomers.filter(c => c.고객ID !== id);
+  farmRenderCustList();
+  farmToast('삭제 완료');
+  farmJsonp({ mode: 'custDelete', 고객ID: id })
+    .then(() => farmLoadData(true).then(farmRenderCustList))
+    .catch(() => farmToast('삭제 전송 실패'));
+}
 
 /* ===== 캘린더 좌우 스와이프 → 월 이동 (모바일) ===== */
 (function () {
