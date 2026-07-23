@@ -73,6 +73,16 @@ function crmEstimateNext(cat, status) {
   return crmAddDays(crmTodayStr(), CRM_NEXT_DAYS_DEFAULT[cat] || 20);
 }
 
+/* ===== "당일 고정" 표시 로직 =====
+   오늘 연락완료 처리한 항목은 서버가 이미 실제 다음연락일(미래 날짜, 시트 수식 그대로)로
+   갱신해뒀지만, 화면(캘린더/오늘처리 뱃지/패널)에는 "오늘 하루 동안"은 계속 오늘 날짜에
+   고정해서 보여준다 — 엑셀마스터 CRM 이력을 이 화면 보고 정리하기 위함.
+   내일이 되면(crmTodayStr()가 바뀌면) 이 조건이 자동으로 꺼지면서 실제 다음연락일 기준으로
+   저절로 되돌아간다 — 별도 저장/타이머 불필요. */
+function crmIsDoneToday(it) { return it.lastContact === crmTodayStr(); }
+function crmDisplayDate(it) { return crmIsDoneToday(it) ? crmTodayStr() : it.nextContact; }
+function crmDisplayDDay(it) { return crmDDay(crmDisplayDate(it)); }
+
 /* ===== JSONP (exp-crm과 동일한 방식, 같은 Apps Script 엔드포인트) ===== */
 function crmJsonp(url, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -107,7 +117,7 @@ function crmScopeMatch(it) { return crmScope === 'all' || it.cat === crmScope; }
 function crmBucket() {
   crmEventsByDate = {};
   crmAllItems.filter(crmScopeMatch).forEach(it => {
-    const d = it.nextContact;
+    const d = crmDisplayDate(it); // 오늘 처리한 항목은 오늘 날짜에 고정, 아니면 실제 다음연락일
     if (!d) return;
     if (!crmEventsByDate[d]) crmEventsByDate[d] = [];
     crmEventsByDate[d].push(it);
@@ -274,7 +284,7 @@ function crmRenderCalendar() {
 }
 
 function crmRenderStats() {
-  const todayCount = crmAllItems.filter(it => { const x = crmDDay(it.nextContact); return x !== null && x <= 0; }).length;
+  const todayCount = crmAllItems.filter(it => { const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
   $('statToday').textContent = todayCount + '건';
   $('statSale').textContent = crmAllItems.filter(it => it.cat === 'SALE').length + '건';
   $('statLead').textContent = crmAllItems.filter(it => it.cat === 'LEAD').length + '건';
@@ -316,8 +326,8 @@ function crmOpenDayPanel(key, y, m, d, events) {
 function crmOpenTodayPanel() {
   crmPanelMode = 'today';
   const list = crmAllItems
-    .filter(it => { const x = crmDDay(it.nextContact); return x !== null && x <= 0; })
-    .sort((a, b) => (a.nextContact || '').localeCompare(b.nextContact || ''));
+    .filter(it => { const x = crmDisplayDDay(it); return x !== null && x <= 0; })
+    .sort((a, b) => (crmDisplayDate(a) || '').localeCompare(crmDisplayDate(b) || ''));
   $('dpTitle').textContent = '오늘 처리';
   $('dpSub').textContent = list.length ? list.length + '건 (오늘 + 지난 연락 예정 포함)' : '처리할 항목이 없습니다';
   const body = $('dpBody');
@@ -362,7 +372,7 @@ function crmBuildItemEl(ev) {
   const sc = crmStatusColor(ev.cat, ev.status);
   const statusStyle = sc ? ' style="background:' + sc.bg + ';color:' + sc.fg + '"' : '';
 
-  const isDone = ev.lastContact === crmTodayStr();
+  const isDone = crmIsDoneToday(ev);
   const statusOpts = crmStatusOptions[ev.cat] || [];
   const editIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
@@ -374,7 +384,7 @@ function crmBuildItemEl(ev) {
       '</div>' +
       '<div class="cust-tags-right">' +
         '<button type="button" class="cust-edit-btn" data-editbtn="1" aria-label="정보 수정">' + editIcon + '</button>' +
-        crmDDayBadge(ev.nextContact) +
+        (isDone ? '<span class="cust-dday-badge done">오늘 처리완료</span>' : crmDDayBadge(ev.nextContact)) +
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
@@ -466,7 +476,8 @@ async function crmSaveContact(cat, row, key, btnEl) {
       crmRenderCalendar();
       crmToast('저장됐어요 · 다음 연락일 ' + (res.nextContact || ''));
       // 패널을 열었던 기준으로 다시 그림 — 날짜별 패널이면 그 날짜 기준, "오늘 처리" 통합 패널이면 최신 기준으로 재필터링
-      // (저장 후 next가 바뀌면 오늘 처리 목록에서 자연스럽게 빠지거나, 다른 날짜 패널이면 그 날짜에서 사라질 수 있음)
+      // (저장 즉시 next는 미래로 바뀌지만, 화면 표시는 crmDisplayDate()가 "오늘"로 고정해주므로
+      //  오늘 처리 목록/캘린더 오늘 칸에는 그대로 남아있고, 내일이 되면 자동으로 실제 next 날짜로 이동함)
       if (crmPanelMode === 'today') {
         crmOpenTodayPanel();
       } else {
