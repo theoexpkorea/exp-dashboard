@@ -2,6 +2,20 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
+<script>
+(function(){
+  var locked = true;
+  try {
+    var raw = sessionStorage.getItem('theo_dashboard_unlocked');
+    if (raw) {
+      var data = JSON.parse(raw);
+      if (data && data.ts && (Date.now() - data.ts <= 30 * 60 * 1000)) locked = false;
+    }
+  } catch (e) {}
+  if (locked) document.documentElement.classList.add('theo-locking');
+})();
+</script>
+<style>html.theo-locking .app-shell{visibility:hidden}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>업무현황</title>
 <link rel="icon" href="favicon.ico" sizes="any" />
