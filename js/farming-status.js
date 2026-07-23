@@ -591,8 +591,8 @@ function farmRenderCustDetail(id) {
     '<button class="farm-cust-back" id="custBackBtn">← 목록으로</button>' +
     rows.map(([k, v, raw]) => '<div class="farm-cust-detail-row"><div class="k">' + k + '</div><div class="v">' + (raw ? v : v) + '</div></div>').join('') +
     '<div style="display:flex;gap:8px;margin-top:16px;">' +
-      '<button class="btn-soft" data-cust-edit="' + c.고객ID + '" style="flex:1;">수정</button>' +
-      '<button class="btn-danger-outline" data-cust-del="' + c.고객ID + '" style="flex:1;">삭제</button>' +
+      '<button class="btn-soft" data-cust-edit="' + c.고객ID + '" style="flex:1;justify-content:center;">수정</button>' +
+      '<button class="btn-danger-outline" data-cust-del="' + c.고객ID + '" style="flex:1;justify-content:center;">삭제</button>' +
     '</div>';
   $('custBackBtn').addEventListener('click', farmRenderCustList);
 }
