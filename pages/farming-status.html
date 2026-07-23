@@ -226,9 +226,71 @@
   <div class="rec-modal" style="max-width:420px;">
     <div class="rec-modal-head">
       <h2 id="custModalTitle">고객조건 보기</h2>
-      <button class="rec-modal-close" id="custModalClose">✕</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-solid" id="custAddBtn" style="padding:6px 12px;font-size:12.5px;background:var(--accent);">+ 고객 추가</button>
+        <button class="rec-modal-close" id="custModalClose">✕</button>
+      </div>
     </div>
     <div class="rec-modal-body" id="custModalBody"></div>
+  </div>
+</div>
+
+<!-- 고객 추가/수정 -->
+<div class="rec-modal-overlay" id="custFormOverlay">
+  <div class="rec-modal" style="max-width:420px;">
+    <div class="rec-modal-head">
+      <h2 id="custFormTitle">고객 추가</h2>
+      <button class="rec-modal-close" id="custFormClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-form-grid">
+        <div class="rec-field">
+          <label>고객ID</label>
+          <input type="text" id="cfId" placeholder="예: SH-0009">
+          <div class="form-hint-text" id="cfIdHint">비워두면 자동 채번됩니다 (예: C0001)</div>
+        </div>
+        <div class="rec-field">
+          <label>고객구분</label>
+          <input type="text" id="cfKind" list="cfKindList" placeholder="예: SH, CU">
+          <datalist id="cfKindList"><option value="SH"><option value="CU"></datalist>
+        </div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>고객명</label><input type="text" id="cfName" placeholder="예: 홍길동"></div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>연락처</label><input type="text" id="cfPhone" placeholder="예: 010-1234-5678"></div>
+        <div class="rec-field"><label>희망 지역</label><input type="text" id="cfArea" placeholder="예: 서울"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field">
+          <label>희망 거래유형</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="cfDealBtn"><span data-role="label">무관</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="cfDealPop"></div>
+          </div>
+        </div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>평수(최소)</label><input type="text" id="cfPyMin" placeholder="20"></div>
+        <div class="rec-field"><label>평수(최대)</label><input type="text" id="cfPyMax" placeholder="40"></div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>예산 보증금/매매가(만)</label><input type="text" id="cfBudgetDeposit" placeholder="10000"></div>
+        <div class="rec-field"><label>예산 월세(만)</label><input type="text" id="cfBudgetRent" placeholder="300"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>희망 층수</label><input type="text" id="cfFloor" placeholder="예: 1~3층"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>기타 요청사항</label><textarea id="cfEtc" placeholder="주차, 방향 등 기타 조건"></textarea></div>
+      </div>
+      <div class="rec-modal-error" id="custFormError"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-soft" id="custFormCancel" style="margin-left:auto;">취소</button>
+      <button class="btn-solid" id="custFormSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
   </div>
 </div>
 
