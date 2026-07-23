@@ -34,14 +34,43 @@ function favEsc(s) {
     .replace(/"/g, "&quot;");
 }
 
-function favIconUrl(url) {
+// 모든 자동/수동 파비콘이 실패했을 때 최종적으로 쓰이는 회색 지구본 (항상 로드 성공하는 data URI)
+const FAV_ICON_FALLBACK =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20'/%3E%3C/svg%3E";
+
+// f = { name, url, icon? } — icon이 있으면 수동 지정 아이콘을 최우선으로 사용
+// icon이 없으면 구글 파비콘 → DuckDuckGo 파비콘 → 기본 지구본 순으로 시도
+function favIconChain(f) {
+  if (f.icon) {
+    return { src: f.icon, fallbacks: [FAV_ICON_FALLBACK] };
+  }
+  let host;
   try {
-    const host = new URL(url).hostname;
-    return "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host) + "&sz=64";
+    host = new URL(f.url).hostname;
   } catch (e) {
-    return "https://www.google.com/s2/favicons?domain=example.com&sz=64";
+    return { src: FAV_ICON_FALLBACK, fallbacks: [] };
+  }
+  const google = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host) + "&sz=64";
+  const ddg = "https://icons.duckduckgo.com/ip3/" + encodeURIComponent(host) + ".ico";
+  return { src: google, fallbacks: [ddg, FAV_ICON_FALLBACK] };
+}
+
+// <img onerror="favIconFallback(this)"> 에서 호출 — data-fav-chain에 남은 후보를 순서대로 시도
+function favIconFallback(img) {
+  let chain = [];
+  try {
+    chain = JSON.parse(img.dataset.favChain || "[]");
+  } catch (e) {}
+  if (chain.length) {
+    const next = chain.shift();
+    img.dataset.favChain = JSON.stringify(chain);
+    img.src = next;
+  } else {
+    img.onerror = null;
+    img.src = FAV_ICON_FALLBACK;
   }
 }
+window.favIconFallback = favIconFallback;
 
 /* ===== JSONP (일정관리/파밍현황과 동일 패턴) ===== */
 function favJsonp(url, timeoutMs) {
@@ -123,7 +152,9 @@ async function favInit() {
     if (Array.isArray(res)) {
       favLoaded = true;
       // 서버에 아직 시트/데이터가 없으면(빈 배열) 기본값을 그대로 보여주고, 있으면 서버 값을 신뢰
-      favItems = res.length ? res.map((r) => ({ name: r.name, url: r.url })) : favItems;
+      favItems = res.length
+        ? res.map((r) => (r.icon ? { name: r.name, url: r.url, icon: r.icon } : { name: r.name, url: r.url }))
+        : favItems;
       favWriteCache(favItems);
       favRenderAll();
     }
@@ -173,7 +204,12 @@ function favRenderInto(mount) {
       </span>`
           : ""
       }
-      <img class="fav-icon" src="${favIconUrl(f.url)}" alt="" width="18" height="18" loading="lazy" />
+      ${(() => {
+        const ic = favIconChain(f);
+        return `<img class="fav-icon${f.icon ? " fav-icon-custom" : ""}" src="${favEsc(ic.src)}" data-fav-chain="${favEsc(
+          JSON.stringify(ic.fallbacks)
+        )}" onerror="favIconFallback(this)" alt="" width="18" height="18" loading="lazy" />`;
+      })()}
       ${
         favEditing
           ? `<input class="fav-name-input" type="text" value="${favEsc(f.name)}" data-fav-field="name" />`
@@ -182,6 +218,9 @@ function favRenderInto(mount) {
       ${
         favEditing
           ? `
+        <button type="button" class="fav-mini-btn" data-fav-action="icon" title="아이콘 직접 지정">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </button>
         <button type="button" class="fav-mini-btn" data-fav-action="up" title="위로">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
         </button>
@@ -260,6 +299,21 @@ function favBindEvents(mount) {
       const item = btn.closest(".fav-item");
       if (!item) return;
       const idx = Number(item.dataset.favIdx);
+
+      if (action === "icon") {
+        const current = favItems[idx].icon || "";
+        const val = window.prompt(
+          "아이콘 이미지 URL을 직접 입력하세요.\n비워두고 확인을 누르면 자동 파비콘으로 되돌아갑니다.",
+          current
+        );
+        if (val === null) return; // 취소
+        const trimmed = val.trim();
+        if (trimmed) favItems[idx].icon = trimmed;
+        else delete favItems[idx].icon;
+        favPersist();
+        favRenderAll();
+        return;
+      }
 
       if (action === "delete") {
         favItems.splice(idx, 1);
