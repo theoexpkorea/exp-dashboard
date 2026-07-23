@@ -227,7 +227,10 @@
     <div class="rec-modal-head">
       <h2 id="custModalTitle">고객조건 보기</h2>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn-solid" id="custAddBtn" style="padding:6px 12px;font-size:12.5px;background:var(--accent);">+ 고객 추가</button>
+        <button class="btn-soft" id="custAddBtn" style="padding:6px 12px;font-size:12.5px;color:var(--accent);display:flex;align-items:center;gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          고객 추가
+        </button>
         <button class="rec-modal-close" id="custModalClose">✕</button>
       </div>
     </div>
@@ -246,21 +249,21 @@
       <div class="rec-form-grid">
         <div class="rec-field">
           <label>고객ID</label>
-          <input type="text" id="cfId" placeholder="예: SH-0009">
+          <input type="text" id="cfId" name="x-dash-custid" placeholder="예: SH-0009" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly>
           <div class="form-hint-text" id="cfIdHint">비워두면 자동 채번됩니다 (예: C0001)</div>
         </div>
         <div class="rec-field">
           <label>고객구분</label>
-          <input type="text" id="cfKind" list="cfKindList" placeholder="예: SH, CU">
+          <input type="text" id="cfKind" name="x-dash-custkind" list="cfKindList" placeholder="예: SH, CU" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly>
           <datalist id="cfKindList"><option value="SH"><option value="CU"></datalist>
         </div>
       </div>
       <div class="rec-form-grid full">
-        <div class="rec-field"><label>고객명</label><input type="text" id="cfName" placeholder="예: 홍길동"></div>
+        <div class="rec-field"><label>고객명</label><input type="text" id="cfName" name="x-dash-custname" placeholder="예: 홍길동" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
       </div>
       <div class="rec-form-grid">
-        <div class="rec-field"><label>연락처</label><input type="text" id="cfPhone" placeholder="예: 010-1234-5678"></div>
-        <div class="rec-field"><label>희망 지역</label><input type="text" id="cfArea" placeholder="예: 서울"></div>
+        <div class="rec-field"><label>연락처</label><input type="text" id="cfPhone" name="x-dash-custphone" placeholder="예: 010-1234-5678" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
+        <div class="rec-field"><label>희망 지역</label><input type="text" id="cfArea" name="x-dash-custarea" placeholder="예: 서울" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
       </div>
       <div class="rec-form-grid full">
         <div class="rec-field">
@@ -272,15 +275,15 @@
         </div>
       </div>
       <div class="rec-form-grid">
-        <div class="rec-field"><label>평수(최소)</label><input type="text" id="cfPyMin" placeholder="20"></div>
-        <div class="rec-field"><label>평수(최대)</label><input type="text" id="cfPyMax" placeholder="40"></div>
+        <div class="rec-field"><label>평수(최소)</label><input type="text" id="cfPyMin" name="x-dash-pymin" placeholder="20" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
+        <div class="rec-field"><label>평수(최대)</label><input type="text" id="cfPyMax" name="x-dash-pymax" placeholder="40" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
       </div>
       <div class="rec-form-grid">
-        <div class="rec-field"><label>예산 보증금/매매가(만)</label><input type="text" id="cfBudgetDeposit" placeholder="10000"></div>
-        <div class="rec-field"><label>예산 월세(만)</label><input type="text" id="cfBudgetRent" placeholder="300"></div>
+        <div class="rec-field"><label>예산 보증금/매매가(만)</label><input type="text" id="cfBudgetDeposit" name="x-dash-budgetdep" placeholder="10000" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
+        <div class="rec-field"><label>예산 월세(만)</label><input type="text" id="cfBudgetRent" name="x-dash-budgetrent" placeholder="300" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
       </div>
       <div class="rec-form-grid full">
-        <div class="rec-field"><label>희망 층수</label><input type="text" id="cfFloor" placeholder="예: 1~3층"></div>
+        <div class="rec-field"><label>희망 층수</label><input type="text" id="cfFloor" name="x-dash-custfloor" placeholder="예: 1~3층" autocomplete="off" data-lpignore="true" data-form-type="other" autocorrect="off" spellcheck="false" readonly></div>
       </div>
       <div class="rec-form-grid full">
         <div class="rec-field"><label>기타 요청사항</label><textarea id="cfEtc" placeholder="주차, 방향 등 기타 조건"></textarea></div>
