@@ -1853,6 +1853,7 @@ a { color: inherit; text-decoration: none; }
 .cust-dday-badge.overdue { background: var(--danger-soft); color: var(--danger); }
 .cust-dday-badge.today { background: #FBF1E2; color: #9A5B14; }
 .cust-dday-badge.upcoming { background: #E7F4ED; color: #1F7A4D; }
+.cust-dday-badge.done { background: #DFF3E6; color: #1F7A4D; }
 
 .cust-name-row { font-size: 14.5px; font-weight: 800; margin: 11px 0 5px; }
 .cust-name-row a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
