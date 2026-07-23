@@ -42,17 +42,17 @@ const FAV_ICON_FALLBACK =
 // icon이 없으면 구글 파비콘 → DuckDuckGo 파비콘 → 기본 지구본 순으로 시도
 function favIconChain(f) {
   if (f.icon) {
-    return { src: f.icon, fallbacks: [FAV_ICON_FALLBACK] };
+    return { src: f.icon, fallbacks: [FAV_ICON_FALLBACK], auto: false };
   }
   let host;
   try {
     host = new URL(f.url).hostname;
   } catch (e) {
-    return { src: FAV_ICON_FALLBACK, fallbacks: [] };
+    return { src: FAV_ICON_FALLBACK, fallbacks: [], auto: false };
   }
   const google = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host) + "&sz=64";
   const ddg = "https://icons.duckduckgo.com/ip3/" + encodeURIComponent(host) + ".ico";
-  return { src: google, fallbacks: [ddg, FAV_ICON_FALLBACK] };
+  return { src: google, fallbacks: [ddg, FAV_ICON_FALLBACK], auto: true };
 }
 
 // <img onerror="favIconFallback(this)"> 에서 호출 — data-fav-chain에 남은 후보를 순서대로 시도
@@ -64,6 +64,7 @@ function favIconFallback(img) {
   if (chain.length) {
     const next = chain.shift();
     img.dataset.favChain = JSON.stringify(chain);
+    delete img.dataset.favChecked; // 다음 후보도 다시 크기 검사 대상이 되도록 리셋
     img.src = next;
   } else {
     img.onerror = null;
@@ -71,6 +72,21 @@ function favIconFallback(img) {
   }
 }
 window.favIconFallback = favIconFallback;
+
+// <img onload="favIconOnLoad(this)"> 에서 호출
+// 구글/DuckDuckGo 파비콘 서비스는 아이콘을 못 찾아도 에러를 내지 않고
+// 작은 기본 아이콘(대개 16px)을 '정상 응답'으로 돌려주기 때문에 onerror만으로는 감지가 안 됨.
+// sz=64로 요청했는데 실제 로드된 이미지가 유난히 작으면 진짜 아이콘이 아닐 가능성이 높다고 보고 다음 후보로 넘어감.
+function favIconOnLoad(img) {
+  if (img.dataset.favAuto !== "1") return; // 수동 지정 아이콘은 크기 검사 제외
+  if (img.src === FAV_ICON_FALLBACK) return; // 최종 기본 아이콘은 더 넘어갈 곳이 없으니 검사 제외
+  if (img.dataset.favChecked) return;
+  img.dataset.favChecked = "1";
+  if (img.naturalWidth && img.naturalWidth <= 16) {
+    favIconFallback(img);
+  }
+}
+window.favIconOnLoad = favIconOnLoad;
 
 /* ===== JSONP (일정관리/파밍현황과 동일 패턴) ===== */
 function favJsonp(url, timeoutMs) {
@@ -208,7 +224,7 @@ function favRenderInto(mount) {
         const ic = favIconChain(f);
         return `<img class="fav-icon${f.icon ? " fav-icon-custom" : ""}" src="${favEsc(ic.src)}" data-fav-chain="${favEsc(
           JSON.stringify(ic.fallbacks)
-        )}" onerror="favIconFallback(this)" alt="" width="18" height="18" loading="lazy" />`;
+        )}" data-fav-auto="${ic.auto ? "1" : "0"}" onerror="favIconFallback(this)" onload="favIconOnLoad(this)" alt="" width="18" height="18" loading="lazy" />`;
       })()}
       ${
         favEditing
