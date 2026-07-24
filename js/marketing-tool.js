@@ -17,7 +17,7 @@ const MKT_JPEG_QUALITY = 0.82;
 
 const MKT_QUICKLINKS = [
   { name: '부동산포스', url: 'https://www.rfine.kr/', icon: 'https://play-lh.googleusercontent.com/t2gKJy71YpOqvJMEkX_WxuUxHArMSVeUW6LdZP7Qev7M1hto4t8WZJUiE2V80uotat1b7PKP-7PcsoZxblRP=w128-h128' },
-  { name: '네이버블로그', url: 'https://blog.naver.com/' },
+  { name: '네이버블로그', url: 'https://blog.naver.com/', icon: 'https://play-lh.googleusercontent.com/vh9R5EOEx7mk_YUM8gYgJF1GtlYrRwXu-QhIJ45rG5Y3_h640rYEFwH5d84yqGw7Xii1kzghygQZFTUY-uxS=w128-h128' },
   { name: '인스타그램', url: 'https://www.instagram.com/' },
   { name: '캔바', url: 'https://www.canva.com/' },
   { name: '캡컷', url: 'https://www.capcut.com/' },
