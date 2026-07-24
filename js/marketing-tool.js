@@ -11,7 +11,7 @@
    ============================================================ */
 
 const MKT_URL = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
-const MKT_MAX_PHOTOS = 8;
+const MKT_MAX_PHOTOS = 15;
 const MKT_MAX_DIM = 1440; // 리사이즈 후 최대 가로/세로
 const MKT_JPEG_QUALITY = 0.82;
 
