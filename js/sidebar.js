@@ -9,7 +9,7 @@ const NAV_WORKAREAS = [
   { key: "farming", label: "파밍현황", href: "pages/farming-status.html", icon: "map" },
   { key: "customer", label: "고객관리", href: "pages/customer-management.html", icon: "users" },
   { key: "schedule", label: "일정관리", href: "pages/schedule-management.html", icon: "calendar" },
-  { key: "marketing", label: "마케팅툴", href: null, icon: "megaphone", disabled: true, tag: "추가예정" },
+  { key: "marketing", label: "마케팅툴", href: "pages/marketing-tool.html", icon: "megaphone" },
 ];
 
 const NAV_APPLINKS = [
