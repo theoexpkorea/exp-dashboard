@@ -188,6 +188,7 @@ function mktSaveInstaTemplate() {
 /* ===== <<PHOTO_META>> 블록 파싱 =====
    백엔드가 응답 끝에 아래 형식으로 붙여줌:
    <<PHOTO_META>>
+   대표사진: 2 (건물 전면이 잘 보이는 풀샷)   ← 블로그 포맷일 때만 포함될 수 있음
    순서: 2,1,3
    1: 캡션텍스트
    2: 캡션텍스트
@@ -195,7 +196,7 @@ function mktSaveInstaTemplate() {
    <<END_PHOTO_META>>                                */
 function mktParsePhotoMeta(text) {
   const m = text.match(/<<PHOTO_META>>([\s\S]*?)<<END_PHOTO_META>>/);
-  if (!m) return { order: [], captions: {}, cleanText: text.trim() };
+  if (!m) return { order: [], captions: {}, thumb: null, thumbReason: '', cleanText: text.trim() };
   const block = m[1];
   const orderMatch = block.match(/순서\s*[:：]\s*([\d,\s]+)/);
   const order = orderMatch
@@ -207,8 +208,15 @@ function mktParsePhotoMeta(text) {
   while ((cm = capRe.exec(block))) {
     captions[parseInt(cm[1], 10)] = cm[2].trim();
   }
+  let thumb = null;
+  let thumbReason = '';
+  const thumbMatch = block.match(/대표사진\s*[:：]\s*(\d+)\s*(?:\(([^)]*)\))?/);
+  if (thumbMatch) {
+    thumb = parseInt(thumbMatch[1], 10);
+    thumbReason = (thumbMatch[2] || '').trim();
+  }
   const cleanText = text.replace(m[0], '').trim();
-  return { order, captions, cleanText };
+  return { order, captions, thumb, thumbReason, cleanText };
 }
 
 /* ===== 생성 ===== */
@@ -223,6 +231,7 @@ function mktSetBusy(busy) {
     $('mktDownloadBtn').style.display = 'none';
     $('mktRefineRow').classList.add('hidden');
     $('mktRefineNote').textContent = '';
+    $('mktThumbNote').classList.add('hidden');
   }
 }
 
@@ -269,6 +278,7 @@ async function mktGenerate() {
       mktLastGenPhotos = mktPhotos.slice();
       mktLastGenFormat = mktFormat;
       mktLastPhotoMeta = parsed;
+      mktUpdateThumbNote(parsed);
 
       const dlBtn = $('mktDownloadBtn');
       if (mktLastGenPhotos.length > 0 && (parsed.order.length > 0 || Object.keys(parsed.captions).length > 0)) {
@@ -291,6 +301,16 @@ async function mktGenerate() {
     mktSetBusy(false);
     mktShowError('네트워크 오류로 생성에 실패했어요.');
     $('mktOutputEmpty').classList.remove('hidden');
+  }
+}
+
+function mktUpdateThumbNote(parsed) {
+  const note = $('mktThumbNote');
+  if (parsed && parsed.thumb) {
+    note.textContent = `📌 대표(썸네일) 추천: 사진${parsed.thumb}${parsed.thumbReason ? ' — ' + parsed.thumbReason : ''}`;
+    note.classList.remove('hidden');
+  } else {
+    note.classList.add('hidden');
   }
 }
 
@@ -372,6 +392,7 @@ async function mktRefine() {
       const out = $('mktOutputText');
       out.textContent = parsed.cleanText;
       mktLastPhotoMeta = parsed;
+      mktUpdateThumbNote(parsed);
 
       const dlBtn = $('mktDownloadBtn');
       if (mktLastGenPhotos.length > 0 && (parsed.order.length > 0 || Object.keys(parsed.captions).length > 0)) {
@@ -424,7 +445,8 @@ async function mktDownloadPhotos() {
     const photo = mktLastGenPhotos[origIdx - 1];
     if (!photo) return;
     const seq = String(i + 1).padStart(2, '0');
-    const filename = `${label}_${seq}.jpg`;
+    const isThumb = meta.thumb && meta.thumb === origIdx;
+    const filename = `${label}_${seq}${isThumb ? '_대표' : ''}.jpg`;
     const blob = mktBase64ToBlob(photo.base64, photo.mediaType);
     zip.file(filename, blob);
     const cap = meta.captions[origIdx];
