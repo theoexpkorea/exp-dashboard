@@ -43,6 +43,7 @@ let mktLastGenPhotos = [];        // 마지막 생성 시점의 사진 스냅샷
 let mktLastGenFormat = 'blog';
 let mktLastPhotoMeta = null;      // { order:[...], captions:{n:text} }
 let mktNaverTemplate = '';
+let mktInstaTemplate = '';
 let mktBusy = false;
 let mktRefineBusy = false;
 let mktConversation = [];         // Anthropic messages 형식 그대로 유지 (다듬기 요청 시 이어서 전송)
@@ -135,6 +136,7 @@ function mktSetFormat(format) {
     btn.classList.toggle('active', btn.dataset.format === format);
   });
   $('mktNaverField').style.display = (format === 'naver') ? '' : 'none';
+  $('mktInstaField').style.display = (format === 'insta') ? '' : 'none';
   if (!mktModelTouched) mktSetModel(MKT_DEFAULT_MODEL[format], false);
   mktResetConversation();
 }
@@ -147,13 +149,15 @@ function mktSetModel(model, touched) {
   });
 }
 
-/* ===== 네이버광고 고정양식 로드/저장 ===== */
+/* ===== 네이버광고/인스타 고정양식 로드/저장 ===== */
 async function mktLoadConfig() {
   if (!MKT_URL || typeof fetchJsonp !== 'function') return;
   try {
     const res = await fetchJsonp(MKT_URL + '?mode=marketingGetConfig');
     mktNaverTemplate = (res && res.naverTemplate) || '';
     $('mktNaverTemplate').value = mktNaverTemplate;
+    mktInstaTemplate = (res && res.instaTemplate) || '';
+    $('mktInstaTemplate').value = mktInstaTemplate;
   } catch (e) { /* 조용히 무시 — 생성 시점에 다시 시도 가능 */ }
 }
 
@@ -165,6 +169,18 @@ function mktSaveTemplate() {
     body: JSON.stringify({ mode: 'marketingSaveConfig', naverTemplate: val })
   }).then((res) => res.json()).then((res) => {
     if (res && res.ok) { mktNaverTemplate = val; mktToast('네이버광고 양식을 저장했어요.'); }
+    else { mktToast('저장 실패 — 다시 시도해주세요.'); }
+  }).catch(() => mktToast('저장 실패 — 인터넷 연결을 확인해주세요.'));
+}
+
+function mktSaveInstaTemplate() {
+  const val = $('mktInstaTemplate').value;
+  fetch(MKT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ mode: 'marketingSaveConfig', instaTemplate: val })
+  }).then((res) => res.json()).then((res) => {
+    if (res && res.ok) { mktInstaTemplate = val; mktToast(val ? '인스타 양식을 저장했어요.' : '인스타 양식을 비웠어요 — 이제 자유형으로 생성돼요.'); }
     else { mktToast('저장 실패 — 다시 시도해주세요.'); }
   }).catch(() => mktToast('저장 실패 — 인터넷 연결을 확인해주세요.'));
 }
@@ -458,6 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('mktSaveTemplate').addEventListener('click', mktSaveTemplate);
+  $('mktSaveInstaTemplate').addEventListener('click', mktSaveInstaTemplate);
   $('mktGenerateBtn').addEventListener('click', mktGenerate);
   $('mktCopyBtn').addEventListener('click', mktCopyOutput);
   $('mktDownloadBtn').addEventListener('click', mktDownloadPhotos);
