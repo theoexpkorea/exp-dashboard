@@ -460,6 +460,13 @@ async function mktDownloadPhotos() {
     order = uniqueOrder;
   }
 
+  // 표로 인식된 사진(캡션이 "[표]"로 시작)은 실제 매물 사진이 아니므로 다운로드 대상에서 제외
+  order = order.filter((origIdx) => {
+    const cap = meta.captions[origIdx] || '';
+    return !cap.trim().startsWith('[표]');
+  });
+  if (!order.length) { mktToast('표 사진만 첨부돼 있어서 다운로드할 매물 사진이 없어요.'); return; }
+
   const zip = new JSZip();
   const rawText = $('mktOutputText').textContent || '';
   const slug = mktExtractSlug(mktLastGenFormat, rawText);
