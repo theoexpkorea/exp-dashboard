@@ -423,6 +423,29 @@ function mktBase64ToBlob(base64, mediaType) {
   return new Blob([new Uint8Array(byteNumbers)], { type: mediaType });
 }
 
+/* ===== 파일명용 키워드 슬러그 추출 =====
+   블로그: [추천 태그] 섹션에서 앞의 1~2개 키워드
+   인스타: 캡션 안 해시태그에서 앞의 1~2개
+   네이버광고: 별도 태그 개념이 없어 슬러그 없이 포맷 라벨 사용            */
+function mktSanitizeSlug(s) {
+  return String(s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '').slice(0, 40);
+}
+function mktExtractSlug(format, text) {
+  try {
+    if (format === 'blog') {
+      const m = text.match(/\[추천\s*태그\]\s*\n([^\n]+)/);
+      if (m) {
+        const tags = m[1].split(',').map((s) => s.trim()).filter(Boolean);
+        if (tags.length) return mktSanitizeSlug(tags.slice(0, 2).join('-'));
+      }
+    } else if (format === 'insta') {
+      const tags = (text.match(/#[^\s#]+/g) || []).map((t) => t.slice(1));
+      if (tags.length) return mktSanitizeSlug(tags.slice(0, 2).join('-'));
+    }
+  } catch (e) { /* 파싱 실패 시 그냥 포맷 라벨로 폴백 */ }
+  return '';
+}
+
 async function mktDownloadPhotos() {
   if (typeof JSZip === 'undefined') { mktToast('zip 라이브러리를 불러오지 못했어요.'); return; }
   if (!mktLastGenPhotos.length) { mktToast('먼저 사진을 첨부해서 생성해주세요.'); return; }
@@ -438,7 +461,9 @@ async function mktDownloadPhotos() {
   }
 
   const zip = new JSZip();
-  const label = MKT_FORMAT_LABEL[mktLastGenFormat] || '마케팅';
+  const rawText = $('mktOutputText').textContent || '';
+  const slug = mktExtractSlug(mktLastGenFormat, rawText);
+  const label = slug || MKT_FORMAT_LABEL[mktLastGenFormat] || '마케팅';
   const captionLines = [];
 
   order.forEach((origIdx, i) => {
