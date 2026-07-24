@@ -48,7 +48,7 @@ let mktBusy = false;
 let mktRefineBusy = false;
 let mktConversation = [];         // Anthropic messages 형식 그대로 유지 (다듬기 요청 시 이어서 전송)
 let mktRefineTurns = 0;
-const MKT_MAX_REFINE_TURNS = 4;   // 최초 생성 이후 다듬기 가능 횟수
+const MKT_MAX_REFINE_TURNS = 8;   // 최초 생성 이후 다듬기 가능 횟수
 
 const MKT_DEFAULT_MODEL = { blog: 'sonnet', insta: 'haiku', naver: 'haiku' };
 
