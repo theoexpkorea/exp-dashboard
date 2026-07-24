@@ -44,6 +44,10 @@ let mktLastGenFormat = 'blog';
 let mktLastPhotoMeta = null;      // { order:[...], captions:{n:text} }
 let mktNaverTemplate = '';
 let mktBusy = false;
+let mktRefineBusy = false;
+let mktConversation = [];         // Anthropic messages 형식 그대로 유지 (다듬기 요청 시 이어서 전송)
+let mktRefineTurns = 0;
+const MKT_MAX_REFINE_TURNS = 4;   // 최초 생성 이후 다듬기 가능 횟수
 
 const MKT_DEFAULT_MODEL = { blog: 'sonnet', insta: 'haiku', naver: 'haiku' };
 
@@ -132,6 +136,7 @@ function mktSetFormat(format) {
   });
   $('mktNaverField').style.display = (format === 'naver') ? '' : 'none';
   if (!mktModelTouched) mktSetModel(MKT_DEFAULT_MODEL[format], false);
+  mktResetConversation();
 }
 
 function mktSetModel(model, touched) {
@@ -200,6 +205,8 @@ function mktSetBusy(busy) {
   if (busy) {
     $('mktOutputText').classList.add('hidden');
     $('mktDownloadBtn').style.display = 'none';
+    $('mktRefineRow').classList.add('hidden');
+    $('mktRefineNote').textContent = '';
   }
 }
 
@@ -216,6 +223,8 @@ async function mktGenerate() {
   if (!MKT_URL) { mktShowError('서버 주소가 설정되지 않았어요.'); return; }
   mktShowError('');
   mktSetBusy(true);
+  mktConversation = [];
+  mktRefineTurns = 0;
 
   const images = mktPhotos.map((p) => ({ mediaType: p.mediaType, data: p.base64 }));
   const payload = {
@@ -251,6 +260,13 @@ async function mktGenerate() {
       } else {
         dlBtn.style.display = 'none';
       }
+
+      // 다듬기용 대화 컨텍스트 시작 — 서버가 실제로 보낸 user turn(이미지 포함)을 그대로 이어받음
+      mktConversation = [
+        data.userTurn || { role: 'user', content: [{ type: 'text', text: prompt }] },
+        { role: 'assistant', content: [{ type: 'text', text: data.text || '' }] }
+      ];
+      mktShowRefineBox();
     } else {
       mktShowError((data && data.error) || '생성에 실패했어요. 잠시 후 다시 시도해주세요.');
       $('mktOutputEmpty').classList.remove('hidden');
@@ -267,6 +283,99 @@ function mktCopyOutput() {
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => mktToast('결과를 복사했어요.'))
     .catch(() => mktToast('복사에 실패했어요.'));
+}
+
+/* ===== 다듬기(대화형 후속 수정) ===== */
+function mktResetConversation() {
+  mktConversation = [];
+  mktRefineTurns = 0;
+  const row = $('mktRefineRow');
+  const note = $('mktRefineNote');
+  const input = $('mktRefineInput');
+  if (row) row.classList.add('hidden');
+  if (note) note.textContent = '';
+  if (input) { input.value = ''; input.disabled = false; }
+  const btn = $('mktRefineBtn');
+  if (btn) btn.disabled = false;
+}
+
+function mktShowRefineBox() {
+  const row = $('mktRefineRow');
+  if (row) row.classList.remove('hidden');
+  mktUpdateRefineNote();
+}
+
+function mktUpdateRefineNote() {
+  const note = $('mktRefineNote');
+  if (!note) return;
+  const left = MKT_MAX_REFINE_TURNS - mktRefineTurns;
+  if (left <= 0) {
+    note.textContent = '다듬기는 여기까지예요 — 마음에 드는 방향이 안 나오면 매물 특징을 다시 정리해서 새로 생성해보세요.';
+    $('mktRefineInput').disabled = true;
+    $('mktRefineBtn').disabled = true;
+  } else {
+    note.textContent = `다듬기 ${mktRefineTurns}/${MKT_MAX_REFINE_TURNS}회 사용 · 이전 대화를 기억한 채로 이어서 수정해요.`;
+  }
+}
+
+function mktSetRefineBusy(busy) {
+  mktRefineBusy = busy;
+  $('mktRefineBtn').disabled = busy || (MKT_MAX_REFINE_TURNS - mktRefineTurns <= 0);
+  $('mktRefineBtn').textContent = busy ? '다듬는 중…' : '다듬기';
+}
+
+async function mktRefine() {
+  if (mktRefineBusy || mktBusy) return;
+  const input = $('mktRefineInput');
+  const message = input.value.trim();
+  if (!message) return;
+  if (MKT_MAX_REFINE_TURNS - mktRefineTurns <= 0) return;
+  if (!mktConversation.length) { mktToast('먼저 생성을 한 번 해주세요.'); return; }
+
+  mktSetRefineBusy(true);
+  mktShowError('');
+
+  const payload = {
+    mode: 'marketingRefine',
+    format: mktFormat,
+    model: mktModel,
+    history: mktConversation,
+    message: message
+  };
+
+  try {
+    const res = await fetch(MKT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    mktSetRefineBusy(false);
+    if (data && data.ok) {
+      const parsed = mktParsePhotoMeta(data.text || '');
+      const out = $('mktOutputText');
+      out.textContent = parsed.cleanText;
+      mktLastPhotoMeta = parsed;
+
+      const dlBtn = $('mktDownloadBtn');
+      if (mktLastGenPhotos.length > 0 && (parsed.order.length > 0 || Object.keys(parsed.captions).length > 0)) {
+        dlBtn.style.display = '';
+      } else {
+        dlBtn.style.display = 'none';
+      }
+
+      mktConversation.push(data.userTurn || { role: 'user', content: [{ type: 'text', text: message }] });
+      mktConversation.push({ role: 'assistant', content: [{ type: 'text', text: data.text || '' }] });
+      mktRefineTurns += 1;
+      input.value = '';
+      mktUpdateRefineNote();
+    } else {
+      mktToast((data && data.error) || '다듬기에 실패했어요. 잠시 후 다시 시도해주세요.');
+    }
+  } catch (e) {
+    mktSetRefineBusy(false);
+    mktToast('네트워크 오류로 다듬기에 실패했어요.');
+  }
 }
 
 /* ===== 사진 순서대로 파일명 정리 + zip 다운로드 ===== */
@@ -352,6 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('mktGenerateBtn').addEventListener('click', mktGenerate);
   $('mktCopyBtn').addEventListener('click', mktCopyOutput);
   $('mktDownloadBtn').addEventListener('click', mktDownloadPhotos);
+  $('mktRefineBtn').addEventListener('click', mktRefine);
+  $('mktRefineInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mktRefine(); }
+  });
 
   mktLoadConfig();
 });
