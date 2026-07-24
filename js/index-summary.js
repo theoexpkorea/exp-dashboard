@@ -135,12 +135,33 @@ async function sumLoadSchedule_() {
   } catch (e) {}
 }
 
+/* ---------------- 마케팅툴 (marketingStats — 이번달 생성 건수) ---------------- */
+function sumRenderMarketing_(stats) {
+  const count = (stats && typeof stats.thisMonth === 'number') ? stats.thisMonth : 0;
+  sumSet_('marketing', count.toLocaleString() + '건', '이번달 생성');
+}
+async function sumLoadMarketing_() {
+  const cached = sumReadCache_('theo_dashboard_marketing_stats_cache_v1');
+  if (cached && typeof cached.thisMonth === 'number') sumRenderMarketing_(cached);
+
+  const url = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
+  if (!url || typeof fetchJsonp !== 'function') return;
+  try {
+    const res = await fetchJsonp(url + '?mode=marketingStats');
+    if (res && typeof res.thisMonth === 'number') {
+      sumRenderMarketing_(res);
+      try { localStorage.setItem('theo_dashboard_marketing_stats_cache_v1', JSON.stringify(res)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
 function sumInit() {
   sumLoadMaemul_();
   sumLoadRecommend_();
   sumLoadFarm_();
   sumLoadCustomer_();
   sumLoadSchedule_();
+  sumLoadMarketing_();
 }
 
 document.addEventListener('DOMContentLoaded', sumInit);
