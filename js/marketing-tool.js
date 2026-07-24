@@ -317,8 +317,20 @@ function mktUpdateThumbNote(parsed) {
 function mktCopyOutput() {
   const text = $('mktOutputText').textContent;
   if (!text) return;
-  navigator.clipboard.writeText(text).then(() => mktToast('결과를 복사했어요.'))
-    .catch(() => mktToast('복사에 실패했어요.'));
+  navigator.clipboard.writeText(text).then(() => {
+    mktToast('결과를 복사했어요.');
+    mktLogCopy_();
+  }).catch(() => mktToast('복사에 실패했어요.'));
+}
+
+/* 복사 성공 시점을 "완성해서 실제로 쓴 건수"로 서버에 기록 — 실패해도 UI엔 영향 없음(fire-and-forget) */
+function mktLogCopy_() {
+  if (!MKT_URL) return;
+  fetch(MKT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ mode: 'marketingLogCopy', format: mktLastGenFormat || mktFormat })
+  }).catch(() => {});
 }
 
 /* ===== 다듬기(대화형 후속 수정) ===== */
