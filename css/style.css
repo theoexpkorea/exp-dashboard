@@ -1893,9 +1893,10 @@ a { color: inherit; text-decoration: none; }
 .cust-edit-btn {
   width: 26px; height: 26px; border-radius: 8px; border: 0; background: transparent;
   color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; padding: 0; flex-shrink: 0;
+  cursor: pointer; padding: 0; flex-shrink: 0; outline: none;
 }
 .cust-edit-btn:hover { background: var(--bg); color: var(--accent); }
+.cust-edit-btn:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft); }
 
 /* 등록/수정 모달 — 필드 사이 간격 (rec-form-grid 래핑으로 기본 18px 간격 적용됨) */
 #formFields .dash-picker-btn { margin-bottom: 0; }
