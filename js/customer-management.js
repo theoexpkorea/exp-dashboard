@@ -344,6 +344,140 @@ function crmCloseDayPanel() { crmOverlay.classList.remove('open'); crmDayPanel.c
 crmOverlay.addEventListener('click', () => { crmCloseDayPanel(); crmCloseForm(); });
 $('dpClose').addEventListener('click', crmCloseDayPanel);
 
+/* ===== 신규상담(구글시트 '신규문의' 탭) — 읽기 전용, 기존 일별 상세 패널(#overlay/#dayPanel)을
+   그대로 재사용해서 새 모달 CSS 없이 구현. exp-client/contact.html 접수 데이터를 최신순으로만 보여줌. ===== */
+function crmConsultBuildEl(it) {
+  const item = document.createElement('div');
+  item.className = 'farm-dp-item';
+  const specs = [it.propType, it.region, it.size, it.budget].filter(Boolean).join(' · ');
+  const editIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  const trashIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+  item.innerHTML =
+    '<div class="farm-dp-item-top">' +
+      '<div class="cust-tags-left">' +
+        '<span class="cust-tag cat-LEAD">신규상담</span>' +
+        (it.type ? '<span class="cust-status-tag">' + crmEsc(it.type) + '</span>' : '') +
+      '</div>' +
+      '<div class="cust-tags-right">' +
+        '<span class="farm-dp-sub2" style="margin:0;">' + crmEsc(it.date || '-') + '</span>' +
+        '<button type="button" class="cust-edit-btn" data-consult-edit aria-label="수정">' + editIcon + '</button>' +
+        '<button type="button" class="cust-edit-btn" data-consult-del aria-label="삭제" style="color:var(--danger);">' + trashIcon + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="cust-name-row">' + crmEsc(it.name || '(이름없음)') + '</div>' +
+    '<div class="cust-sub-row">' + (it.tel ? '<a href="tel:' + it.tel + '">' + crmEsc(it.tel) + '</a>' : '연락처 없음') + '</div>' +
+    (specs ? '<div class="farm-dp-sub2">' + crmEsc(specs) + '</div>' : '') +
+    (it.request ? '<div class="farm-dp-sub2">' + crmEsc(it.request) + '</div>' : '') +
+    '<div class="farm-dp-specs"><span>마케팅동의 <b>' + crmEsc(it.marketingAgree || '-') + '</b></span></div>';
+
+  const editBtn = item.querySelector('[data-consult-edit]');
+  if (editBtn) editBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenConsultEditForm(it); });
+  const delBtn = item.querySelector('[data-consult-del]');
+  if (delBtn) delBtn.addEventListener('click', e => { e.stopPropagation(); crmDeleteConsult(it, item); });
+
+  return item;
+}
+
+async function crmOpenConsultPanel() {
+  crmPanelMode = 'consult';
+  $('dpTitle').textContent = '신규상담';
+  $('dpSub').textContent = '불러오는 중...';
+  const body = $('dpBody');
+  body.innerHTML = '<div class="farm-dp-empty">불러오는 중...</div>';
+  crmOverlay.classList.add('open');
+  crmDayPanel.classList.add('open');
+  try {
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultList', 15000);
+    const list = (res && res.items) || [];
+    $('dpSub').textContent = list.length ? (list.length + '건 · 최신순') : '접수된 상담이 없습니다';
+    body.innerHTML = '';
+    if (list.length === 0) {
+      body.innerHTML = '<div class="farm-dp-empty">접수된 신규상담이 없습니다.</div>';
+    } else {
+      list.forEach(it => body.appendChild(crmConsultBuildEl(it)));
+    }
+  } catch (e) {
+    $('dpSub').textContent = '불러오기 실패';
+    body.innerHTML = '<div class="farm-dp-empty">불러오지 못했어요. 다시 시도해 주세요.</div>';
+  }
+}
+$('consultBtn').addEventListener('click', crmOpenConsultPanel);
+
+/* ===== 신규상담 수정/삭제 — 전용 모달(#consultFormOverlay) 재사용,
+   crmField()/crmFv()는 아래쪽 CRM 등록/수정 폼 섹션에 정의돼 있지만 function 선언이라 호이스팅되어 여기서도 바로 사용 가능 ===== */
+const crmConsultFormOverlay = $('consultFormOverlay');
+let crmConsultEditItem = null;
+
+function crmConsultFieldsHtml(it) {
+  return crmField('접수일', '<input type="text" id="cf_date" value="' + crmEscAttr(it.date || '') + '" placeholder="yyyy-mm-dd">')
+    + crmField('구분', '<input type="text" id="cf_type" value="' + crmEscAttr(it.type || '') + '">')
+    + crmField('이름', '<input type="text" id="cf_name" value="' + crmEscAttr(it.name || '') + '">')
+    + crmField('연락처', '<input type="text" id="cf_tel" value="' + crmEscAttr(it.tel || '') + '">')
+    + crmField('매물유형', '<input type="text" id="cf_propType" value="' + crmEscAttr(it.propType || '') + '">')
+    + crmField('희망지역/주소', '<input type="text" id="cf_region" value="' + crmEscAttr(it.region || '') + '">')
+    + crmField('면적', '<input type="text" id="cf_size" value="' + crmEscAttr(it.size || '') + '">')
+    + crmField('예산/희망가격', '<input type="text" id="cf_budget" value="' + crmEscAttr(it.budget || '') + '">')
+    + crmField('요청사항', '<textarea id="cf_request">' + crmEsc(it.request || '') + '</textarea>')
+    + crmField('마케팅동의', '<input type="text" id="cf_marketingAgree" value="' + crmEscAttr(it.marketingAgree || '') + '">');
+}
+
+function crmOpenConsultEditForm(it) {
+  crmConsultEditItem = it;
+  $('consultFormFields').innerHTML = crmConsultFieldsHtml(it);
+  $('consultFormError').textContent = '';
+  crmConsultFormOverlay.classList.add('open');
+}
+function crmCloseConsultForm() { crmConsultFormOverlay.classList.remove('open'); crmConsultEditItem = null; }
+$('consultFormClose').addEventListener('click', crmCloseConsultForm);
+$('consultFormCancel').addEventListener('click', crmCloseConsultForm);
+crmConsultFormOverlay.addEventListener('click', e => { if (e.target === crmConsultFormOverlay) crmCloseConsultForm(); });
+
+$('consultFormSave').addEventListener('click', async () => {
+  if (!crmConsultEditItem) return;
+  const payload = {
+    row: crmConsultEditItem.row,
+    date: crmFv('cf_date'), type: crmFv('cf_type'), name: crmFv('cf_name'), tel: crmFv('cf_tel'),
+    propType: crmFv('cf_propType'), region: crmFv('cf_region'), size: crmFv('cf_size'),
+    budget: crmFv('cf_budget'), request: crmFv('cf_request'), marketingAgree: crmFv('cf_marketingAgree')
+  };
+  const qs = Object.keys(payload).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(payload[k])).join('&');
+  const saveBtn = $('consultFormSave');
+  saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+  try {
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultUpdate&' + qs, 15000);
+    if (res && res.ok) {
+      crmToast('수정됐어요.');
+      crmCloseConsultForm();
+      crmOpenConsultPanel(); // 목록 새로고침
+    } else {
+      $('consultFormError').textContent = '수정에 실패했어요. 다시 시도해 주세요.';
+    }
+  } catch (e) {
+    $('consultFormError').textContent = '연결이 원활하지 않아요. 다시 시도해 주세요.';
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = '저장';
+  }
+});
+
+async function crmDeleteConsult(it, elToRemove) {
+  if (!confirm((it.name || '이 상담') + ' 내역을 삭제할까요?')) return;
+  try {
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultDelete&row=' + encodeURIComponent(it.row), 15000);
+    if (res && res.ok) {
+      crmToast('삭제됐어요.');
+      elToRemove.remove();
+      const remaining = $('dpBody').querySelectorAll('.farm-dp-item').length;
+      $('dpSub').textContent = remaining ? (remaining + '건 · 최신순') : '접수된 상담이 없습니다';
+      if (!remaining) $('dpBody').innerHTML = '<div class="farm-dp-empty">접수된 신규상담이 없습니다.</div>';
+    } else {
+      crmToast('삭제에 실패했어요. 다시 시도해 주세요.');
+    }
+  } catch (e) {
+    crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+  }
+}
+
+
 function crmBuildItemEl(ev) {
   const key = ev.cat + '_' + ev.row;
   const item = document.createElement('div');
