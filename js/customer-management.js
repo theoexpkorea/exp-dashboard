@@ -425,9 +425,9 @@ function crmOpenConsultEditForm(it) {
   crmConsultEditItem = it;
   $('consultFormFields').innerHTML = crmConsultFieldsHtml(it);
   $('consultFormError').textContent = '';
-  crmConsultFormOverlay.classList.add('open');
+  crmConsultFormOverlay.classList.add('show');
 }
-function crmCloseConsultForm() { crmConsultFormOverlay.classList.remove('open'); crmConsultEditItem = null; }
+function crmCloseConsultForm() { crmConsultFormOverlay.classList.remove('show'); crmConsultEditItem = null; }
 $('consultFormClose').addEventListener('click', crmCloseConsultForm);
 $('consultFormCancel').addEventListener('click', crmCloseConsultForm);
 crmConsultFormOverlay.addEventListener('click', e => { if (e.target === crmConsultFormOverlay) crmCloseConsultForm(); });
