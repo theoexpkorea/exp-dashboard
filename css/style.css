@@ -1511,6 +1511,9 @@ a { color: inherit; text-decoration: none; }
 .farm-pill.done { background: #E7F4ED; color: #1F7A4D; }
 .farm-pill.hold { background: #FBF1E2; color: #9A5B14; }
 .farm-pill.cancel { background: var(--bg); color: var(--text-muted); text-decoration: line-through; }
+/* 루틴/고객 파밍 구분 — 상태색(배경)은 유지하고 좌측 스트라이프로 스코프 표시 */
+.farm-pill.scope-routine { border-left: 3px solid #4C9670; padding-left: 5px; }
+.farm-pill.scope-customer { border-left: 3px solid #B08A44; padding-left: 5px; }
 .farm-more { font-size: 11px; font-weight: 700; color: var(--text-secondary); padding: 2px 7px; }
 
 .farm-cal-loading {
@@ -1595,8 +1598,6 @@ a { color: inherit; text-decoration: none; }
 .farm-tool-btn svg { flex-shrink: 0; }
 
 .farm-scope-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.rec-filter-chip[data-scope="routine"] { background: #F1FAF5; color: #4C9670; border-color: #D9EEE2; }
-.rec-filter-chip[data-scope="customer"] { background: #FDF6EA; color: #B08A44; border-color: #F1E4C6; }
 .rec-filter-chip[data-scope="routine"].active { background: #E7F4ED; color: #1F7A4D; border-color: #BFE6CE; }
 .rec-filter-chip[data-scope="customer"].active { background: #FBF1E2; color: #9A5B14; border-color: #F0DBA6; }
 
@@ -1617,6 +1618,8 @@ a { color: inherit; text-decoration: none; }
 .farm-dot.done { background: #1F7A4D; }
 .farm-dot.hold { background: #9A5B14; }
 .farm-dot.cancel { background: var(--text-muted); }
+.farm-dot.scope-routine { box-shadow: 0 0 0 1.5px #4C9670; }
+.farm-dot.scope-customer { box-shadow: 0 0 0 1.5px #B08A44; }
 .farm-dot-more { font-size: 9px; color: var(--text-secondary); font-weight: 700; }
 
 /* 고객조건 보기 목록/상세 */
