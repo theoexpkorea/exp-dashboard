@@ -226,7 +226,7 @@ function farmRenderCalendar() {
         const maxDots = 6;
         events.slice(0, maxDots).forEach(ev => {
           const dot = document.createElement('span');
-          dot.className = 'farm-dot ' + (FARM_STATUS_CLASS[ev.파밍여부] || 'plan') + (ev.고객ID ? ' scope-customer' : ' scope-routine');
+          dot.className = 'farm-dot ' + (ev.고객ID ? 'scope-customer' : 'scope-routine') + (ev.파밍여부 === '파밍취소' ? ' is-cancelled' : '');
           dotRow.appendChild(dot);
         });
         if (events.length > maxDots) {
@@ -241,7 +241,7 @@ function farmRenderCalendar() {
       const maxShow = 3;
       events.slice(0, maxShow).forEach(ev => {
         const pill = document.createElement('div');
-        pill.className = 'farm-pill ' + (FARM_STATUS_CLASS[ev.파밍여부] || 'plan') + (ev.고객ID ? ' scope-customer' : ' scope-routine');
+        pill.className = 'farm-pill ' + (ev.고객ID ? 'scope-customer' : 'scope-routine') + (ev.파밍여부 === '파밍취소' ? ' is-cancelled' : '');
         const label = ev.건물명 || ev.주소 || '(이름없음)';
         pill.textContent = label;
         pill.title = label;
