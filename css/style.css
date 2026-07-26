@@ -1595,6 +1595,8 @@ a { color: inherit; text-decoration: none; }
 .farm-tool-btn svg { flex-shrink: 0; }
 
 .farm-scope-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.rec-filter-chip[data-scope="routine"] { background: #F1FAF5; color: #4C9670; border-color: #D9EEE2; }
+.rec-filter-chip[data-scope="customer"] { background: #FDF6EA; color: #B08A44; border-color: #F1E4C6; }
 .rec-filter-chip[data-scope="routine"].active { background: #E7F4ED; color: #1F7A4D; border-color: #BFE6CE; }
 .rec-filter-chip[data-scope="customer"].active { background: #FBF1E2; color: #9A5B14; border-color: #F0DBA6; }
 
