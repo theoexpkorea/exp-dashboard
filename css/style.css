@@ -1507,13 +1507,10 @@ a { color: inherit; text-decoration: none; }
   font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;
 }
-.farm-pill.plan { background: var(--accent-soft); color: var(--accent); }
-.farm-pill.done { background: #E7F4ED; color: #1F7A4D; }
-.farm-pill.hold { background: #FBF1E2; color: #9A5B14; }
-.farm-pill.cancel { background: var(--bg); color: var(--text-muted); text-decoration: line-through; }
-/* 루틴/고객 파밍 구분 — 상태색(배경)은 유지하고 좌측 스트라이프로 스코프 표시 */
-.farm-pill.scope-routine { border-left: 3px solid #4C9670; padding-left: 5px; }
-.farm-pill.scope-customer { border-left: 3px solid #B08A44; padding-left: 5px; }
+/* 루틴/고객 파밍 구분 — 필 배경색 자체로 스코프 표시 (고객관리·일정관리 캘린더와 동일 방식) */
+.farm-pill.scope-routine { background: #E7F4ED; color: #1F7A4D; }
+.farm-pill.scope-customer { background: #FBF1E2; color: #9A5B14; }
+.farm-pill.is-cancelled { text-decoration: line-through; opacity: .55; }
 .farm-more { font-size: 11px; font-weight: 700; color: var(--text-secondary); padding: 2px 7px; }
 
 .farm-cal-loading {
@@ -1611,15 +1608,12 @@ a { color: inherit; text-decoration: none; }
 .farm-cal-cell.holiday .farm-date-num { color: var(--danger); }
 .farm-cal-cell.holiday .farm-holiday-label { font-size: 9px; font-weight: 700; color: var(--danger); margin: -2px 0 2px; }
 
-/* 모바일 — 알약 텍스트 대신 상태 도트만 표시 */
+/* 모바일 — 알약 대신 스코프 도트 표시 (루틴/고객) */
 .farm-dot-row { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
 .farm-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.farm-dot.plan { background: var(--accent); }
-.farm-dot.done { background: #1F7A4D; }
-.farm-dot.hold { background: #9A5B14; }
-.farm-dot.cancel { background: var(--text-muted); }
-.farm-dot.scope-routine { box-shadow: 0 0 0 1.5px #4C9670; }
-.farm-dot.scope-customer { box-shadow: 0 0 0 1.5px #B08A44; }
+.farm-dot.scope-routine { background: #1F7A4D; }
+.farm-dot.scope-customer { background: #9A5B14; }
+.farm-dot.is-cancelled { opacity: .4; }
 .farm-dot-more { font-size: 9px; color: var(--text-secondary); font-weight: 700; }
 
 /* 고객조건 보기 목록/상세 */
