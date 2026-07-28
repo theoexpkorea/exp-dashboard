@@ -62,6 +62,8 @@ let schedAllItems = [];
 let schedScope = 'all';
 let schedEventsByDate = {};
 let schedHolidays = new Map(); // 'YYYY-MM-DD' -> 명칭
+let schedWeekItemsCache = []; // {ev, dateLabel} — "이번주 일정" 카드 클릭용, 렌더 시 채워짐
+let schedMonthItemsCache = []; // {ev, dateLabel} — "이번달 일정" 카드 클릭용, 렌더 시 채워짐
 
 function schedScopeMatch(it) { return schedScope === 'all' || it.type === schedScope; }
 function schedBucket() {
@@ -145,6 +147,8 @@ function schedRenderCalendar() {
   const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
 
   let todayCount = 0, weekCount = 0, monthCount = 0;
+  schedWeekItemsCache = [];
+  schedMonthItemsCache = [];
   const now = new Date();
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
@@ -196,8 +200,12 @@ function schedRenderCalendar() {
     if (!isOutside) {
       const cellDate = new Date(cellY, cellM, dateNum);
       monthCount += events.length;
+      events.forEach(ev => schedMonthItemsCache.push({ ev, dateLabel: (cellM + 1) + '/' + dateNum }));
       if (isToday) todayCount = events.length;
-      if (cellDate >= weekStart && cellDate <= weekEnd) weekCount += events.length;
+      if (cellDate >= weekStart && cellDate <= weekEnd) {
+        weekCount += events.length;
+        events.forEach(ev => schedWeekItemsCache.push({ ev, dateLabel: (cellM + 1) + '/' + dateNum }));
+      }
     }
 
     if (schedIsMobile()) {
@@ -251,8 +259,10 @@ const schedOverlay = $('overlay');
 const schedDayPanel = $('dayPanel');
 const schedWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let schedPanelKey = null;
+let schedPanelMode = 'day'; // 'day' | 'week' | 'month'
 
 function schedOpenDayPanel(key, y, m, d, events) {
+  schedPanelMode = 'day';
   schedPanelKey = key;
   const wd = schedWeekdayNames[new Date(y, m, d).getDay()];
   $('dpTitle').textContent = y + '년 ' + (m + 1) + '월 ' + d + '일 (' + wd + ')';
@@ -264,6 +274,27 @@ function schedOpenDayPanel(key, y, m, d, events) {
   } else {
     events.forEach(ev => body.appendChild(schedBuildItemEl(ev)));
   }
+  $('dpAdd').style.display = '';
+  schedOverlay.classList.add('open');
+  schedDayPanel.classList.add('open');
+}
+
+/* "이번주 일정"/"이번달 일정" 카드 클릭 — 캘린더 렌더 시 함께 채워둔 캐시를 그대로 사용해서
+   KPI 숫자와 목록 건수가 항상 정확히 일치하게 함 */
+function schedOpenListPanel(mode, label) {
+  schedPanelMode = mode;
+  const list = mode === 'week' ? schedWeekItemsCache : schedMonthItemsCache;
+  const sorted = [...list].sort((a, b) => (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || '')));
+  $('dpTitle').textContent = label;
+  $('dpSub').textContent = sorted.length ? sorted.length + '건' : '일정 없음';
+  const body = $('dpBody');
+  body.innerHTML = '';
+  if (sorted.length === 0) {
+    body.innerHTML = '<div class="farm-dp-empty">해당 기간에 등록된 일정이 없습니다.</div>';
+  } else {
+    sorted.forEach(({ ev, dateLabel }) => body.appendChild(schedBuildItemEl(ev, dateLabel)));
+  }
+  $('dpAdd').style.display = 'none'; // 특정 날짜가 아니므로 "이 날짜에 추가" 버튼은 숨김
   schedOverlay.classList.add('open');
   schedDayPanel.classList.add('open');
 }
@@ -279,17 +310,26 @@ $('statGrid').addEventListener('click', e => {
     schedRenderCalendar();
     const key = schedYmd(y, m, d);
     schedOpenDayPanel(key, y, m, d, schedEventsByDate[key] || []);
+    return;
+  }
+  if (e.target.closest('#statWeekCard')) {
+    schedOpenListPanel('week', '이번주 일정');
+    return;
+  }
+  if (e.target.closest('#statMonthCard')) {
+    schedOpenListPanel('month', '이번달 일정 (' + schedViewYear + '년 ' + (schedViewMonth + 1) + '월)');
   }
 });
 
-function schedBuildItemEl(ev) {
+function schedBuildItemEl(ev, dateLabel) {
   const item = document.createElement('div');
   item.className = 'farm-dp-item';
   const cls = SCHED_TYPE_CLASS[ev.type] || '';
+  const chipText = dateLabel ? (dateLabel + (ev.time ? ' ' + ev.time : '')) : (ev.time || '');
   item.innerHTML =
     '<div class="farm-dp-item-top">' +
       '<span class="sched-tag ' + cls + '">' + schedEsc(ev.type) + '</span>' +
-      (ev.time ? '<span class="sched-time-chip">' + schedEsc(ev.time) + '</span>' : '') +
+      (chipText ? '<span class="sched-time-chip">' + schedEsc(chipText) + '</span>' : '') +
       '<button type="button" class="cust-edit-btn" data-editbtn="1" aria-label="수정" style="margin-left:auto;">' +
         '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' +
       '</button>' +
