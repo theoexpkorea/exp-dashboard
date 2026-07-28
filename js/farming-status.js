@@ -358,7 +358,8 @@ function farmOpenStatusPanel(status, label) {
     const key = farmYmd(farmViewYear, farmViewMonth, d);
     (farmEventsByDate[key] || []).forEach(ev => {
       const st = ev.파밍여부 || '파밍예정';
-      if (st !== status) return;
+      if (status === 'ALL') { if (st === '파밍취소') return; }
+      else if (st !== status) return;
       items.push({ ev, dateLabel: (farmViewMonth + 1) + '/' + d });
     });
   }
@@ -809,7 +810,7 @@ $('statGrid').addEventListener('click', e => {
   }
   const filterCard = e.target.closest('[data-filter]');
   if (filterCard) {
-    farmOpenStatusPanel(filterCard.dataset.filter, filterCard.dataset.filter);
+    farmOpenStatusPanel(filterCard.dataset.filter, filterCard.dataset.label || filterCard.dataset.filter);
   }
 });
 
