@@ -47,6 +47,10 @@
         <p>매도임대·가망고객·계약고객 CRM 실시간 연동 · 다음연락일 기준 통합 캘린더</p>
       </div>
 
+      <style>
+        #statGrid [data-cat], #statGrid #statTodayCard { cursor: pointer; transition: transform .12s ease; }
+        #statGrid [data-cat]:hover, #statGrid #statTodayCard:hover { transform: translateY(-2px); }
+      </style>
       <div class="rec-kpi-grid" id="statGrid">
         <div class="rec-stat-card tint-urgent" id="statTodayCard">
           <div class="icon-badge">
@@ -54,19 +58,19 @@
           </div>
           <div class="rec-stat-body"><div class="stat" id="statToday">-</div><div class="stat-label">오늘 처리</div></div>
         </div>
-        <div class="rec-stat-card tint-sale">
+        <div class="rec-stat-card tint-sale" data-cat="SALE">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statSale">-</div><div class="stat-label">매도임대</div></div>
         </div>
-        <div class="rec-stat-card tint-lead">
+        <div class="rec-stat-card tint-lead" data-cat="LEAD">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statLead">-</div><div class="stat-label">가망고객</div></div>
         </div>
-        <div class="rec-stat-card tint-contract">
+        <div class="rec-stat-card tint-contract" data-cat="CONTRACT">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </div>

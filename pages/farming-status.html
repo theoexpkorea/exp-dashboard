@@ -47,6 +47,18 @@
         <p>파밍서치 실시간 연동 · 날짜별 파밍 이력 캘린더</p>
       </div>
 
+      <style>
+        /* 카드 6개 수용 — 최소폭을 줄여서 한 줄에 더 들어가게 (요청: 이번달 파밍 오른쪽 필터 버튼 폭 축소) */
+        #statGrid { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+        #statGrid .rec-stat-card { padding: 12px 10px; gap: 8px; }
+        #statGrid .rec-stat-body .stat { font-size: 17px; }
+        #statGrid .rec-stat-body .stat-label { font-size: 11.5px; }
+        #statGrid [data-filter], #statGrid #statTodayCard { cursor: pointer; transition: transform .12s ease; }
+        #statGrid [data-filter]:hover, #statGrid #statTodayCard:hover { transform: translateY(-2px); }
+        @media (max-width: 480px) {
+          #statGrid { grid-template-columns: repeat(2, 1fr); }
+        }
+      </style>
       <div class="rec-kpi-grid" id="statGrid">
         <div class="rec-stat-card tint-total">
           <div class="icon-badge">
@@ -54,17 +66,29 @@
           </div>
           <div class="rec-stat-body"><div class="stat" id="statThisMonth">-</div><div class="stat-label">이번 달 파밍</div></div>
         </div>
-        <div class="rec-stat-card tint-active">
+        <div class="rec-stat-card tint-active" data-filter="파밍완료">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statDone">-</div><div class="stat-label">파밍완료</div></div>
         </div>
-        <div class="rec-stat-card tint-plan">
+        <div class="rec-stat-card tint-plan" data-filter="파밍예정">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statPlan">-</div><div class="stat-label">파밍예정</div></div>
+        </div>
+        <div class="rec-stat-card" data-filter="파밍보류">
+          <div class="icon-badge" style="background:#FBF1E2;color:#9A5B14;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5v5M14.5 9.5v5"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statHold">-</div><div class="stat-label">파밍보류</div></div>
+        </div>
+        <div class="rec-stat-card" data-filter="파밍취소">
+          <div class="icon-badge" style="background:#F1F2F4;color:#6B7280;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statCancel">-</div><div class="stat-label">파밍취소</div></div>
         </div>
         <div class="rec-stat-card tint-neutral" id="statTodayCard">
           <div class="icon-badge">
