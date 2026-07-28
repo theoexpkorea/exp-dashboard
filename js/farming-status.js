@@ -163,7 +163,7 @@ function farmRenderCalendar() {
   const daysInPrevMonth = new Date(farmViewYear, farmViewMonth, 0).getDate();
   const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
 
-  let monthCount = 0, doneCount = 0, planCount = 0, todayCount = 0;
+  let monthCount = 0, doneCount = 0, planCount = 0, holdCount = 0, cancelCount = 0, todayCount = 0;
 
   for (let i = 0; i < totalCells; i++) {
     const cell = document.createElement('div');
@@ -211,9 +211,12 @@ function farmRenderCalendar() {
     const events = farmEventsByDate[key] || [];
     if (!isOutside) {
       events.forEach(ev => {
-        if (ev.파밍여부 === '파밍완료') doneCount++;
-        else if (ev.파밍여부 !== '파밍취소') planCount++;
-        if (ev.파밍여부 !== '파밍취소') monthCount++; // 취소 건은 "이번 달 파밍" 집계에서 제외
+        const st = ev.파밍여부 || '파밍예정';
+        if (st === '파밍완료') doneCount++;
+        else if (st === '파밍보류') holdCount++;
+        else if (st === '파밍취소') cancelCount++;
+        else planCount++; // 파밍예정(또는 미지정)
+        if (st !== '파밍취소') monthCount++; // 취소 건은 "이번 달 파밍" 집계에서 제외
       });
       if (isToday) todayCount = events.filter(ev => ev.파밍여부 !== '파밍취소').length;
     }
@@ -263,6 +266,8 @@ function farmRenderCalendar() {
   $('statThisMonth').textContent = monthCount + '건';
   $('statDone').textContent = doneCount + '건';
   $('statPlan').textContent = planCount + '건';
+  $('statHold').textContent = holdCount + '건';
+  $('statCancel').textContent = cancelCount + '건';
   $('statToday').textContent = todayCount + '건';
 }
 
@@ -272,8 +277,53 @@ const farmDayPanel = $('dayPanel');
 const farmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let farmCurrentPanelKey = null;
 let farmCurrentPanelYmd = [0, 0, 0];
+let farmPanelMode = 'day'; // 'day' | 'status' — 상태변경 후 패널을 어떤 기준으로 다시 그릴지 구분
+let farmPanelStatusFilter = null; // farmPanelMode === 'status'일 때의 필터 상태값
+let farmPanelStatusLabel = '';
+
+/* 아이템 하나의 내부 HTML — 일별 패널/상태필터 패널 공용. dateLabel이 있으면(여러 날짜가 섞이는
+   상태필터 패널) 매물ID 칩 옆에 날짜를 같이 표시해서 어느 날짜 기록인지 구분되게 함 */
+function farmBuildDpItemInner(ev, dateLabel) {
+  const cls = FARM_STATUS_CLASS[ev.파밍여부] || 'plan';
+  const fit = ev.적합여부;
+  const fitCls = fit ? (FARM_FIT_CLASS[fit] || 'none') : '';
+  const mapHref = ev.주소 ? farmMapUrl(ev.주소) : '';
+  const listHref = farmPropLinkUrl(ev.매물링크);
+  return (
+    '<div class="farm-dp-idchip">' + (ev.매물ID || '') + (dateLabel ? ' · ' + dateLabel : '') + '</div>' +
+    '<div class="farm-dp-item-top">' +
+      '<button class="farm-dp-tag ' + cls + '" data-cycle="' + (ev.매물ID || '') + '" style="border:none;cursor:pointer;font-family:inherit;">' + (ev.파밍여부 || '파밍예정') + '</button>' +
+      (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
+      // 고객파밍(고객ID 있음)일 때만 고객조건 적합여부 표시 — 루틴파밍엔 해당 없음
+      (ev.고객ID && fit ? '<span class="farm-fit-tag fit-' + fitCls + '">' + fit + '</span>' : '') +
+      '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '" style="margin-left:auto;">수정</button>' +
+    '</div>' +
+    '<div class="farm-dp-addr">' + (ev.건물명 || ev.주소 || '(이름없음)') + '</div>' +
+    (ev.건물명 && ev.주소 ? '<div class="farm-dp-sub2">' + ev.주소 + '</div>' : '') +
+    '<div class="farm-dp-specs">' +
+      (ev.유형 ? '<span><b>' + ev.유형 + '</b></span>' : '') +
+      (ev.거래유형 ? '<span><b>' + ev.거래유형 + '</b></span>' : '') +
+      (ev.전용면적 ? '<span>평수 <b>' + ev.전용면적 + '평</b></span>' : '') +
+      (ev.보증금매매가 ? '<span>보증금 <b>' + farmFmtNum(ev.보증금매매가) + '</b></span>' : '') +
+      (ev.월세 ? '<span>월세 <b>' + farmFmtNum(ev.월세) + '</b></span>' : '') +
+      (ev.관리비 ? '<span>관리비 <b>' + farmFmtNum(ev.관리비) + '</b></span>' : '') +
+      (ev.평단가 !== undefined && ev.평단가 !== '' ? '<span>평단가 <b>' + ev.평단가 + '만</b></span>' : '') +
+    '</div>' +
+    (ev.메모 ? '<div class="farm-dp-memo">' + ev.메모 + '</div>' : '') +
+    (ev.파밍메모 ? '<div class="farm-dp-memo">파밍메모 · ' + ev.파밍메모 + '</div>' : '') +
+    '<div class="farm-dp-links">' +
+      (mapHref
+        ? '<a class="farm-dp-link-btn" href="' + mapHref + '" target="_blank" rel="noopener">' + FARM_ICON_MAP + '네이버지도</a>'
+        : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_MAP + '네이버지도</span>') +
+      (listHref
+        ? '<a class="farm-dp-link-btn" href="' + listHref + '" target="_blank" rel="noopener">' + FARM_ICON_LINK + '매물광고</a>'
+        : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_LINK + '매물광고</span>') +
+    '</div>'
+  );
+}
 
 function farmOpenDayPanel(key, y, m, d, events) {
+  farmPanelMode = 'day';
   farmCurrentPanelKey = key;
   farmCurrentPanelYmd = [y, m, d];
   const wd = farmWeekdayNames[new Date(y, m, d).getDay()];
@@ -287,44 +337,46 @@ function farmOpenDayPanel(key, y, m, d, events) {
     events.forEach(ev => {
       const item = document.createElement('div');
       item.className = 'farm-dp-item';
-      const cls = FARM_STATUS_CLASS[ev.파밍여부] || 'plan';
-      const fit = ev.적합여부;
-      const fitCls = fit ? (FARM_FIT_CLASS[fit] || 'none') : '';
-      const mapHref = ev.주소 ? farmMapUrl(ev.주소) : '';
-      const listHref = farmPropLinkUrl(ev.매물링크);
-      item.innerHTML =
-        '<div class="farm-dp-idchip">' + (ev.매물ID || '') + '</div>' +
-        '<div class="farm-dp-item-top">' +
-          '<button class="farm-dp-tag ' + cls + '" data-cycle="' + (ev.매물ID || '') + '" style="border:none;cursor:pointer;font-family:inherit;">' + (ev.파밍여부 || '파밍예정') + '</button>' +
-          (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
-          // 고객파밍(고객ID 있음)일 때만 고객조건 적합여부 표시 — 루틴파밍엔 해당 없음
-          (ev.고객ID && fit ? '<span class="farm-fit-tag fit-' + fitCls + '">' + fit + '</span>' : '') +
-          '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '" style="margin-left:auto;">수정</button>' +
-        '</div>' +
-        '<div class="farm-dp-addr">' + (ev.건물명 || ev.주소 || '(이름없음)') + '</div>' +
-        (ev.건물명 && ev.주소 ? '<div class="farm-dp-sub2">' + ev.주소 + '</div>' : '') +
-        '<div class="farm-dp-specs">' +
-          (ev.유형 ? '<span><b>' + ev.유형 + '</b></span>' : '') +
-          (ev.거래유형 ? '<span><b>' + ev.거래유형 + '</b></span>' : '') +
-          (ev.전용면적 ? '<span>평수 <b>' + ev.전용면적 + '평</b></span>' : '') +
-          (ev.보증금매매가 ? '<span>보증금 <b>' + farmFmtNum(ev.보증금매매가) + '</b></span>' : '') +
-          (ev.월세 ? '<span>월세 <b>' + farmFmtNum(ev.월세) + '</b></span>' : '') +
-          (ev.관리비 ? '<span>관리비 <b>' + farmFmtNum(ev.관리비) + '</b></span>' : '') +
-          (ev.평단가 !== undefined && ev.평단가 !== '' ? '<span>평단가 <b>' + ev.평단가 + '만</b></span>' : '') +
-        '</div>' +
-        (ev.메모 ? '<div class="farm-dp-memo">' + ev.메모 + '</div>' : '') +
-        (ev.파밍메모 ? '<div class="farm-dp-memo">파밍메모 · ' + ev.파밍메모 + '</div>' : '') +
-        '<div class="farm-dp-links">' +
-          (mapHref
-            ? '<a class="farm-dp-link-btn" href="' + mapHref + '" target="_blank" rel="noopener">' + FARM_ICON_MAP + '네이버지도</a>'
-            : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_MAP + '네이버지도</span>') +
-          (listHref
-            ? '<a class="farm-dp-link-btn" href="' + listHref + '" target="_blank" rel="noopener">' + FARM_ICON_LINK + '매물광고</a>'
-            : '<span class="farm-dp-link-btn disabled">' + FARM_ICON_LINK + '매물광고</span>') +
-        '</div>';
+      item.innerHTML = farmBuildDpItemInner(ev, null);
       body.appendChild(item);
     });
   }
+  $('dpAdd').style.display = '';
+  farmOverlay.classList.add('open');
+  farmDayPanel.classList.add('open');
+}
+
+/* 상태필터 KPI 카드(파밍완료/파밍예정/파밍보류/파밍취소) 클릭 — 현재 보고 있는 달 전체에서
+   해당 상태만 모아서 보여줌 (KPI 숫자와 동일한 기준: 현재 화면에 표시된 달, 스코프 필터 적용됨) */
+function farmOpenStatusPanel(status, label) {
+  farmPanelMode = 'status';
+  farmPanelStatusFilter = status;
+  farmPanelStatusLabel = label;
+  const daysInMonth = new Date(farmViewYear, farmViewMonth + 1, 0).getDate();
+  const items = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = farmYmd(farmViewYear, farmViewMonth, d);
+    (farmEventsByDate[key] || []).forEach(ev => {
+      const st = ev.파밍여부 || '파밍예정';
+      if (st !== status) return;
+      items.push({ ev, dateLabel: (farmViewMonth + 1) + '/' + d });
+    });
+  }
+  $('dpTitle').textContent = label + ' (' + farmViewYear + '년 ' + (farmViewMonth + 1) + '월)';
+  $('dpSub').textContent = items.length ? items.length + '건' : '기록 없음';
+  const body = $('dpBody');
+  body.innerHTML = '';
+  if (items.length === 0) {
+    body.innerHTML = '<div class="farm-dp-empty">해당하는 파밍 기록이 없습니다.</div>';
+  } else {
+    items.forEach(({ ev, dateLabel }) => {
+      const item = document.createElement('div');
+      item.className = 'farm-dp-item';
+      item.innerHTML = farmBuildDpItemInner(ev, dateLabel);
+      body.appendChild(item);
+    });
+  }
+  $('dpAdd').style.display = 'none'; // 특정 날짜가 아니므로 "이 날짜에 추가" 버튼은 숨김
   farmOverlay.classList.add('open');
   farmDayPanel.classList.add('open');
 }
@@ -347,7 +399,11 @@ $('dpBody').addEventListener('click', e => {
     const idx = FARM_STATUS_CYCLE.indexOf(p.파밍여부 || '파밍예정');
     const next = FARM_STATUS_CYCLE[(idx + 1) % FARM_STATUS_CYCLE.length];
     p.파밍여부 = next; // 낙관적 업데이트
-    farmOpenDayPanel(farmCurrentPanelKey, ...farmCurrentPanelYmd, farmEventsByDate[farmCurrentPanelKey] || []);
+    if (farmPanelMode === 'status') {
+      farmOpenStatusPanel(farmPanelStatusFilter, farmPanelStatusLabel);
+    } else {
+      farmOpenDayPanel(farmCurrentPanelKey, ...farmCurrentPanelYmd, farmEventsByDate[farmCurrentPanelKey] || []);
+    }
     farmJsonp({ mode: 'status', 매물ID: id, 파밍여부: next })
       .then(() => farmLoadData(true))
       .catch(() => farmToast('상태 변경 전송 실패'));
@@ -749,6 +805,11 @@ $('statGrid').addEventListener('click', e => {
     farmRenderCalendar();
     const key = farmYmd(y, m, d);
     farmOpenDayPanel(key, y, m, d, farmEventsByDate[key] || []);
+    return;
+  }
+  const filterCard = e.target.closest('[data-filter]');
+  if (filterCard) {
+    farmOpenStatusPanel(filterCard.dataset.filter, filterCard.dataset.filter);
   }
 });
 

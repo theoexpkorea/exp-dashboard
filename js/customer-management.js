@@ -293,6 +293,11 @@ function crmRenderStats() {
 $('statGrid').addEventListener('click', e => {
   if (e.target.closest('#statTodayCard')) {
     crmOpenTodayPanel();
+    return;
+  }
+  const catCard = e.target.closest('[data-cat]');
+  if (catCard) {
+    crmOpenCatPanel(catCard.dataset.cat);
   }
 });
 
@@ -301,7 +306,7 @@ const crmOverlay = $('overlay');
 const crmDayPanel = $('dayPanel');
 const crmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let crmPanelKey = null, crmPanelYmd = [0, 0, 0];
-let crmPanelMode = 'date'; // 'date' | 'today' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
+let crmPanelMode = 'date'; // 'date' | 'today' | 'cat:SALE'|'cat:LEAD'|'cat:CONTRACT' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
 
 function crmOpenDayPanel(key, y, m, d, events) {
   crmPanelMode = 'date';
@@ -334,6 +339,25 @@ function crmOpenTodayPanel() {
   body.innerHTML = '';
   if (list.length === 0) {
     body.innerHTML = '<div class="farm-dp-empty">오늘 처리할 고객이 없습니다.</div>';
+  } else {
+    list.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
+  }
+  crmOverlay.classList.add('open');
+  crmDayPanel.classList.add('open');
+}
+// 매도임대/가망고객/계약고객 카드 클릭 — 다음연락일과 무관하게 해당 카테고리 전체를 보여줌
+// (statSale/statLead/statContract 뱃지 집계와 동일한 기준: it.cat === cat)
+function crmOpenCatPanel(cat) {
+  crmPanelMode = 'cat:' + cat;
+  const list = crmAllItems
+    .filter(it => it.cat === cat)
+    .sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
+  $('dpTitle').textContent = CRM_CAT_LABEL[cat];
+  $('dpSub').textContent = list.length ? list.length + '건' : '등록된 고객이 없습니다';
+  const body = $('dpBody');
+  body.innerHTML = '';
+  if (list.length === 0) {
+    body.innerHTML = '<div class="farm-dp-empty">등록된 고객이 없습니다.</div>';
   } else {
     list.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
   }
@@ -620,6 +644,8 @@ async function crmSaveContact(cat, row, key, btnEl) {
       //  오늘 처리 목록/캘린더 오늘 칸에는 그대로 남아있고, 내일이 되면 자동으로 실제 next 날짜로 이동함)
       if (crmPanelMode === 'today') {
         crmOpenTodayPanel();
+      } else if (crmPanelMode.indexOf('cat:') === 0) {
+        crmOpenCatPanel(crmPanelMode.slice(4));
       } else {
         crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
       }
