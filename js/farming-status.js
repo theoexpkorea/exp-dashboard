@@ -303,6 +303,7 @@ function farmBuildDpItemInner(ev, dateLabel) {
     '<div class="farm-dp-specs">' +
       (ev.유형 ? '<span><b>' + ev.유형 + '</b></span>' : '') +
       (ev.거래유형 ? '<span><b>' + ev.거래유형 + '</b></span>' : '') +
+      (ev.층수 ? '<span>층수 <b>' + ev.층수 + (ev.총층 ? '/' + ev.총층 : '') + '층</b></span>' : '') +
       (ev.전용면적 ? '<span>평수 <b>' + ev.전용면적 + '평</b></span>' : '') +
       (ev.보증금매매가 ? '<span>보증금 <b>' + farmFmtNum(ev.보증금매매가) + '</b></span>' : '') +
       (ev.월세 ? '<span>월세 <b>' + farmFmtNum(ev.월세) + '</b></span>' : '') +
