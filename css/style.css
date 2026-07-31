@@ -209,6 +209,9 @@ a { color: inherit; text-decoration: none; }
   max-height: 800px;
   transition: max-height 0.22s ease;
 }
+.fav-mobile-group .nav-group-items {
+  max-height: none;
+}
 .nav-group.collapsed .nav-group-items {
   max-height: 0;
 }
