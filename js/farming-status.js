@@ -124,7 +124,7 @@ async function farmLoadData(silent) {
     farmWriteCache(d);
     if (!silent) farmToast('불러오기 완료');
   } catch (e) {
-    farmToast('불러오기 실패 — 네트워크를 확인해줘');
+    if (!silent) farmToast('불러오기 실패 — 네트워크를 확인해줘');
   } finally {
     $('calLoading').style.display = 'none';
   }

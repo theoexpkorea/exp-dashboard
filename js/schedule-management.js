@@ -107,7 +107,7 @@ async function schedLoadData(silent) {
       schedToast('불러오기 실패 — 네트워크를 확인해줘');
     }
   } catch (e) {
-    schedToast('불러오기 실패 — 네트워크를 확인해줘');
+    if (!silent) schedToast('불러오기 실패 — 네트워크를 확인해줘');
   } finally {
     $('calLoading').style.display = 'none';
   }

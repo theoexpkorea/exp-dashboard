@@ -149,7 +149,7 @@ async function crmLoadData(silent) {
       crmToast('불러오기 실패 — 네트워크를 확인해줘');
     }
   } catch (e) {
-    crmToast('불러오기 실패 — 네트워크를 확인해줘');
+    if (!silent) crmToast('불러오기 실패 — 네트워크를 확인해줘');
   } finally {
     $('calLoading').style.display = 'none';
   }
