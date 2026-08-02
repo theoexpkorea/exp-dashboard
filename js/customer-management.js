@@ -751,6 +751,7 @@ function crmOpenAddForm() {
   $('fCatSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'SALE'));
   crmBuildForm();
   crmFormOverlay.classList.add('show');
+  if ($('formDelete')) $('formDelete').style.display = 'none';
 }
 function crmOpenEditForm(item) {
   crmEditItem = item;
@@ -760,10 +761,47 @@ function crmOpenEditForm(item) {
   $('fCatSeg').style.display = 'none';
   crmBuildForm();
   crmFormOverlay.classList.add('show');
+  if ($('formDelete')) $('formDelete').style.display = '';
 }
 function crmCloseForm() { crmFormOverlay.classList.remove('show'); }
 $('formClose').addEventListener('click', crmCloseForm);
 $('formCancel').addEventListener('click', crmCloseForm);
+
+/* ===== 삭제 버튼 (HTML 수정 없이 취소 버튼 앞에 동적으로 삽입) ===== */
+(function () {
+  const cancelBtn = $('formCancel');
+  if (!cancelBtn || $('formDelete')) return;
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.id = 'formDelete';
+  delBtn.className = 'btn-danger-outline';
+  delBtn.textContent = '삭제';
+  delBtn.style.display = 'none';
+  cancelBtn.parentNode.insertBefore(delBtn, cancelBtn);
+
+  delBtn.addEventListener('click', async () => {
+    if (!crmEditItem) return;
+    if (!confirm('정말 삭제할까요? 되돌릴 수 없어요.')) return;
+    delBtn.disabled = true; delBtn.textContent = '삭제 중...';
+    try {
+      const qs = 'sheet=' + encodeURIComponent(crmEditItem.cat) + '&row=' + encodeURIComponent(crmEditItem.row);
+      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmDelete&' + qs, 15000);
+      if (res && res.ok) {
+        crmAllItems = crmAllItems.filter(x => !(x.cat === crmEditItem.cat && x.row === crmEditItem.row));
+        crmWriteCache(crmAllItems, crmStatusOptions, crmHolidays);
+        crmBucket(); crmRenderCalendar();
+        crmCloseForm();
+        crmToast('삭제됐어요.');
+      } else {
+        $('formError').textContent = '삭제에 실패했어요. 다시 시도해 주세요.';
+      }
+    } catch (e) {
+      $('formError').textContent = '연결이 원활하지 않아요. 다시 시도해 주세요.';
+    } finally {
+      delBtn.disabled = false; delBtn.textContent = '삭제';
+    }
+  });
+})();
 $('addBtn').addEventListener('click', () => { if (!$('addBtn').dataset.justDragged) crmOpenAddForm(); });
 
 $('formSave').addEventListener('click', async () => {
