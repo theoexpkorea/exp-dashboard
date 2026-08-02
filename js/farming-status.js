@@ -163,7 +163,7 @@ function farmRenderCalendar() {
   const daysInPrevMonth = new Date(farmViewYear, farmViewMonth, 0).getDate();
   const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
 
-  let monthCount = 0, doneCount = 0, planCount = 0, holdCount = 0, cancelCount = 0, todayCount = 0;
+  let monthCount = 0, todayCount = 0;
 
   for (let i = 0; i < totalCells; i++) {
     const cell = document.createElement('div');
@@ -212,10 +212,6 @@ function farmRenderCalendar() {
     if (!isOutside) {
       events.forEach(ev => {
         const st = ev.파밍여부 || '파밍예정';
-        if (st === '파밍완료') doneCount++;
-        else if (st === '파밍보류') holdCount++;
-        else if (st === '파밍취소') cancelCount++;
-        else planCount++; // 파밍예정(또는 미지정)
         if (st !== '파밍취소') monthCount++; // 취소 건은 "이번 달 파밍" 집계에서 제외
       });
       if (isToday) todayCount = events.filter(ev => ev.파밍여부 !== '파밍취소').length;
@@ -262,6 +258,17 @@ function farmRenderCalendar() {
 
     grid.appendChild(cell);
   }
+
+  // 파밍완료/파밍예정/파밍보류/파밍취소는 "이번 달"이 아니라 전체 기간 누적값
+  // (이번 달 파밍 · 오늘 파밍만 현재 보고 있는 달/오늘 기준)
+  let doneCount = 0, planCount = 0, holdCount = 0, cancelCount = 0;
+  farmProperties.filter(farmScopeMatch).forEach(p => {
+    const st = p.파밍여부 || '파밍예정';
+    if (st === '파밍완료') doneCount++;
+    else if (st === '파밍보류') holdCount++;
+    else if (st === '파밍취소') cancelCount++;
+    else planCount++; // 파밍예정(또는 미지정)
+  });
 
   $('statThisMonth').textContent = monthCount + '건';
   $('statDone').textContent = doneCount + '건';
@@ -347,24 +354,36 @@ function farmOpenDayPanel(key, y, m, d, events) {
   farmDayPanel.classList.add('open');
 }
 
-/* 상태필터 KPI 카드(파밍완료/파밍예정/파밍보류/파밍취소) 클릭 — 현재 보고 있는 달 전체에서
-   해당 상태만 모아서 보여줌 (KPI 숫자와 동일한 기준: 현재 화면에 표시된 달, 스코프 필터 적용됨) */
+/* 상태필터 KPI 카드 클릭
+   - "이번 달 파밍"(ALL)은 그대로 현재 보고 있는 달 기준
+   - 파밍완료/파밍예정/파밍보류/파밍취소는 KPI 숫자가 전체 기간 누적이므로, 조회도 전체 기간에서 모아서 보여줌 */
 function farmOpenStatusPanel(status, label) {
   farmPanelMode = 'status';
   farmPanelStatusFilter = status;
   farmPanelStatusLabel = label;
-  const daysInMonth = new Date(farmViewYear, farmViewMonth + 1, 0).getDate();
   const items = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = farmYmd(farmViewYear, farmViewMonth, d);
-    (farmEventsByDate[key] || []).forEach(ev => {
-      const st = ev.파밍여부 || '파밍예정';
-      if (status === 'ALL') { if (st === '파밍취소') return; }
-      else if (st !== status) return;
-      items.push({ ev, dateLabel: (farmViewMonth + 1) + '/' + d });
-    });
+
+  if (status === 'ALL') {
+    const daysInMonth = new Date(farmViewYear, farmViewMonth + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = farmYmd(farmViewYear, farmViewMonth, d);
+      (farmEventsByDate[key] || []).forEach(ev => {
+        if ((ev.파밍여부 || '파밍예정') === '파밍취소') return;
+        items.push({ ev, dateLabel: (farmViewMonth + 1) + '/' + d });
+      });
+    }
+    $('dpTitle').textContent = label + ' (' + farmViewYear + '년 ' + (farmViewMonth + 1) + '월)';
+  } else {
+    farmProperties.filter(farmScopeMatch).filter(p => (p.파밍여부 || '파밍예정') === status && p.파밍일자)
+      .sort((a, b) => (b.파밍일자 || '').localeCompare(a.파밍일자 || '')) // 최신 날짜 우선
+      .forEach(p => {
+        const parts = String(p.파밍일자).split('-');
+        const dateLabel = parts.length === 3 ? (parts[0].slice(2) + '.' + Number(parts[1]) + '.' + Number(parts[2])) : p.파밍일자;
+        items.push({ ev: p, dateLabel });
+      });
+    $('dpTitle').textContent = label + ' (전체 기간)';
   }
-  $('dpTitle').textContent = label + ' (' + farmViewYear + '년 ' + (farmViewMonth + 1) + '월)';
+
   $('dpSub').textContent = items.length ? items.length + '건' : '기록 없음';
   const body = $('dpBody');
   body.innerHTML = '';
