@@ -90,15 +90,15 @@ function schedWriteCache(items, holidays) {
 async function schedLoadData(silent) {
   if (!silent) $('calLoading').style.display = 'flex';
   try {
-    const [listRes, crmRes] = await Promise.all([
-      schedJsonpRetry(schedBuildUrl('scheduleList'), 20000),
-      schedJsonpRetry(schedBuildUrl('crmList'), 20000).catch(() => null) // 공휴일만 필요 — 실패해도 일정 자체엔 지장 없음
-    ]);
-    if (listRes && Array.isArray(listRes)) {
-      schedAllItems = listRes;
-      if (crmRes && crmRes.holidays) {
-        schedHolidays = new Map(crmRes.holidays.filter(h => h && h.date).map(h => [h.date, h.name || '']));
-      }
+    const [listRes, holidaysRes] = await Promise.all([
+  schedJsonpRetry(schedBuildUrl('scheduleList'), 20000),
+  schedJsonpRetry(schedBuildUrl('holidays'), 20000).catch(() => null) // 공휴일 전용 엔드포인트 — 가벼움
+]);
+if (listRes && Array.isArray(listRes)) {
+  schedAllItems = listRes;
+  if (holidaysRes && Array.isArray(holidaysRes)) {
+    schedHolidays = new Map(holidaysRes.filter(h => h && h.date).map(h => [h.date, h.name || '']));
+  }
       schedBucket();
       schedRenderCalendar();
       schedWriteCache(schedAllItems, schedHolidays);
