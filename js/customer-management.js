@@ -828,7 +828,7 @@ $('formSave').addEventListener('click', async () => {
     if (cat === 'LEAD') { payload.name2 = crmFv('f_name2'); payload.remark = crmFv('f_remark'); }
     if (cat === 'CONTRACT') { payload.remark = crmFv('f_remark'); }
     const memoVal = crmFv('f_memo');
-    if (memoVal) payload.memoSet = memoVal;
+    if (memoVal) payload.memoSet = crmTodayStr() + ' ' + memoVal;
 
     const qs = Object.keys(payload).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(payload[k])).join('&');
     try {
