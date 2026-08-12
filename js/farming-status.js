@@ -300,9 +300,10 @@ function farmBuildDpItemInner(ev, dateLabel) {
     '<div class="farm-dp-idchip">' + (ev.매물ID || '') + (dateLabel ? ' · ' + dateLabel : '') + '</div>' +
     '<div class="farm-dp-item-top">' +
       '<button class="farm-dp-tag ' + cls + '" data-cycle="' + (ev.매물ID || '') + '" style="border:none;cursor:pointer;font-family:inherit;">' + (ev.파밍여부 || '파밍예정') + '</button>' +
-      (ev.고객ID ? '<span class="farm-cust-tag">' + farmCustName(ev.고객ID) + '</span>' : '') +
+      (ev.고객ID ? '<span class="farm-cust-tag">' + (fit === '고객정보없음' ? '고객종료' : farmCustName(ev.고객ID)) + '</span>' : '') +
       // 고객파밍(고객ID 있음)일 때만 고객조건 적합여부 표시 — 루틴파밍엔 해당 없음
-      (ev.고객ID && fit ? '<span class="farm-fit-tag fit-' + fitCls + '">' + fit + '</span>' : '') +
+      // 단, 고객정보없음(=고객 삭제됨)일 땐 위 뱃지가 이미 "고객종료"로 안내하므로 적합여부 태그는 중복이라 생략
+      (ev.고객ID && fit && fit !== '고객정보없음' ? '<span class="farm-fit-tag fit-' + fitCls + '">' + fit + '</span>' : '') +
       '<button class="farm-dp-edit-btn" data-edit="' + (ev.매물ID || '') + '" style="margin-left:auto;">수정</button>' +
     '</div>' +
     '<div class="farm-dp-addr">' + (ev.건물명 || ev.주소 || '(이름없음)') + '</div>' +
