@@ -664,7 +664,7 @@ const crmFormOverlay = $('formOverlay');
 let crmFormCat = 'SALE';
 let crmEditItem = null; // null=등록, item객체=수정
 let crmFormBaseDate = '';
-
+let crmFormReqId = ''; // 등록 폼 하나당 고유값 — 자동 재시도/수동 재클릭이 같은 요청인지 서버가 구분하기 위함
 function crmFv(id) { const el = $(id); return el ? el.value.trim() : ''; }
 
 function crmField(labelText, innerHtml) {
@@ -745,7 +745,7 @@ $('fCatSeg').addEventListener('click', e => {
 function crmOpenAddForm() {
   crmEditItem = null;
   crmFormCat = 'SALE';
-  $('formTitle').textContent = '고객 등록';
+  crmFormReqId = Date.now() + '_' + Math.random().toString(36).slice(2);  $('formTitle').textContent = '고객 등록';
   $('formError').textContent = '';
   $('fCatSeg').style.display = '';
   $('fCatSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'SALE'));
@@ -816,8 +816,8 @@ $('formSave').addEventListener('click', async () => {
   saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
 
   if (!crmEditItem) {
-    // 등록
-    const payload = { sheet: cat, name: name, tel: tel, baseDate: crmFormBaseDate || crmTodayStr(), status: status };
+   // 등록
+    const payload = { sheet: cat, name: name, tel: tel, baseDate: crmFormBaseDate || crmTodayStr(), status: status, reqId: crmFormReqId };
     if (cat === 'SALE') {
       payload.id = crmFv('f_id');
     } else {
