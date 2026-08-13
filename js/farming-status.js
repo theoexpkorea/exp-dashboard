@@ -426,9 +426,9 @@ $('dpBody').addEventListener('click', e => {
     } else {
       farmOpenDayPanel(farmCurrentPanelKey, ...farmCurrentPanelYmd, farmEventsByDate[farmCurrentPanelKey] || []);
     }
-    farmJsonp({ mode: 'status', 매물ID: id, 파밍여부: next })
+    farmJsonpRetry({ mode: 'status', 매물ID: id, 파밍여부: next }, 25000)
       .then(() => farmLoadData(true))
-      .catch(() => farmToast('상태 변경 전송 실패'));
+      .catch(() => { farmToast('응답이 늦어지고 있어요 — 반영 여부 확인 중...'); farmLoadData(true); });
     return;
   }
 });
@@ -549,12 +549,21 @@ $('formSave').addEventListener('click', async () => {
   $('formSave').disabled = true;
   $('formSave').textContent = '저장 중...';
   try {
-    await farmJsonp(payload);
+    // 수정(update)은 매물ID 기준으로 같은 행을 덮어쓰는 동작이라 재시도해도 중복이 안 생김 → 응답이 늦어도 안전하게 한 번 더 시도.
+    // 신규 등록(add)은 재시도 시 중복 행이 생길 수 있어 재시도 없이 단일 요청만 보냄(타임아웃만 넉넉하게 늘림).
+    if (farmEditingId) {
+      await farmJsonpRetry(payload, 25000);
+    } else {
+      await farmJsonp(payload, 25000);
+    }
     farmToast(farmEditingId ? '수정 완료' : '등록 완료');
     farmCloseForm();
     await farmLoadData(true);
   } catch (e) {
-    farmToast('전송 실패 — 시트에 반영 안됐을 수 있음');
+    // 타임아웃이어도 서버에서는 계속 처리되다 실제로는 시트에 반영되는 경우가 많음(응답만 못 받은 것) → 실패로 단정짓지 않고 최신 데이터를 다시 받아와서 실제 반영 여부를 화면에 그대로 보여줌.
+    farmToast('응답이 늦어지고 있어요 — 반영 여부 확인 중...');
+    farmCloseForm();
+    await farmLoadData(true);
   } finally {
     $('formSave').disabled = false;
     $('formSave').textContent = '저장';
@@ -565,12 +574,14 @@ $('formDelete').addEventListener('click', async () => {
   if (!farmEditingId) return;
   if (!confirm('이 파밍 기록을 삭제할까요? 되돌릴 수 없습니다.')) return;
   try {
-    await farmJsonp({ mode: 'delete', 매물ID: farmEditingId });
+    await farmJsonpRetry({ mode: 'delete', 매물ID: farmEditingId }, 25000);
     farmToast('삭제 완료');
     farmCloseForm();
     await farmLoadData(true);
   } catch (e) {
-    farmToast('삭제 전송 실패');
+    farmToast('응답이 늦어지고 있어요 — 반영 여부 확인 중...');
+    farmCloseForm();
+    await farmLoadData(true);
   }
 });
 
