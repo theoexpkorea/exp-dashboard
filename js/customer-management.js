@@ -972,7 +972,12 @@ $('formSave').addEventListener('click', async () => {
 $('prevBtn').addEventListener('click', () => { crmViewMonth--; if (crmViewMonth < 0) { crmViewMonth = 11; crmViewYear--; } crmRenderCalendar(); });
 $('nextBtn').addEventListener('click', () => { crmViewMonth++; if (crmViewMonth > 11) { crmViewMonth = 0; crmViewYear++; } crmRenderCalendar(); });
 $('refreshBtn').addEventListener('click', () => crmLoadData());
-$('todayBtn').addEventListener('click', () => { crmViewYear = crmToday.getFullYear(); crmViewMonth = crmToday.getMonth(); crmRenderCalendar(); });
+$('todayBtn').addEventListener('click', () => {
+  crmViewYear = crmToday.getFullYear();
+  crmViewMonth = crmToday.getMonth();
+  crmRenderCalendar();
+  crmOpenTodayPanel();
+});
 
 /* 캐시 우선 렌더 후 백그라운드 최신화 (캐시 없을 때만 로딩 표시) */
 (function crmInit() {

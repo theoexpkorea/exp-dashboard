@@ -815,9 +815,11 @@ $('prevBtn').addEventListener('click', () => { farmViewMonth--; if (farmViewMont
 $('nextBtn').addEventListener('click', () => { farmViewMonth++; if (farmViewMonth > 11) { farmViewMonth = 0; farmViewYear++; } farmRenderCalendar(); });
 $('refreshBtn').addEventListener('click', () => farmLoadData());
 $('todayBtn').addEventListener('click', () => {
-  farmViewYear = farmToday.getFullYear();
-  farmViewMonth = farmToday.getMonth();
+  const y = farmToday.getFullYear(), m = farmToday.getMonth(), d = farmToday.getDate();
+  farmViewYear = y; farmViewMonth = m;
   farmRenderCalendar();
+  const key = farmYmd(y, m, d);
+  farmOpenDayPanel(key, y, m, d, farmEventsByDate[key] || []);
 });
 
 $('statGrid').addEventListener('click', e => {

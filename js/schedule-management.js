@@ -533,7 +533,13 @@ $('formDelete').addEventListener('click', async () => {
 $('prevBtn').addEventListener('click', () => { schedViewMonth--; if (schedViewMonth < 0) { schedViewMonth = 11; schedViewYear--; } schedRenderCalendar(); });
 $('nextBtn').addEventListener('click', () => { schedViewMonth++; if (schedViewMonth > 11) { schedViewMonth = 0; schedViewYear++; } schedRenderCalendar(); });
 $('refreshBtn').addEventListener('click', () => schedLoadData());
-$('todayBtn').addEventListener('click', () => { schedViewYear = schedToday.getFullYear(); schedViewMonth = schedToday.getMonth(); schedRenderCalendar(); });
+$('todayBtn').addEventListener('click', () => {
+  const y = schedToday.getFullYear(), m = schedToday.getMonth(), d = schedToday.getDate();
+  schedViewYear = y; schedViewMonth = m;
+  schedRenderCalendar();
+  const key = schedYmd(y, m, d);
+  schedOpenDayPanel(key, y, m, d, schedEventsByDate[key] || []);
+});
 
 /* 캐시 우선 렌더 후 백그라운드 최신화 */
 (function schedInit() {
