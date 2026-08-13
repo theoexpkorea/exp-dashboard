@@ -397,6 +397,8 @@ $('formSave').addEventListener('click', async () => {
     title: title,
     memo: $('fMemo').value.trim()
   };
+  // 원본 요청과 자동 재시도가 서버 입장에서 "같은 요청"임을 구분할 수 있도록 매번 새 reqId 발급
+  const reqId = Date.now() + '_' + Math.random().toString(36).slice(2);
 
   const saveBtn = $('formSave');
   saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
@@ -415,7 +417,7 @@ $('formSave').addEventListener('click', async () => {
         $('formError').textContent = '수정에 실패했어요. 다시 시도해 주세요.';
       }
     } else {
-      const res = await schedJsonpRetry(schedBuildUrl('scheduleCreate', payload), 15000);
+      const res = await schedJsonpRetry(schedBuildUrl('scheduleCreate', Object.assign({}, payload, { reqId: reqId })), 15000);
       if (res && res.ok && res.item) {
         schedAllItems.push(res.item);
         schedWriteCache(schedAllItems, schedHolidays);
@@ -439,7 +441,12 @@ $('formDelete').addEventListener('click', async () => {
   const delBtn = $('formDelete');
   delBtn.disabled = true;
   try {
-    const res = await schedJsonpRetry(schedBuildUrl('scheduleDelete', { row: schedEditItem.row }), 15000);
+    const res = await schedJsonpRetry(schedBuildUrl('scheduleDelete', {
+      row: schedEditItem.row,
+      date: schedEditItem.date || '',
+      time: schedEditItem.time || '',
+      title: schedEditItem.title || ''
+    }), 15000);
     if (res && res.ok) {
       schedAllItems = schedAllItems.filter(x => x.row !== schedEditItem.row);
       schedWriteCache(schedAllItems, schedHolidays);

@@ -492,7 +492,10 @@ $('consultFormDelete').addEventListener('click', async () => {
   const delBtn = $('consultFormDelete');
   delBtn.disabled = true;
   try {
-    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultDelete&row=' + encodeURIComponent(crmConsultEditItem.row), 15000);
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultDelete&row=' + encodeURIComponent(crmConsultEditItem.row)
+      + '&name=' + encodeURIComponent(crmConsultEditItem.name || '')
+      + '&tel=' + encodeURIComponent(crmConsultEditItem.tel || '')
+      + '&date=' + encodeURIComponent(crmConsultEditItem.date || ''), 15000);
     if (res && res.ok) {
       crmToast('삭제됐어요.');
       crmCloseConsultForm();
@@ -615,11 +618,15 @@ async function crmSaveContact(cat, row, key, btnEl) {
   const statusVal = selectEl ? selectEl.value : '';
   const memoVal = memoEl ? memoEl.value.trim() : '';
 
+  // 원본 요청과 자동 재시도가 서버 입장에서 "같은 요청"임을 구분할 수 있도록 매번 새 reqId 발급
+  // (한 번 만든 reqId는 이 저장 시도(원본+재시도) 동안 그대로 재사용됨 — crmJsonpRetry가 같은 url을 재사용하기 때문)
+  const reqId = Date.now() + '_' + Math.random().toString(36).slice(2);
   const url = CRM_DATA_URL + '?mode=crmUpdate&sheet=' + encodeURIComponent(cat)
     + '&row=' + encodeURIComponent(row)
     + '&lastDate=' + encodeURIComponent(crmTodayStr())
     + (memoVal ? '&memo=' + encodeURIComponent(memoVal) : '')
-    + (statusVal ? '&status=' + encodeURIComponent(statusVal) : '');
+    + (statusVal ? '&status=' + encodeURIComponent(statusVal) : '')
+    + '&reqId=' + encodeURIComponent(reqId);
 
   btnEl.disabled = true; btnEl.textContent = '저장 중...';
   try {
@@ -784,7 +791,7 @@ $('formCancel').addEventListener('click', crmCloseForm);
     if (!confirm('정말 삭제할까요? 되돌릴 수 없어요.')) return;
     delBtn.disabled = true; delBtn.textContent = '삭제 중...';
     try {
-      const qs = 'sheet=' + encodeURIComponent(crmEditItem.cat) + '&row=' + encodeURIComponent(crmEditItem.row);
+      const qs = 'sheet=' + encodeURIComponent(crmEditItem.cat) + '&row=' + encodeURIComponent(crmEditItem.row) + '&id=' + encodeURIComponent(crmEditItem.id || '');
       const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmDelete&' + qs, 15000);
       if (res && res.ok) {
         crmAllItems = crmAllItems.filter(x => !(x.cat === crmEditItem.cat && x.row === crmEditItem.row));
