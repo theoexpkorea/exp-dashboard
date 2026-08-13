@@ -95,7 +95,7 @@ function crmJsonp(url, timeoutMs) {
     const sep = url.indexOf('?') >= 0 ? '&' : '?';
     s.src = url + sep + 'callback=' + cb;
     document.head.appendChild(s);
-    setTimeout(() => { if (!done) { cleanup(); reject(new Error('timeout')); } }, timeoutMs || 15000);
+    setTimeout(() => { if (!done) { cleanup(); reject(new Error('timeout')); } }, timeoutMs || 25000);
   });
 }
 async function crmJsonpRetry(url, timeoutMs) {
@@ -414,7 +414,7 @@ async function crmOpenConsultPanel() {
   crmOverlay.classList.add('open');
   crmDayPanel.classList.add('open');
   try {
-    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultList', 15000);
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultList', 25000);
     const list = (res && res.items) || [];
     $('dpSub').textContent = list.length ? (list.length + '건 · 최신순') : '신규상담 없음';
     body.innerHTML = '';
@@ -471,7 +471,7 @@ $('consultFormSave').addEventListener('click', async () => {
   const saveBtn = $('consultFormSave');
   saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
   try {
-    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultUpdate&' + qs, 15000);
+    const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultUpdate&' + qs, 25000);
     if (res && res.ok) {
       crmToast('수정됐어요.');
       crmCloseConsultForm();
@@ -495,7 +495,7 @@ $('consultFormDelete').addEventListener('click', async () => {
     const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=consultDelete&row=' + encodeURIComponent(crmConsultEditItem.row)
       + '&name=' + encodeURIComponent(crmConsultEditItem.name || '')
       + '&tel=' + encodeURIComponent(crmConsultEditItem.tel || '')
-      + '&date=' + encodeURIComponent(crmConsultEditItem.date || ''), 15000);
+      + '&date=' + encodeURIComponent(crmConsultEditItem.date || ''), 25000);
     if (res && res.ok) {
       crmToast('삭제됐어요.');
       crmCloseConsultForm();
@@ -630,7 +630,7 @@ async function crmSaveContact(cat, row, key, btnEl) {
 
   btnEl.disabled = true; btnEl.textContent = '저장 중...';
   try {
-    const res = await crmJsonpRetry(url, 15000);
+    const res = await crmJsonpRetry(url, 25000);
     if (res && res.ok) {
       const it = crmAllItems.find(x => x.cat === cat && String(x.row) === String(row));
       if (it) {
@@ -792,7 +792,7 @@ $('formCancel').addEventListener('click', crmCloseForm);
     delBtn.disabled = true; delBtn.textContent = '삭제 중...';
     try {
       const qs = 'sheet=' + encodeURIComponent(crmEditItem.cat) + '&row=' + encodeURIComponent(crmEditItem.row) + '&id=' + encodeURIComponent(crmEditItem.id || '');
-      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmDelete&' + qs, 15000);
+      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmDelete&' + qs, 25000);
       if (res && res.ok) {
         crmAllItems = crmAllItems.filter(x => !(x.cat === crmEditItem.cat && x.row === crmEditItem.row));
         crmWriteCache(crmAllItems, crmStatusOptions, crmHolidays);
@@ -839,7 +839,7 @@ $('formSave').addEventListener('click', async () => {
 
     const qs = Object.keys(payload).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(payload[k])).join('&');
     try {
-      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmCreate&' + qs, 15000);
+      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmCreate&' + qs, 25000);
       if (res && res.ok && res.item) {
         crmAllItems.push(res.item);
         crmWriteCache(crmAllItems, crmStatusOptions);
@@ -871,7 +871,7 @@ $('formSave').addEventListener('click', async () => {
 
     const qs = Object.keys(payload).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(payload[k])).join('&');
     try {
-      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmUpdate&' + qs, 15000);
+      const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=crmUpdate&' + qs, 25000);
       if (res && res.ok) {
         const it = crmAllItems.find(x => x.cat === cat && x.row === row);
         if (it) {

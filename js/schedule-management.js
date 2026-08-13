@@ -41,7 +41,7 @@ function schedJsonp(url, timeoutMs) {
     const sep = url.indexOf('?') >= 0 ? '&' : '?';
     s.src = url + sep + 'callback=' + cb;
     document.head.appendChild(s);
-    setTimeout(() => { if (!done) { cleanup(); reject(new Error('timeout')); } }, timeoutMs || 15000);
+    setTimeout(() => { if (!done) { cleanup(); reject(new Error('timeout')); } }, timeoutMs || 25000);
   });
 }
 async function schedJsonpRetry(url, timeoutMs) {
@@ -405,7 +405,7 @@ $('formSave').addEventListener('click', async () => {
   try {
     if (schedEditItem) {
       payload.row = schedEditItem.row;
-      const res = await schedJsonpRetry(schedBuildUrl('scheduleUpdate', payload), 15000);
+      const res = await schedJsonpRetry(schedBuildUrl('scheduleUpdate', payload), 25000);
       if (res && res.ok) {
         const it = schedAllItems.find(x => x.row === schedEditItem.row);
         if (it) Object.assign(it, payload);
@@ -417,7 +417,7 @@ $('formSave').addEventListener('click', async () => {
         $('formError').textContent = '수정에 실패했어요. 다시 시도해 주세요.';
       }
     } else {
-      const res = await schedJsonpRetry(schedBuildUrl('scheduleCreate', Object.assign({}, payload, { reqId: reqId })), 15000);
+      const res = await schedJsonpRetry(schedBuildUrl('scheduleCreate', Object.assign({}, payload, { reqId: reqId })), 25000);
       if (res && res.ok && res.item) {
         schedAllItems.push(res.item);
         schedWriteCache(schedAllItems, schedHolidays);
@@ -446,7 +446,7 @@ $('formDelete').addEventListener('click', async () => {
       date: schedEditItem.date || '',
       time: schedEditItem.time || '',
       title: schedEditItem.title || ''
-    }), 15000);
+    }), 25000);
     if (res && res.ok) {
       schedAllItems = schedAllItems.filter(x => x.row !== schedEditItem.row);
       schedWriteCache(schedAllItems, schedHolidays);
