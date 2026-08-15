@@ -63,6 +63,15 @@
   .doc-tag.t-합의서 { background:#DCFCE7; color:#15803D; }
   .doc-tag.t-기타 { background:var(--bg); color:var(--text-muted); }
 
+  /* 계약유형 필터칩 — 활성 시 위 배지와 동일한 색으로 매칭 */
+  #dealTypeFilters .rec-filter-chip[data-type="매매"].active { background:#DBEAFE; color:#1D4ED8; border-color:#BBD8FD; }
+  #dealTypeFilters .rec-filter-chip[data-type="임대차"].active { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+  #dealTypeFilters .rec-filter-chip[data-type="권리금계약"].active { background:#FCE7F3; color:#BE185D; border-color:#F7C4DE; }
+  #dealTypeFilters .rec-filter-chip[data-type="가계약"].active { background:#FBF1E2; color:#9A5B14; border-color:#F0DBA6; }
+  #dealTypeFilters .rec-filter-chip[data-type="전대차"].active { background:#EDE9FE; color:#6D28D9; border-color:#D8CEFB; }
+  #dealTypeFilters .rec-filter-chip[data-type="합의서"].active { background:#DCFCE7; color:#15803D; border-color:#A9E6C3; }
+  #dealTypeFilters .rec-filter-chip[data-type="기타"].active { background:var(--bg); color:var(--text-muted); border-color:var(--border-strong); }
+
   /* 타임라인 상세 패널 (farm-day-panel 재사용) */
   .timeline-item { border:1px solid var(--border); border-radius:var(--radius-md); padding:12px 13px; }
   .timeline-item-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
@@ -71,17 +80,31 @@
   .timeline-files { display:flex; gap:6px; margin-top:9px; }
   .timeline-file-btn {
     flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
-    height:34px; border-radius:var(--radius-sm); border:1px solid var(--border);
-    background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:700; text-decoration:none;
+    height:34px; border-radius:var(--radius-sm); border:1px solid #D7DEFB;
+    background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700; text-decoration:none;
+    cursor:pointer; font-family:inherit;
   }
-  .timeline-file-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
-  .timeline-file-btn.disabled { opacity:.4; pointer-events:none; }
+  .timeline-file-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .timeline-file-btn.disabled { background:var(--bg); color:var(--text-muted); border-color:var(--border); opacity:.6; pointer-events:none; }
 
   /* 특약 카드 */
   .clause-list { display:flex; flex-direction:column; gap:10px; }
   .clause-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:13px 15px; box-shadow:var(--shadow-sm); }
   .clause-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
   .clause-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--accent-soft); color:var(--accent); }
+
+  /* 특약 태그 카테고리별 색상 — 카드 배지 / 등록모달 선택칩 / 필터칩 전부 동일하게 매칭 */
+  .clause-tag[data-tag="근저당승계"], .tp-chip.sel[data-tag="근저당승계"], #clauseTagFilters .rec-filter-chip[data-tag="근저당승계"].active { background:#FDECEF; color:#E0364F; }
+  .clause-tag[data-tag="위반건축물"], .tp-chip.sel[data-tag="위반건축물"], #clauseTagFilters .rec-filter-chip[data-tag="위반건축물"].active { background:#FFEDD5; color:#C2410C; }
+  .clause-tag[data-tag="다운계약"], .tp-chip.sel[data-tag="다운계약"], #clauseTagFilters .rec-filter-chip[data-tag="다운계약"].active { background:#FEE2E2; color:#DC2626; }
+  .clause-tag[data-tag="임차인승계"], .tp-chip.sel[data-tag="임차인승계"], #clauseTagFilters .rec-filter-chip[data-tag="임차인승계"].active { background:var(--accent-soft); color:var(--accent); }
+  .clause-tag[data-tag="하자담보"], .tp-chip.sel[data-tag="하자담보"], #clauseTagFilters .rec-filter-chip[data-tag="하자담보"].active { background:#FBF1E2; color:#9A5B14; }
+  .clause-tag[data-tag="정화조/하수도부담금"], .tp-chip.sel[data-tag="정화조/하수도부담금"], #clauseTagFilters .rec-filter-chip[data-tag="정화조/하수도부담금"].active { background:#CFFAFE; color:#0E7490; }
+  .clause-tag[data-tag="주차시설"], .tp-chip.sel[data-tag="주차시설"], #clauseTagFilters .rec-filter-chip[data-tag="주차시설"].active { background:#DBEAFE; color:#1D4ED8; }
+  .clause-tag[data-tag="간판"], .tp-chip.sel[data-tag="간판"], #clauseTagFilters .rec-filter-chip[data-tag="간판"].active { background:#EDE9FE; color:#6D28D9; }
+  .clause-tag[data-tag="부가세환급"], .tp-chip.sel[data-tag="부가세환급"], #clauseTagFilters .rec-filter-chip[data-tag="부가세환급"].active { background:#DCFCE7; color:#15803D; }
+  .clause-tag[data-tag="명도"], .tp-chip.sel[data-tag="명도"], #clauseTagFilters .rec-filter-chip[data-tag="명도"].active { background:#FCE7F3; color:#BE185D; }
+  .clause-tag[data-tag="기타"], .tp-chip.sel[data-tag="기타"], #clauseTagFilters .rec-filter-chip[data-tag="기타"].active { background:var(--bg); color:var(--text-muted); }
   .clause-text { font-size:13px; line-height:1.6; color:var(--text); white-space:pre-line; }
   .clause-meta-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
   .clause-meta { font-size:11.5px; color:var(--text-secondary); }
@@ -382,7 +405,7 @@
 <div class="rec-modal-overlay" id="clauseFormOverlay">
   <div class="rec-modal">
     <div class="rec-modal-head">
-      <h2>새 특약 등록</h2>
+      <h2 id="clauseFormTitle">새 특약 등록</h2>
       <button class="rec-modal-close" id="clauseFormClose">✕</button>
     </div>
     <div class="rec-modal-body">
@@ -417,6 +440,47 @@
     <div class="rec-modal-foot">
       <button class="btn-soft" id="clauseFormCancel" style="margin-left:auto;">취소</button>
       <button class="btn-solid" id="clauseFormSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 계약서 정보 수정 모달 ===================== -->
+<div class="rec-modal-overlay" id="contractEditOverlay">
+  <div class="rec-modal">
+    <div class="rec-modal-head">
+      <h2>계약서 정보 수정</h2>
+      <button class="rec-modal-close" id="contractEditClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>매물번호</label><input type="text" id="eMaemul" placeholder="예: A-1234"></div>
+        <div class="rec-field">
+          <label>계약유형</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="eTypeBtn"><span id="eTypeLabel">선택</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="eTypePop"></div>
+          </div>
+        </div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field">
+          <label>계약일자</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="eDateBtn"><span id="eDateLabel">날짜 선택</span><span class="car">▾</span></button>
+            <div class="cal-pop" id="eDatePop"></div>
+          </div>
+        </div>
+        <div class="rec-field"><label>등록자메모 (선택)</label><input type="text" id="eMemo" placeholder="내부 참고용"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>특이사항요약</label><textarea id="eSummary" style="min-height:80px;"></textarea></div>
+      </div>
+      <div class="rec-modal-error" id="contractEditError"></div>
+      <div class="doc-slot-hint">파일(계약서/확인설명서)은 여기서 다시 업로드할 수 없어요. 파일 자체를 교체해야 하면 새 문서로 등록해주세요.</div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-soft" id="contractEditCancel" style="margin-left:auto;">취소</button>
+      <button class="btn-solid" id="contractEditSave" style="margin-left:0;background:var(--accent);">저장</button>
     </div>
   </div>
 </div>
