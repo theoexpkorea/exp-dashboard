@@ -99,20 +99,12 @@
   .clause-list { display:flex; flex-direction:column; gap:10px; }
   .clause-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:13px 15px; box-shadow:var(--shadow-sm); }
   .clause-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
-  .clause-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--accent-soft); color:var(--accent); }
+  .clause-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--tag-bg, var(--accent-soft)); color:var(--tag-fg, var(--accent)); }
 
-  /* 특약 태그 카테고리별 색상 — 카드 배지 / 등록모달 선택칩 / 필터칩 전부 동일하게 매칭 */
-  .clause-tag[data-tag="근저당승계"], #clauseTagPicker .tp-chip.sel[data-tag="근저당승계"], #clauseTagFilters .rec-filter-chip[data-tag="근저당승계"].active { background:#FDECEF; color:#E0364F; }
-  .clause-tag[data-tag="위반건축물"], #clauseTagPicker .tp-chip.sel[data-tag="위반건축물"], #clauseTagFilters .rec-filter-chip[data-tag="위반건축물"].active { background:#FFEDD5; color:#C2410C; }
-  .clause-tag[data-tag="다운계약"], #clauseTagPicker .tp-chip.sel[data-tag="다운계약"], #clauseTagFilters .rec-filter-chip[data-tag="다운계약"].active { background:#FEE2E2; color:#DC2626; }
-  .clause-tag[data-tag="임차인승계"], #clauseTagPicker .tp-chip.sel[data-tag="임차인승계"], #clauseTagFilters .rec-filter-chip[data-tag="임차인승계"].active { background:var(--accent-soft); color:var(--accent); }
-  .clause-tag[data-tag="하자담보"], #clauseTagPicker .tp-chip.sel[data-tag="하자담보"], #clauseTagFilters .rec-filter-chip[data-tag="하자담보"].active { background:#FBF1E2; color:#9A5B14; }
-  .clause-tag[data-tag="정화조/하수도부담금"], #clauseTagPicker .tp-chip.sel[data-tag="정화조/하수도부담금"], #clauseTagFilters .rec-filter-chip[data-tag="정화조/하수도부담금"].active { background:#CFFAFE; color:#0E7490; }
-  .clause-tag[data-tag="주차시설"], #clauseTagPicker .tp-chip.sel[data-tag="주차시설"], #clauseTagFilters .rec-filter-chip[data-tag="주차시설"].active { background:#DBEAFE; color:#1D4ED8; }
-  .clause-tag[data-tag="간판"], #clauseTagPicker .tp-chip.sel[data-tag="간판"], #clauseTagFilters .rec-filter-chip[data-tag="간판"].active { background:#EDE9FE; color:#6D28D9; }
-  .clause-tag[data-tag="부가세환급"], #clauseTagPicker .tp-chip.sel[data-tag="부가세환급"], #clauseTagFilters .rec-filter-chip[data-tag="부가세환급"].active { background:#DCFCE7; color:#15803D; }
-  .clause-tag[data-tag="명도"], #clauseTagPicker .tp-chip.sel[data-tag="명도"], #clauseTagFilters .rec-filter-chip[data-tag="명도"].active { background:#FCE7F3; color:#BE185D; }
-  .clause-tag[data-tag="기타"], #clauseTagPicker .tp-chip.sel[data-tag="기타"], #clauseTagFilters .rec-filter-chip[data-tag="기타"].active { background:var(--bg); color:var(--text-muted); }
+  /* 특약 태그 색상 — JS(tagStyle_)가 태그 이름을 해시해서 --tag-bg/--tag-fg 커스텀 속성으로 자동 배정.
+     태그를 몇 개를 추가해도 여기 CSS를 더 손댈 필요 없음(카드 배지 / 등록모달 선택칩 / 필터칩 전부 동일 적용). */
+  #clauseTagPicker .tp-chip.sel { background:var(--tag-bg, var(--accent-soft)); color:var(--tag-fg, var(--accent)); border-color:var(--tag-fg, #D7DEFB); }
+  #clauseTagFilters .rec-filter-chip.active { background:var(--tag-bg, var(--accent-soft)); color:var(--tag-fg, var(--accent)); border-color:var(--tag-fg, #D7DEFB); }
   .clause-text { font-size:13px; line-height:1.6; color:var(--text); white-space:pre-line; }
   .clause-meta-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
   .clause-meta { font-size:11.5px; color:var(--text-secondary); }
@@ -508,7 +500,7 @@
 <script src="../js/sidebar.js?v=20260815"></script>
 <script src="../js/lock.js?v=20260815"></script>
 <script src="../js/favorites.js?v=20260815"></script>
-<script src="../js/contract-management.js?v=20260816b"></script>
+<script src="../js/contract-management.js?v=20260816d"></script>
 <script>
   renderSidebar("contract", { basePrefix: "../" });
   initLockScreen("../");
