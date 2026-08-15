@@ -132,6 +132,7 @@ async function loadDeals() {
   }
   renderDealList();
   updateKpis();
+  renderClauseList(); // dealRows가 이제 채워졌으니 특약 카드의 "출처계약" 링크도 다시 그림 (loadClauses와의 로딩 순서 경쟁 방지)
 }
 
 async function loadClauses() {
@@ -270,9 +271,37 @@ function closeDealPanel() {
 
 /* ---------------- 특약 라이브러리 ---------------- */
 
+// 태그 이름을 해시해서 고정 팔레트에서 색을 자동 배정 (태그가 몇 개가 늘어나도 코드 수정 없이 색이 계속 붙음)
+const TAG_COLOR_PALETTE = [
+  { bg: "#FDECEF", fg: "#E0364F" }, // 레드
+  { bg: "#FFEDD5", fg: "#C2410C" }, // 오렌지
+  { bg: "#FEF3C7", fg: "#A16207" }, // 옐로우
+  { bg: "#DCFCE7", fg: "#15803D" }, // 그린
+  { bg: "#CFFAFE", fg: "#0E7490" }, // 시안
+  { bg: "#DBEAFE", fg: "#1D4ED8" }, // 블루
+  { bg: "#EDE9FE", fg: "#6D28D9" }, // 바이올렛
+  { bg: "#FCE7F3", fg: "#BE185D" }, // 핑크
+  { bg: "#FBF1E2", fg: "#9A5B14" }, // 브라운
+  { bg: "#E0E7FF", fg: "#4338CA" }, // 인디고
+  { bg: "#ECFCCB", fg: "#4D7C0F" }, // 라임
+  { bg: "#FEE2E2", fg: "#B91C1C" }, // 다크레드
+  { bg: "#F1F5F9", fg: "#475569" }, // 슬레이트(그레이) — "기타" 태그는 항상 이 색으로 고정
+];
+
+function tagColor_(tag) {
+  if (tag === "기타") return TAG_COLOR_PALETTE[TAG_COLOR_PALETTE.length - 1];
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
+  return TAG_COLOR_PALETTE[hash % (TAG_COLOR_PALETTE.length - 1)];
+}
+function tagStyle_(tag) {
+  const c = tagColor_(tag);
+  return `--tag-bg:${c.bg};--tag-fg:${c.fg};`;
+}
+
 function renderClauseTagFilters() {
   const wrap = document.getElementById("clauseTagFilters");
-  wrap.innerHTML = clauseTags.map(t => `<button class="rec-filter-chip" data-tag="${t}">${t}</button>`).join("");
+  wrap.innerHTML = clauseTags.map(t => `<button class="rec-filter-chip" data-tag="${t}" style="${tagStyle_(t)}">${t}</button>`).join("");
   wrap.querySelectorAll(".rec-filter-chip").forEach(btn => {
     btn.addEventListener("click", () => {
       const tag = btn.dataset.tag;
@@ -308,7 +337,7 @@ function renderClauseList() {
     const sourceDeal = c.contractRegId ? dealRows.find(r => r.regId === c.contractRegId) : null;
     return `
     <div class="clause-card">
-      <div class="clause-tags">${(c.tags || []).map(t => `<span class="clause-tag" data-tag="${t}">${t}</span>`).join("")}</div>
+      <div class="clause-tags">${(c.tags || []).map(t => `<span class="clause-tag" data-tag="${t}" style="${tagStyle_(t)}">${t}</span>`).join("")}</div>
       <div class="clause-text">${escapeHtml(c.text || "")}</div>
       <div class="clause-meta-row">
         <span class="clause-meta">
@@ -354,7 +383,7 @@ function escapeHtml(s) {
 
 function renderTagPicker() {
   const wrap = document.getElementById("clauseTagPicker");
-  wrap.innerHTML = clauseTags.map(t => `<button type="button" class="tp-chip" data-tag="${t}">${t}</button>`).join("");
+  wrap.innerHTML = clauseTags.map(t => `<button type="button" class="tp-chip" data-tag="${t}" style="${tagStyle_(t)}">${t}</button>`).join("");
   wrap.querySelectorAll(".tp-chip").forEach(btn => {
     btn.addEventListener("click", () => btn.classList.toggle("sel"));
   });
