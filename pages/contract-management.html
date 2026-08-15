@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<script>
+(function(){
+  var locked = true;
+  try {
+    var raw = sessionStorage.getItem('theo_dashboard_unlocked');
+    if (raw) {
+      var data = JSON.parse(raw);
+      if (data && data.ts && (Date.now() - data.ts <= 30 * 60 * 1000)) locked = false;
+    }
+  } catch (e) {}
+  if (locked) document.documentElement.classList.add('theo-locking');
+})();
+</script>
+<style>html.theo-locking .app-shell{visibility:hidden}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>업무현황</title>
+<link rel="icon" href="../favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#2746E6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="HUB" />
+<meta property="og:image" content="../og-image.png" />
+<link rel="stylesheet" href="../css/style.css?v=20260815a" />
+
+<style>
+  /* ---- 계약관리 페이지 전용 스타일 (공유 style.css를 건드리지 않고 이 페이지에만 추가) ---- */
+
+  /* 상단 세그먼트 탭 (계약서 라이브러리 / 특약 라이브러리) */
+  .seg-tabs { display:flex; gap:6px; margin-bottom:18px; background:var(--bg); padding:4px; border-radius:12px; width:fit-content; }
+  .seg-tab {
+    height:38px; padding:0 18px; border:none; border-radius:9px; background:transparent;
+    color:var(--text-secondary); font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .seg-tab.active { background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* 거래그룹 카드 리스트 */
+  .deal-list { display:flex; flex-direction:column; gap:10px; }
+  .deal-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+    padding:14px 16px; cursor:pointer; box-shadow:var(--shadow-sm); transition:box-shadow .12s ease, transform .12s ease, border-color .12s ease;
+  }
+  .deal-card:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); border-color:var(--border-strong); }
+  .deal-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .deal-maemul { font-weight:800; font-size:14.5px; }
+  .deal-date { font-size:11.5px; color:var(--text-secondary); font-weight:600; }
+  .deal-doc-badges { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:7px; }
+  .deal-summary { font-size:12.5px; color:var(--text-secondary); line-height:1.5; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+  /* 계약유형별 배지 색 (farm-dp-tag 톤 재사용 + 확장) */
+  .doc-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; flex-shrink:0; }
+  .doc-tag.t-매매 { background:#DBEAFE; color:#1D4ED8; }
+  .doc-tag.t-임대차 { background:var(--accent-soft); color:var(--accent); }
+  .doc-tag.t-권리금계약 { background:#FCE7F3; color:#BE185D; }
+  .doc-tag.t-가계약 { background:#FBF1E2; color:#9A5B14; }
+  .doc-tag.t-전대차 { background:#EDE9FE; color:#6D28D9; }
+  .doc-tag.t-합의서 { background:#DCFCE7; color:#15803D; }
+  .doc-tag.t-기타 { background:var(--bg); color:var(--text-muted); }
+
+  /* 타임라인 상세 패널 (farm-day-panel 재사용) */
+  .timeline-item { border:1px solid var(--border); border-radius:var(--radius-md); padding:12px 13px; }
+  .timeline-item-top { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .timeline-date { font-size:12.5px; font-weight:700; color:var(--text-secondary); }
+  .timeline-summary { font-size:12.5px; color:var(--text); line-height:1.55; margin-top:5px; }
+  .timeline-files { display:flex; gap:6px; margin-top:9px; }
+  .timeline-file-btn {
+    flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
+    height:34px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:700; text-decoration:none;
+  }
+  .timeline-file-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+  .timeline-file-btn.disabled { opacity:.4; pointer-events:none; }
+
+  /* 특약 카드 */
+  .clause-list { display:flex; flex-direction:column; gap:10px; }
+  .clause-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:13px 15px; box-shadow:var(--shadow-sm); }
+  .clause-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+  .clause-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--accent-soft); color:var(--accent); }
+  .clause-text { font-size:13px; line-height:1.6; color:var(--text); white-space:pre-line; }
+  .clause-meta-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+  .clause-meta { font-size:11.5px; color:var(--text-secondary); }
+  .clause-copy-btn {
+    height:30px; padding:0 12px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .clause-copy-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+  .clause-copy-btn.copied { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  /* 태그 선택 칩 (특약 등록 모달) */
+  .tag-picker { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag-picker .tp-chip {
+    height:30px; padding:0 12px; border-radius:999px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .tag-picker .tp-chip.sel { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+
+  /* ---- 등록 마법사 (마스킹 캔버스가 있어서 넓은 전용 오버레이) ---- */
+  .wiz-overlay {
+    position:fixed; inset:0; z-index:120; background:rgba(16,24,40,0.5);
+    display:none; align-items:flex-start; justify-content:center; padding:24px 14px; overflow-y:auto;
+  }
+  .wiz-overlay.show { display:flex; }
+  .wiz-panel { width:100%; max-width:980px; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  .wiz-head { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border); }
+  .wiz-head h2 { margin:0; font-size:16px; font-weight:800; }
+  .wiz-steps { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--text-secondary); font-weight:700; }
+  .wiz-steps .wstep { padding:4px 10px; border-radius:999px; background:var(--bg); }
+  .wiz-steps .wstep.on { background:var(--accent-soft); color:var(--accent); }
+  .wiz-steps .wstep.done { background:#DCFCE7; color:#15803D; }
+  .wiz-close { width:30px; height:30px; border-radius:50%; border:none; background:var(--bg); color:var(--text-secondary); cursor:pointer; }
+  .wiz-body { padding:20px 22px; max-height:74vh; overflow-y:auto; }
+  .wiz-foot { display:flex; gap:10px; padding:16px 22px; border-top:1px solid var(--border); }
+  .wiz-step-panel { display:none; }
+  .wiz-step-panel.active { display:block; }
+
+  .doc-slot-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px) { .doc-slot-grid { grid-template-columns:1fr; } }
+  .doc-slot-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .doc-slot-head h3 { margin:0; font-size:13.5px; font-weight:800; }
+  .doc-slot-hint { font-size:11.5px; color:var(--text-secondary); line-height:1.5; margin-top:6px; }
+  .doc-slot-status { font-size:11px; font-weight:700; color:var(--accent); }
+
+  .mask-page-block { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; margin-top:10px; background:var(--bg); }
+  .mask-page-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .mask-page-head span { font-size:11.5px; font-weight:700; color:var(--text-secondary); }
+  .mask-stage { position:relative; width:100%; overflow:auto; border:1px solid var(--border); border-radius:6px; background:#fff; max-height:420px; }
+  .mask-stage canvas { display:block; }
+  .mask-overlay-canvas { position:absolute; left:0; top:0; cursor:crosshair; }
+  .mask-btn-row { display:flex; gap:6px; margin-top:8px; }
+  .mask-mini-btn {
+    height:28px; padding:0 10px; border-radius:7px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-secondary); font-size:11px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .mask-legend { display:flex; gap:14px; font-size:11px; color:var(--text-secondary); margin-top:8px; }
+  .mask-legend .dot { width:9px; height:9px; border-radius:2px; display:inline-block; margin-right:4px; }
+
+  .wiz-progress { font-size:13px; color:var(--text-secondary); text-align:center; padding:30px 0; }
+  .wiz-progress .spin {
+    width:28px; height:28px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--accent);
+    margin:0 auto 12px; animation:wizspin .8s linear infinite;
+  }
+  @keyframes wizspin { to { transform:rotate(360deg); } }
+
+  .deal-radio-row { display:flex; gap:8px; margin-bottom:14px; }
+  .deal-radio-btn {
+    flex:1; height:40px; border-radius:var(--radius-md); border:1.5px solid var(--border-strong);
+    background:var(--bg); color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .deal-radio-btn.sel { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <div class="main-col">
+    <header class="topbar">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="메뉴 열기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <span class="topbar-title">계약관리</span>
+      <a class="topbar-mark" href="../index.html" aria-label="홈으로">the<span class="o">o</span></a>
+    </header>
+
+    <div class="content-row">
+    <main class="main-content">
+      <div class="page-head">
+        <h1>계약관리</h1>
+        <p>계약서 라이브러리 · 특약 라이브러리</p>
+      </div>
+
+      <div class="rec-kpi-grid" id="statGrid">
+        <div class="rec-stat-card tint-total">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statDeals">-</div><div class="stat-label">저장된 거래건</div></div>
+        </div>
+        <div class="rec-stat-card tint-active">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 12h6M9 16h4"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statDocs">-</div><div class="stat-label">등록된 문서</div></div>
+        </div>
+        <div class="rec-stat-card tint-plan">
+          <div class="icon-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+          </div>
+          <div class="rec-stat-body"><div class="stat" id="statClauses">-</div><div class="stat-label">저장된 특약</div></div>
+        </div>
+      </div>
+
+      <div class="seg-tabs" id="segTabs">
+        <button class="seg-tab active" data-tab="contract">계약서 라이브러리</button>
+        <button class="seg-tab" data-tab="clause">특약 라이브러리</button>
+      </div>
+
+      <!-- ===================== 계약서 라이브러리 ===================== -->
+      <div class="tab-panel active" id="panel-contract">
+        <div class="rec-toolbar">
+          <input type="text" class="rec-search" id="dealSearch" placeholder="매물번호·특이사항 검색">
+          <div class="rec-filters" id="dealTypeFilters">
+            <button class="rec-filter-chip active" data-type="all">전체</button>
+          </div>
+          <button class="farm-tool-btn" id="dealRefreshBtn" style="margin-left:auto;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
+            새로고침
+          </button>
+        </div>
+
+        <div class="deal-list" id="dealList">
+          <div class="rec-empty" id="dealEmpty">불러오는 중...</div>
+        </div>
+      </div>
+
+      <!-- ===================== 특약 라이브러리 ===================== -->
+      <div class="tab-panel" id="panel-clause">
+        <div class="rec-toolbar">
+          <input type="text" class="rec-search" id="clauseSearch" placeholder="태그·문구 검색">
+          <div class="rec-filters" id="clauseTagFilters"></div>
+          <button class="farm-tool-btn" id="clauseRefreshBtn" style="margin-left:auto;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
+            새로고침
+          </button>
+        </div>
+
+        <div class="clause-list" id="clauseList">
+          <div class="rec-empty" id="clauseEmpty">불러오는 중...</div>
+        </div>
+      </div>
+
+    </main>
+    <aside class="favorites-panel" data-fav-mount="desktop"></aside>
+    </div>
+  </div>
+</div>
+
+<!-- FAB: 탭에 따라 라벨/동작이 바뀜 -->
+<button class="rec-fab" id="mainFab" style="right:24px;bottom:24px;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  <span id="mainFabLabel">새 계약서 등록</span>
+</button>
+
+<!-- 거래그룹 타임라인 상세 패널 (farm-day-panel 재사용) -->
+<div class="farm-overlay" id="dealOverlay"></div>
+<div class="farm-day-panel" id="dealPanel">
+  <div class="farm-dp-head">
+    <div><div class="farm-dp-title" id="dealPanelTitle">-</div><div class="farm-dp-sub" id="dealPanelSub">-</div></div>
+    <button class="farm-dp-close" id="dealPanelClose">✕</button>
+  </div>
+  <div class="farm-dp-body" id="dealPanelBody"></div>
+  <button class="farm-dp-add" id="dealPanelAddDoc">＋ 이 거래건에 문서 추가</button>
+</div>
+
+<!-- ===================== 계약서 등록 마법사 ===================== -->
+<div class="wiz-overlay" id="wizOverlay">
+  <div class="wiz-panel">
+    <div class="wiz-head">
+      <h2>새 계약서 등록</h2>
+      <div class="wiz-steps">
+        <span class="wstep" id="wstep1">1. 업로드+마스킹</span>
+        <span class="wstep" id="wstep2">2. 정보 입력</span>
+        <span class="wstep" id="wstep3">3. 저장</span>
+      </div>
+      <button class="wiz-close" id="wizClose">✕</button>
+    </div>
+    <div class="wiz-body">
+
+      <!-- STEP 1: 업로드 + 마스킹 -->
+      <div class="wiz-step-panel" id="wizStep1">
+        <div class="doc-slot-grid">
+          <div class="doc-slot" data-doc="contract">
+            <div class="doc-slot-head"><h3>계약서 PDF</h3><span class="doc-slot-status" id="statusContract"></span></div>
+            <input type="file" accept="application/pdf" id="fileContract">
+            <div class="doc-slot-hint">전화번호·법인등록번호 등 인쇄체 숫자는 자동 감지(빨강). 손글씨·서명·인감은 직접 드래그(파랑)로 칠하세요.</div>
+            <div id="pagesContract"></div>
+          </div>
+          <div class="doc-slot" data-doc="confirm">
+            <div class="doc-slot-head"><h3>확인설명서 PDF</h3><span class="doc-slot-status" id="statusConfirm"></span></div>
+            <input type="file" accept="application/pdf" id="fileConfirm">
+            <div class="doc-slot-hint">이 유형에 확인설명서가 없으면(합의서 등) 비워두셔도 됩니다.</div>
+            <div id="pagesConfirm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: 메타데이터 -->
+      <div class="wiz-step-panel" id="wizStep2">
+        <div class="rec-field" style="margin-bottom:14px;">
+          <label>거래건 선택</label>
+          <div class="deal-radio-row">
+            <button type="button" class="deal-radio-btn sel" id="dealModeNew">신규 거래</button>
+            <button type="button" class="deal-radio-btn" id="dealModeExisting">기존 거래건에 추가</button>
+          </div>
+        </div>
+        <div class="rec-field" id="existingDealField" style="display:none; margin-bottom:14px;">
+          <label>기존 거래건</label>
+          <select id="existingDealSelect"></select>
+        </div>
+        <div class="rec-form-grid">
+          <div class="rec-field"><label>매물번호</label><input type="text" id="fMaemul" placeholder="예: A-1234"></div>
+          <div class="rec-field">
+            <label>계약유형</label>
+            <select id="fType"></select>
+          </div>
+        </div>
+        <div class="rec-form-grid">
+          <div class="rec-field"><label>계약일자</label><input type="date" id="fDate"></div>
+          <div class="rec-field"><label>등록자메모 (선택)</label><input type="text" id="fMemo" placeholder="내부 참고용"></div>
+        </div>
+        <div class="rec-form-grid full">
+          <div class="rec-field"><label>특이사항요약</label><textarea id="fSummary" placeholder="예: 임차인승계 조건, 근저당 3억 잔존"></textarea></div>
+        </div>
+      </div>
+
+      <!-- STEP 3: 저장 진행 -->
+      <div class="wiz-step-panel" id="wizStep3">
+        <div class="wiz-progress" id="wizProgress">
+          <div class="spin"></div>
+          저장 준비 중...
+        </div>
+      </div>
+
+    </div>
+    <div class="wiz-foot">
+      <button class="btn-soft" id="wizPrev">이전</button>
+      <button class="btn-solid" id="wizNext" style="background:var(--accent);">다음 단계</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 특약 등록 모달 ===================== -->
+<div class="rec-modal-overlay" id="clauseFormOverlay">
+  <div class="rec-modal">
+    <div class="rec-modal-head">
+      <h2>새 특약 등록</h2>
+      <button class="rec-modal-close" id="clauseFormClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-field" style="margin-bottom:14px;">
+        <label>태그 (여러 개 선택 가능)</label>
+        <div class="tag-picker" id="clauseTagPicker"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>특약문구</label><textarea id="cText" placeholder="특약 전문을 입력하세요" style="min-height:100px;"></textarea></div>
+      </div>
+      <div class="rec-form-grid">
+        <div class="rec-field"><label>출처매물번호</label><input type="text" id="cMaemul" placeholder="예: A-1234"></div>
+        <div class="rec-field"><label>사용일자</label><input type="date" id="cDate"></div>
+      </div>
+      <div class="rec-form-grid full">
+        <div class="rec-field"><label>출처계약 (선택)</label><select id="cContractRef"><option value="">연결 안 함</option></select></div>
+      </div>
+      <div class="rec-modal-error" id="clauseFormError"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-soft" id="clauseFormCancel" style="margin-left:auto;">취소</button>
+      <button class="btn-solid" id="clauseFormSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="rec-toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="../js/sidebar.js?v=20260815"></script>
+<script src="../js/lock.js?v=20260815"></script>
+<script src="../js/favorites.js?v=20260815"></script>
+<script src="../js/contract-management.js?v=20260815"></script>
+<script>
+  renderSidebar("contract", { basePrefix: "../" });
+  initLockScreen("../");
+</script>
+</body>
+</html>
