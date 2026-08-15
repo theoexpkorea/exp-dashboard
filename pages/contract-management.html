@@ -153,6 +153,37 @@
     background:var(--bg); color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;
   }
   .deal-radio-btn.sel { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+
+  /* ---- 커스텀 달력 팝오버 ---- */
+  .dash-picker-wrap { position:relative; }
+  .cal-pop {
+    display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:50;
+    width:280px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md);
+    box-shadow:var(--shadow-lg); padding:12px;
+  }
+  .cal-pop.open { display:block; }
+  .cal-pop-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .cal-pop-head .cal-title { font-size:13px; font-weight:800; }
+  .cal-pop-head button {
+    width:26px; height:26px; border-radius:7px; border:1px solid var(--border); background:var(--surface);
+    color:var(--text-secondary); cursor:pointer; font-size:13px; font-family:inherit;
+  }
+  .cal-pop-head button:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+  .cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); font-size:10.5px; color:var(--text-secondary); font-weight:700; text-align:center; margin-bottom:4px; }
+  .cal-weekdays .sun { color:#E0364F; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .cal-day {
+    height:30px; display:flex; align-items:center; justify-content:center; border-radius:7px; cursor:pointer;
+    font-size:12.5px; color:var(--text); background:transparent; border:none; font-family:inherit;
+  }
+  .cal-day:hover { background:var(--bg); }
+  .cal-day.muted { color:var(--text-muted); }
+  .cal-day.today { font-weight:800; color:var(--accent); }
+  .cal-day.sel { background:var(--accent); color:#fff; font-weight:800; }
+  .cal-pop-foot { display:flex; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px solid var(--border); }
+  .cal-pop-foot button {
+    background:none; border:none; color:var(--accent); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; padding:4px;
+  }
 </style>
 </head>
 <body>
@@ -301,17 +332,29 @@
         </div>
         <div class="rec-field" id="existingDealField" style="display:none; margin-bottom:14px;">
           <label>기존 거래건</label>
-          <select id="existingDealSelect"></select>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="existingDealBtn"><span id="existingDealLabel">거래건 선택</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="existingDealPop"></div>
+          </div>
         </div>
         <div class="rec-form-grid">
           <div class="rec-field"><label>매물번호</label><input type="text" id="fMaemul" placeholder="예: A-1234"></div>
           <div class="rec-field">
             <label>계약유형</label>
-            <select id="fType"></select>
+            <div class="dash-picker-wrap">
+              <button type="button" class="dash-picker-btn" id="fTypeBtn"><span id="fTypeLabel">선택</span><span class="car">▾</span></button>
+              <div class="dash-select-pop" id="fTypePop"></div>
+            </div>
           </div>
         </div>
         <div class="rec-form-grid">
-          <div class="rec-field"><label>계약일자</label><input type="date" id="fDate"></div>
+          <div class="rec-field">
+            <label>계약일자</label>
+            <div class="dash-picker-wrap">
+              <button type="button" class="dash-picker-btn" id="fDateBtn"><span id="fDateLabel">날짜 선택</span><span class="car">▾</span></button>
+              <div class="cal-pop" id="fDatePop"></div>
+            </div>
+          </div>
           <div class="rec-field"><label>등록자메모 (선택)</label><input type="text" id="fMemo" placeholder="내부 참고용"></div>
         </div>
         <div class="rec-form-grid full">
@@ -352,10 +395,22 @@
       </div>
       <div class="rec-form-grid">
         <div class="rec-field"><label>출처매물번호</label><input type="text" id="cMaemul" placeholder="예: A-1234"></div>
-        <div class="rec-field"><label>사용일자</label><input type="date" id="cDate"></div>
+        <div class="rec-field">
+          <label>사용일자</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="cDateBtn"><span id="cDateLabel">날짜 선택</span><span class="car">▾</span></button>
+            <div class="cal-pop" id="cDatePop"></div>
+          </div>
+        </div>
       </div>
       <div class="rec-form-grid full">
-        <div class="rec-field"><label>출처계약 (선택)</label><select id="cContractRef"><option value="">연결 안 함</option></select></div>
+        <div class="rec-field">
+          <label>출처계약 (선택)</label>
+          <div class="dash-picker-wrap">
+            <button type="button" class="dash-picker-btn" id="cContractRefBtn"><span id="cContractRefLabel">연결 안 함</span><span class="car">▾</span></button>
+            <div class="dash-select-pop" id="cContractRefPop"></div>
+          </div>
+        </div>
       </div>
       <div class="rec-modal-error" id="clauseFormError"></div>
     </div>
