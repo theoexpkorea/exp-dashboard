@@ -207,6 +207,7 @@ function openDealPanel(dealId) {
       <div class="timeline-files">
         <a class="timeline-file-btn ${d.fileContract ? "" : "disabled"}" href="${d.fileContract || "#"}" target="_blank" rel="noopener">계약서 열기</a>
         <a class="timeline-file-btn ${d.fileConfirm ? "" : "disabled"}" href="${d.fileConfirm || "#"}" target="_blank" rel="noopener">확인설명서 열기</a>
+        <button type="button" class="timeline-file-btn timeline-edit-btn" data-regid="${d.regId}">수정</button>
       </div>
     </div>
   `).join("");
@@ -258,16 +259,22 @@ function renderClauseList() {
 
   listEl.innerHTML = filtered.map((c, idx) => `
     <div class="clause-card">
-      <div class="clause-tags">${(c.tags || []).map(t => `<span class="clause-tag">${t}</span>`).join("")}</div>
+      <div class="clause-tags">${(c.tags || []).map(t => `<span class="clause-tag" data-tag="${t}">${t}</span>`).join("")}</div>
       <div class="clause-text">${escapeHtml(c.text || "")}</div>
       <div class="clause-meta-row">
         <span class="clause-meta">${c.maemulNo ? c.maemulNo + " · " : ""}${c.usedDate || ""}</span>
-        <button class="clause-copy-btn" data-idx="${idx}">복사</button>
+        <span style="display:flex; gap:6px;">
+          <button class="clause-copy-btn clause-edit-btn" data-regid="${c.regId}">수정</button>
+          <button class="clause-copy-btn" data-idx="${idx}">복사</button>
+        </span>
       </div>
     </div>
   `).join("");
 
-  listEl.querySelectorAll(".clause-copy-btn").forEach((btn, i) => {
+  listEl.querySelectorAll(".clause-edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => openClauseForm(btn.dataset.regid));
+  });
+  listEl.querySelectorAll(".clause-copy-btn:not(.clause-edit-btn)").forEach((btn, i) => {
     btn.addEventListener("click", async () => {
       await navigator.clipboard.writeText(filtered[i].text || "");
       btn.textContent = "복사됨";
@@ -294,23 +301,36 @@ function renderTypeSelect() {
   fTypePicker.setOptions(contractTypes.map(t => ({ value: t, text: t })));
 }
 
-/* ---------------- 특약 등록 모달 ---------------- */
+/* ---------------- 특약 등록/수정 모달 ---------------- */
 
-function openClauseForm() {
-  document.getElementById("cText").value = "";
-  document.getElementById("cMaemul").value = "";
-  clauseDatePicker.setValue("");
+let editingClauseRegId = null;
+
+function openClauseForm(regId) {
+  editingClauseRegId = regId || null;
+  const existing = editingClauseRegId ? clauseRows.find(r => r.regId === editingClauseRegId) : null;
+
+  document.getElementById("clauseFormTitle").textContent = existing ? "특약 수정" : "새 특약 등록";
+  document.getElementById("cText").value = existing ? (existing.text || "") : "";
+  document.getElementById("cMaemul").value = existing ? (existing.maemulNo || "") : "";
+  clauseDatePicker.setValue(existing ? (existing.usedDate || "") : "");
   document.getElementById("clauseFormError").textContent = "";
-  document.querySelectorAll("#clauseTagPicker .tp-chip").forEach(c => c.classList.remove("sel"));
+
+  const existingTags = existing ? (existing.tags || []) : [];
+  document.querySelectorAll("#clauseTagPicker .tp-chip").forEach(c => {
+    c.classList.toggle("sel", existingTags.includes(c.dataset.tag));
+  });
 
   const refOptions = [{ value: "", text: "연결 안 함" }].concat(
     dealRows.map(r => ({ value: r.regId, text: `${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}` }))
   );
-  clauseRefPicker.setOptions(refOptions, "");
+  clauseRefPicker.setOptions(refOptions, existing ? (existing.contractRegId || "") : "");
 
   document.getElementById("clauseFormOverlay").classList.add("show");
 }
-function closeClauseForm() { document.getElementById("clauseFormOverlay").classList.remove("show"); }
+function closeClauseForm() {
+  document.getElementById("clauseFormOverlay").classList.remove("show");
+  editingClauseRegId = null;
+}
 
 async function saveClause() {
   const tags = [...document.querySelectorAll("#clauseTagPicker .tp-chip.sel")].map(b => b.dataset.tag);
@@ -326,9 +346,13 @@ async function saveClause() {
   const saveBtn = document.getElementById("clauseFormSave");
   saveBtn.disabled = true; saveBtn.textContent = "저장 중...";
   try {
-    const data = await postJSON("clauseSave", { tags, text, maemulNo, usedDate, contractRegId });
+    const mode = editingClauseRegId ? "clauseUpdate" : "clauseSave";
+    const payload = editingClauseRegId
+      ? { regId: editingClauseRegId, tags, text, maemulNo, usedDate, contractRegId }
+      : { tags, text, maemulNo, usedDate, contractRegId };
+    const data = await postJSON(mode, payload);
     if (data && data.ok) {
-      toast("특약이 저장되었습니다.");
+      toast(editingClauseRegId ? "특약이 수정되었습니다." : "특약이 저장되었습니다.");
       closeClauseForm();
       loadClauses();
     } else {
@@ -848,7 +872,58 @@ function makeCustomSelect(btnId, popId, labelId) {
   };
 }
 
-let fTypePicker, existingDealPicker, clauseRefPicker;
+let fTypePicker, existingDealPicker, clauseRefPicker, editTypePicker, editDatePicker;
+
+/* ---------------- 계약서 정보 수정 모달 ---------------- */
+
+function openContractEdit(regId) {
+  const row = dealRows.find(r => r.regId === regId);
+  if (!row) { toast("문서를 찾을 수 없습니다."); return; }
+
+  document.getElementById("eMaemul").value = row.maemulNo || "";
+  editTypePicker.setOptions(contractTypes.map(t => ({ value: t, text: t })), row.type);
+  editDatePicker.setValue(row.date || "");
+  document.getElementById("eSummary").value = row.summary || "";
+  document.getElementById("eMemo").value = row.memo || "";
+  document.getElementById("contractEditError").textContent = "";
+  document.getElementById("contractEditOverlay").dataset.regid = regId;
+
+  document.getElementById("contractEditOverlay").classList.add("show");
+}
+function closeContractEdit() {
+  document.getElementById("contractEditOverlay").classList.remove("show");
+}
+
+async function saveContractEdit() {
+  const regId = document.getElementById("contractEditOverlay").dataset.regid;
+  const maemulNo = document.getElementById("eMaemul").value.trim();
+  const type = editTypePicker.getValue();
+  const date = editDatePicker.getValue();
+  const summary = document.getElementById("eSummary").value.trim();
+  const memo = document.getElementById("eMemo").value.trim();
+  const errEl = document.getElementById("contractEditError");
+
+  if (!maemulNo) { errEl.textContent = "매물번호를 입력하세요."; return; }
+  if (!date) { errEl.textContent = "계약일자를 입력하세요."; return; }
+
+  const saveBtn = document.getElementById("contractEditSave");
+  saveBtn.disabled = true; saveBtn.textContent = "저장 중...";
+  try {
+    const data = await postJSON("contractUpdate", { regId, maemulNo, type, date, summary, memo });
+    if (data && data.ok) {
+      toast("수정되었습니다.");
+      closeContractEdit();
+      await loadDeals();
+      if (selectedDealId) openDealPanel(selectedDealId);
+    } else {
+      errEl.textContent = (data && data.error) || "수정에 실패했습니다.";
+    }
+  } catch (e) {
+    errEl.textContent = "수정 실패: " + ((e && e.message) || e);
+  }
+  saveBtn.disabled = false; saveBtn.textContent = "저장";
+}
+
 
 /* ---------------- 이벤트 바인딩 ---------------- */
 
@@ -857,6 +932,8 @@ document.addEventListener("DOMContentLoaded", () => {
   clauseDatePicker = makeDatePicker("cDateBtn", "cDatePop", "cDateLabel");
   fTypePicker = makeCustomSelect("fTypeBtn", "fTypePop", "fTypeLabel");
   existingDealPicker = makeCustomSelect("existingDealBtn", "existingDealPop", "existingDealLabel");
+  editTypePicker = makeCustomSelect("eTypeBtn", "eTypePop", "eTypeLabel");
+  editDatePicker = makeDatePicker("eDateBtn", "eDatePop", "eDateLabel");
   clauseRefPicker = makeCustomSelect("cContractRefBtn", "cContractRefPop", "cContractRefLabel");
 
   loadAll();
@@ -925,6 +1002,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clauseFormClose").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormCancel").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormSave").addEventListener("click", saveClause);
+
+  // 계약서 타임라인 패널 안의 "수정" 버튼 (동적으로 그려지므로 위임 방식)
+  document.getElementById("dealPanelBody").addEventListener("click", (e) => {
+    const btn = e.target.closest(".timeline-edit-btn");
+    if (btn) openContractEdit(btn.dataset.regid);
+  });
+  document.getElementById("contractEditClose").addEventListener("click", closeContractEdit);
+  document.getElementById("contractEditCancel").addEventListener("click", closeContractEdit);
+  document.getElementById("contractEditSave").addEventListener("click", saveContractEdit);
 
   initFabDrag();
 });
