@@ -40,6 +40,13 @@
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
 
+  .deal-maemul-link, .dp-maemul-link { text-decoration:none; }
+  .deal-maemul-link:hover { text-decoration:underline; }
+  .dp-maemul-link { font-size:11.5px; font-weight:700; color:var(--accent); margin-left:6px; vertical-align:middle; }
+
+  #statGrid .rec-stat-card { cursor:pointer; transition:box-shadow .12s ease, transform .12s ease; }
+  #statGrid .rec-stat-card:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }
+
   /* 거래그룹 카드 리스트 */
   .deal-list { display:flex; flex-direction:column; gap:10px; }
   .deal-card {
@@ -80,12 +87,13 @@
   .timeline-files { display:flex; gap:6px; margin-top:9px; }
   .timeline-file-btn {
     flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
-    height:34px; border-radius:var(--radius-sm); border:1px solid #D7DEFB;
-    background:var(--accent-soft); color:var(--accent); font-size:12px; font-weight:700; text-decoration:none;
+    height:34px; border-radius:var(--radius-sm); border:1px solid var(--bg);
+    background:var(--bg); color:var(--text); font-size:12px; font-weight:700; text-decoration:none;
     cursor:pointer; font-family:inherit;
   }
-  .timeline-file-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .timeline-file-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
   .timeline-file-btn.disabled { background:var(--bg); color:var(--text-muted); border-color:var(--border); opacity:.6; pointer-events:none; }
+  .timeline-file-btn.danger:hover { background:#FBE9E9; color:var(--danger,#D64545); border-color:var(--danger,#D64545); }
 
   /* 특약 카드 */
   .clause-list { display:flex; flex-direction:column; gap:10px; }
@@ -94,17 +102,17 @@
   .clause-tag { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:var(--accent-soft); color:var(--accent); }
 
   /* 특약 태그 카테고리별 색상 — 카드 배지 / 등록모달 선택칩 / 필터칩 전부 동일하게 매칭 */
-  .clause-tag[data-tag="근저당승계"], .tp-chip.sel[data-tag="근저당승계"], #clauseTagFilters .rec-filter-chip[data-tag="근저당승계"].active { background:#FDECEF; color:#E0364F; }
-  .clause-tag[data-tag="위반건축물"], .tp-chip.sel[data-tag="위반건축물"], #clauseTagFilters .rec-filter-chip[data-tag="위반건축물"].active { background:#FFEDD5; color:#C2410C; }
-  .clause-tag[data-tag="다운계약"], .tp-chip.sel[data-tag="다운계약"], #clauseTagFilters .rec-filter-chip[data-tag="다운계약"].active { background:#FEE2E2; color:#DC2626; }
-  .clause-tag[data-tag="임차인승계"], .tp-chip.sel[data-tag="임차인승계"], #clauseTagFilters .rec-filter-chip[data-tag="임차인승계"].active { background:var(--accent-soft); color:var(--accent); }
-  .clause-tag[data-tag="하자담보"], .tp-chip.sel[data-tag="하자담보"], #clauseTagFilters .rec-filter-chip[data-tag="하자담보"].active { background:#FBF1E2; color:#9A5B14; }
-  .clause-tag[data-tag="정화조/하수도부담금"], .tp-chip.sel[data-tag="정화조/하수도부담금"], #clauseTagFilters .rec-filter-chip[data-tag="정화조/하수도부담금"].active { background:#CFFAFE; color:#0E7490; }
-  .clause-tag[data-tag="주차시설"], .tp-chip.sel[data-tag="주차시설"], #clauseTagFilters .rec-filter-chip[data-tag="주차시설"].active { background:#DBEAFE; color:#1D4ED8; }
-  .clause-tag[data-tag="간판"], .tp-chip.sel[data-tag="간판"], #clauseTagFilters .rec-filter-chip[data-tag="간판"].active { background:#EDE9FE; color:#6D28D9; }
-  .clause-tag[data-tag="부가세환급"], .tp-chip.sel[data-tag="부가세환급"], #clauseTagFilters .rec-filter-chip[data-tag="부가세환급"].active { background:#DCFCE7; color:#15803D; }
-  .clause-tag[data-tag="명도"], .tp-chip.sel[data-tag="명도"], #clauseTagFilters .rec-filter-chip[data-tag="명도"].active { background:#FCE7F3; color:#BE185D; }
-  .clause-tag[data-tag="기타"], .tp-chip.sel[data-tag="기타"], #clauseTagFilters .rec-filter-chip[data-tag="기타"].active { background:var(--bg); color:var(--text-muted); }
+  .clause-tag[data-tag="근저당승계"], #clauseTagPicker .tp-chip.sel[data-tag="근저당승계"], #clauseTagFilters .rec-filter-chip[data-tag="근저당승계"].active { background:#FDECEF; color:#E0364F; }
+  .clause-tag[data-tag="위반건축물"], #clauseTagPicker .tp-chip.sel[data-tag="위반건축물"], #clauseTagFilters .rec-filter-chip[data-tag="위반건축물"].active { background:#FFEDD5; color:#C2410C; }
+  .clause-tag[data-tag="다운계약"], #clauseTagPicker .tp-chip.sel[data-tag="다운계약"], #clauseTagFilters .rec-filter-chip[data-tag="다운계약"].active { background:#FEE2E2; color:#DC2626; }
+  .clause-tag[data-tag="임차인승계"], #clauseTagPicker .tp-chip.sel[data-tag="임차인승계"], #clauseTagFilters .rec-filter-chip[data-tag="임차인승계"].active { background:var(--accent-soft); color:var(--accent); }
+  .clause-tag[data-tag="하자담보"], #clauseTagPicker .tp-chip.sel[data-tag="하자담보"], #clauseTagFilters .rec-filter-chip[data-tag="하자담보"].active { background:#FBF1E2; color:#9A5B14; }
+  .clause-tag[data-tag="정화조/하수도부담금"], #clauseTagPicker .tp-chip.sel[data-tag="정화조/하수도부담금"], #clauseTagFilters .rec-filter-chip[data-tag="정화조/하수도부담금"].active { background:#CFFAFE; color:#0E7490; }
+  .clause-tag[data-tag="주차시설"], #clauseTagPicker .tp-chip.sel[data-tag="주차시설"], #clauseTagFilters .rec-filter-chip[data-tag="주차시설"].active { background:#DBEAFE; color:#1D4ED8; }
+  .clause-tag[data-tag="간판"], #clauseTagPicker .tp-chip.sel[data-tag="간판"], #clauseTagFilters .rec-filter-chip[data-tag="간판"].active { background:#EDE9FE; color:#6D28D9; }
+  .clause-tag[data-tag="부가세환급"], #clauseTagPicker .tp-chip.sel[data-tag="부가세환급"], #clauseTagFilters .rec-filter-chip[data-tag="부가세환급"].active { background:#DCFCE7; color:#15803D; }
+  .clause-tag[data-tag="명도"], #clauseTagPicker .tp-chip.sel[data-tag="명도"], #clauseTagFilters .rec-filter-chip[data-tag="명도"].active { background:#FCE7F3; color:#BE185D; }
+  .clause-tag[data-tag="기타"], #clauseTagPicker .tp-chip.sel[data-tag="기타"], #clauseTagFilters .rec-filter-chip[data-tag="기타"].active { background:var(--bg); color:var(--text-muted); }
   .clause-text { font-size:13px; line-height:1.6; color:var(--text); white-space:pre-line; }
   .clause-meta-row { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
   .clause-meta { font-size:11.5px; color:var(--text-secondary); }
@@ -114,6 +122,7 @@
   }
   .clause-copy-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
   .clause-copy-btn.copied { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .clause-copy-btn.danger:hover { background:#FBE9E9; color:var(--danger,#D64545); border-color:var(--danger,#D64545); }
 
   /* 태그 선택 칩 (특약 등록 모달) */
   .tag-picker { display:flex; gap:6px; flex-wrap:wrap; }
@@ -129,7 +138,7 @@
     display:none; align-items:flex-start; justify-content:center; padding:24px 14px; overflow-y:auto;
   }
   .wiz-overlay.show { display:flex; }
-  .wiz-panel { width:100%; max-width:980px; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  .wiz-panel { width:100%; max-width:1280px; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
   .wiz-head { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--border); }
   .wiz-head h2 { margin:0; font-size:16px; font-weight:800; }
   .wiz-steps { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--text-secondary); font-weight:700; }
@@ -142,7 +151,8 @@
   .wiz-step-panel { display:none; }
   .wiz-step-panel.active { display:block; }
 
-  .doc-slot-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .doc-slot-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media (max-width:1080px) { .doc-slot-grid { grid-template-columns:1fr 1fr; } }
   @media (max-width:760px) { .doc-slot-grid { grid-template-columns:1fr; } }
   .doc-slot-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .doc-slot-head h3 { margin:0; font-size:13.5px; font-weight:800; }
@@ -152,7 +162,7 @@
   .mask-page-block { border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; margin-top:10px; background:var(--bg); }
   .mask-page-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .mask-page-head span { font-size:11.5px; font-weight:700; color:var(--text-secondary); }
-  .mask-stage { position:relative; width:100%; overflow:auto; border:1px solid var(--border); border-radius:6px; background:#fff; max-height:420px; }
+  .mask-stage { position:relative; width:100%; overflow:auto; border:1px solid var(--border); border-radius:6px; background:#fff; max-height:78vh; }
   .mask-stage canvas { display:block; }
   .mask-overlay-canvas { position:absolute; left:0; top:0; cursor:crosshair; }
   .mask-btn-row { display:flex; gap:6px; margin-top:8px; }
@@ -230,19 +240,19 @@
       </div>
 
       <div class="rec-kpi-grid" id="statGrid">
-        <div class="rec-stat-card tint-total">
+        <div class="rec-stat-card tint-total" data-goto-tab="contract">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statDeals">-</div><div class="stat-label">저장된 거래건</div></div>
         </div>
-        <div class="rec-stat-card tint-active">
+        <div class="rec-stat-card tint-active" data-goto-tab="contract">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 12h6M9 16h4"/></svg>
           </div>
           <div class="rec-stat-body"><div class="stat" id="statDocs">-</div><div class="stat-label">등록된 문서</div></div>
         </div>
-        <div class="rec-stat-card tint-plan">
+        <div class="rec-stat-card tint-plan" data-goto-tab="clause">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
           </div>
@@ -332,14 +342,18 @@
           <div class="doc-slot" data-doc="contract">
             <div class="doc-slot-head"><h3>계약서 PDF</h3><span class="doc-slot-status" id="statusContract"></span></div>
             <input type="file" accept="application/pdf" id="fileContract">
-            <div class="doc-slot-hint">전화번호·법인등록번호 등 인쇄체 숫자는 자동 감지(빨강). 손글씨·서명·인감은 직접 드래그(파랑)로 칠하세요.</div>
             <div id="pagesContract"></div>
           </div>
           <div class="doc-slot" data-doc="confirm">
             <div class="doc-slot-head"><h3>확인설명서 PDF</h3><span class="doc-slot-status" id="statusConfirm"></span></div>
             <input type="file" accept="application/pdf" id="fileConfirm">
-            <div class="doc-slot-hint">이 유형에 확인설명서가 없으면(합의서 등) 비워두셔도 됩니다.</div>
             <div id="pagesConfirm"></div>
+          </div>
+          <div class="doc-slot" data-doc="other">
+            <div class="doc-slot-head"><h3>기타 PDF</h3><span class="doc-slot-status" id="statusOther"></span></div>
+            <input type="text" id="fOtherLabel" placeholder="문서명 입력 (예: 합의서, 위임장 등)" style="margin-bottom:8px;">
+            <input type="file" accept="application/pdf" id="fileOther">
+            <div id="pagesOther"></div>
           </div>
         </div>
       </div>
@@ -494,7 +508,7 @@
 <script src="../js/sidebar.js?v=20260815"></script>
 <script src="../js/lock.js?v=20260815"></script>
 <script src="../js/favorites.js?v=20260815"></script>
-<script src="../js/contract-management.js?v=20260815"></script>
+<script src="../js/contract-management.js?v=20260816a"></script>
 <script>
   renderSidebar("contract", { basePrefix: "../" });
   initLockScreen("../");
