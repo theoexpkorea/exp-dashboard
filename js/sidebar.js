@@ -9,6 +9,7 @@ const NAV_WORKAREAS = [
   { key: "farming", label: "파밍현황", href: "pages/farming-status.html", icon: "map" },
   { key: "customer", label: "고객관리", href: "pages/customer-management.html", icon: "users" },
   { key: "schedule", label: "일정관리", href: "pages/schedule-management.html", icon: "calendar" },
+  { key: "contract", label: "계약관리", href: "pages/contract-management.html", icon: "contract" },
   { key: "marketing", label: "마케팅툴", href: "pages/marketing-tool.html", icon: "megaphone" },
 ];
 
@@ -27,6 +28,7 @@ const NAV_ICONS = {
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.2 14.3c2.7.4 4.8 2.6 4.8 5.7"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
   megaphone: '<path d="M3 10v4a1 1 0 0 0 1 1h2l4 3.5V5.5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M14 8.2a4.5 4.5 0 0 1 0 7.6M17.2 5.8a8.8 8.8 0 0 1 0 12.4"/>',
+  contract: '<path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/><path d="M8.5 13h7M8.5 16.5h4.5"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
   grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.3"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.3"/>',
   star: '<path d="M12 3.2 14.7 9l6.3.6-4.7 4.2 1.4 6.2-5.7-3.4-5.7 3.4 1.4-6.2-4.7-4.2 6.3-.6Z"/>',
