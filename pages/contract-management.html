@@ -37,6 +37,9 @@
     color:var(--text-secondary); font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit;
   }
   .seg-tab.active { background:var(--surface); color:var(--accent); box-shadow:var(--shadow-sm); }
+  /* 계약서 라이브러리 = 블루, 특약 라이브러리 = 바이올렛 — 탭끼리도 구분되게 */
+  .seg-tab[data-tab="contract"].active { background:#DBEAFE; color:#1D4ED8; }
+  .seg-tab[data-tab="clause"].active { background:#EDE9FE; color:#6D28D9; }
   .tab-panel { display:none; }
   .tab-panel.active { display:block; }
 
