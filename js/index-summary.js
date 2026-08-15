@@ -135,6 +135,27 @@ async function sumLoadSchedule_() {
   } catch (e) {}
 }
 
+/* ---------------- 계약관리 (contractList — 저장된 거래건 수) ---------------- */
+function sumRenderContract_(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const dealIds = new Set(list.map((r) => r.dealId).filter(Boolean));
+  sumSet_('contract', dealIds.size.toLocaleString() + '건', '저장된 거래건');
+}
+async function sumLoadContract_() {
+  const cached = sumReadCache_('theo_dashboard_contract_cache_v1');
+  if (cached && cached.rows) sumRenderContract_(cached.rows);
+
+  const url = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
+  if (!url || typeof fetchJsonp !== 'function') return;
+  try {
+    const res = await fetchJsonp(url + '?mode=contractList');
+    if (res && res.ok && res.rows) {
+      sumRenderContract_(res.rows);
+      try { localStorage.setItem('theo_dashboard_contract_cache_v1', JSON.stringify(res)); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
 /* ---------------- 마케팅툴 (marketingStats — 이번달 생성 건수) ---------------- */
 function sumRenderMarketing_(stats) {
   const count = (stats && typeof stats.thisMonth === 'number') ? stats.thisMonth : 0;
@@ -161,6 +182,7 @@ function sumInit() {
   sumLoadFarm_();
   sumLoadCustomer_();
   sumLoadSchedule_();
+  sumLoadContract_();
   sumLoadMarketing_();
 }
 
