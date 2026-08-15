@@ -4,7 +4,7 @@
 
 // TODO: 실제 배포된 Apps Script 웹앱 URL로 교체하세요.
 // 매물장필터뷰 프로젝트에 이번에 추가한 doGet/doPost 분기가 있는 그 배포 URL입니다.
-const CONTRACT_API_URL = "https://script.google.com/macros/s/여기에_배포ID/exec";
+const CONTRACT_API_URL = "https://script.google.com/macros/s/AKfycbzDk9DYfD7okIfp4_MH5asXVxgroC9qlYGL08yHL_0dXPDfWElTdKglhQ-BQxWVoiil/exec";
 
 const FALLBACK_TYPES = ["매매", "임대차", "권리금계약", "가계약", "전대차", "합의서", "기타"];
 const FALLBACK_TAGS = ["근저당승계", "위반건축물", "다운계약", "임차인승계", "하자담보", "정화조/하수도부담금", "주차시설", "간판", "부가세환급", "명도", "기타"];
