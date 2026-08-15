@@ -395,6 +395,144 @@ function renderTypeSelect() {
   fTypePicker.setOptions(contractTypes.map(t => ({ value: t, text: t })));
 }
 
+/* ---------------- 태그 관리 모달 ---------------- */
+
+function tagErrorMessage_(code) {
+  if (code === "dup_tag") return "이미 있는 태그 이름입니다.";
+  if (code === "invalid_char") return "태그 이름에 콤마(,)는 사용할 수 없습니다.";
+  if (code === "not_found") return "해당 태그를 찾을 수 없습니다.";
+  if (code === "busy") return "다른 작업이 진행 중입니다. 잠시 후 다시 시도하세요.";
+  if (code === "missing_name") return "태그 이름을 입력하세요.";
+  return "처리에 실패했습니다.";
+}
+
+function renderTagManageList() {
+  const wrap = document.getElementById("tagManageList");
+  if (!clauseTags.length) {
+    wrap.innerHTML = `<div class="rec-empty">등록된 태그가 없습니다.</div>`;
+    return;
+  }
+  wrap.innerHTML = clauseTags.map(t => `
+    <div class="tag-manage-row" data-tag="${escapeHtml(t)}">
+      <span class="tag-manage-badge" style="${tagStyle_(t)}">${escapeHtml(t)}</span>
+      <span class="tag-manage-actions">
+        <button type="button" class="tag-manage-icon-btn tag-rename-btn" title="이름변경">✎</button>
+        <button type="button" class="tag-manage-icon-btn danger tag-remove-btn" title="삭제">🗑</button>
+      </span>
+    </div>
+  `).join("");
+
+  wrap.querySelectorAll(".tag-rename-btn").forEach(btn => {
+    btn.addEventListener("click", () => startTagRename(btn.closest(".tag-manage-row")));
+  });
+  wrap.querySelectorAll(".tag-remove-btn").forEach(btn => {
+    btn.addEventListener("click", () => removeTag(btn.closest(".tag-manage-row").dataset.tag));
+  });
+}
+
+function startTagRename(row) {
+  const oldName = row.dataset.tag;
+  row.innerHTML = `
+    <input type="text" class="tag-rename-input" value="${escapeHtml(oldName)}">
+    <span class="tag-manage-actions">
+      <button type="button" class="tag-manage-icon-btn tag-rename-save" title="저장">✔</button>
+      <button type="button" class="tag-manage-icon-btn tag-rename-cancel" title="취소">✕</button>
+    </span>
+  `;
+  const input = row.querySelector(".tag-rename-input");
+  input.focus();
+  input.select();
+  const commit = () => renameTag(oldName, input.value.trim());
+  row.querySelector(".tag-rename-save").addEventListener("click", commit);
+  row.querySelector(".tag-rename-cancel").addEventListener("click", renderTagManageList);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") renderTagManageList();
+  });
+}
+
+async function renameTag(oldName, newName) {
+  const errEl = document.getElementById("tagManageError");
+  errEl.textContent = "";
+  if (!newName) { errEl.textContent = "태그 이름을 입력하세요."; return; }
+  if (newName === oldName) { renderTagManageList(); return; }
+  try {
+    const data = await postJSON("tagUpdate", { oldName, newName });
+    if (data && data.ok) {
+      clauseTags = data.tags;
+      selectedClauseTags.delete(oldName); // 필터 선택 상태 초기화 (이름이 바뀌었으므로)
+      renderTagManageList();
+      renderClauseTagFilters();
+      renderTagPicker();
+      loadClauses(); // 특약 카드에 표시된 태그명도 갱신
+      toast("태그 이름이 변경되었습니다.");
+    } else {
+      errEl.textContent = tagErrorMessage_(data && data.error);
+    }
+  } catch (e) {
+    errEl.textContent = "저장 실패: " + ((e && e.message) || e);
+  }
+}
+
+async function removeTag(name) {
+  const errEl = document.getElementById("tagManageError");
+  errEl.textContent = "";
+  try {
+    const data = await postJSON("tagDelete", { name });
+    if (data && data.ok) {
+      clauseTags = data.tags;
+      selectedClauseTags.delete(name);
+      renderTagManageList();
+      renderClauseTagFilters();
+      renderTagPicker();
+      renderClauseList();
+      toast("태그가 삭제되었습니다.");
+    } else if (data && data.error === "in_use") {
+      errEl.textContent = `이 태그를 사용 중인 특약이 ${data.count}건 있어 삭제할 수 없습니다.`;
+    } else {
+      errEl.textContent = tagErrorMessage_(data && data.error);
+    }
+  } catch (e) {
+    errEl.textContent = "삭제 실패: " + ((e && e.message) || e);
+  }
+}
+
+async function addTag() {
+  const input = document.getElementById("tagNewInput");
+  const errEl = document.getElementById("tagManageError");
+  errEl.textContent = "";
+  const name = input.value.trim();
+  if (!name) { errEl.textContent = "태그 이름을 입력하세요."; return; }
+  const addBtn = document.getElementById("tagAddBtn");
+  addBtn.disabled = true;
+  try {
+    const data = await postJSON("tagCreate", { name });
+    if (data && data.ok) {
+      clauseTags = data.tags;
+      input.value = "";
+      renderTagManageList();
+      renderClauseTagFilters();
+      renderTagPicker();
+      toast("태그가 추가되었습니다.");
+    } else {
+      errEl.textContent = tagErrorMessage_(data && data.error);
+    }
+  } catch (e) {
+    errEl.textContent = "추가 실패: " + ((e && e.message) || e);
+  }
+  addBtn.disabled = false;
+}
+
+function openTagManage() {
+  document.getElementById("tagManageError").textContent = "";
+  document.getElementById("tagNewInput").value = "";
+  renderTagManageList();
+  document.getElementById("tagManageOverlay").classList.add("show");
+}
+function closeTagManage() {
+  document.getElementById("tagManageOverlay").classList.remove("show");
+}
+
 /* ---------------- 특약 등록/수정 모달 ---------------- */
 
 let editingClauseRegId = null;
@@ -1178,6 +1316,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("contractEditClose").addEventListener("click", closeContractEdit);
   document.getElementById("contractEditCancel").addEventListener("click", closeContractEdit);
   document.getElementById("contractEditSave").addEventListener("click", saveContractEdit);
+
+  // 태그 관리 모달
+  document.getElementById("tagManageBtn").addEventListener("click", openTagManage);
+  document.getElementById("tagManageClose").addEventListener("click", closeTagManage);
+  document.getElementById("tagManageDone").addEventListener("click", closeTagManage);
+  document.getElementById("tagAddBtn").addEventListener("click", addTag);
+  document.getElementById("tagNewInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addTag();
+  });
 
   initFabDrag();
 });
