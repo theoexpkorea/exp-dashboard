@@ -4,7 +4,7 @@
 
 // TODO: 실제 배포된 Apps Script 웹앱 URL로 교체하세요.
 // 매물장필터뷰 프로젝트에 이번에 추가한 doGet/doPost 분기가 있는 그 배포 URL입니다.
-const CONTRACT_API_URL = "https://script.google.com/macros/s/AKfycbzDk9DYfD7okIfp4_MH5asXVxgroC9qlYGL08yHL_0dXPDfWElTdKglhQ-BQxWVoiil/exec";
+const CONTRACT_API_URL = "https://script.google.com/macros/s/여기에_배포ID/exec";
 
 const FALLBACK_TYPES = ["매매", "임대차", "권리금계약", "가계약", "전대차", "합의서", "기타"];
 const FALLBACK_TAGS = ["근저당승계", "위반건축물", "다운계약", "임차인승계", "하자담보", "정화조/하수도부담금", "주차시설", "간판", "부가세환급", "명도", "기타"];
@@ -273,8 +273,8 @@ function renderTagPicker() {
 }
 
 function renderTypeSelect() {
-  const sel = document.getElementById("fType");
-  sel.innerHTML = contractTypes.map(t => `<option value="${t}">${t}</option>`).join("");
+  if (!fTypePicker) return;
+  fTypePicker.setOptions(contractTypes.map(t => ({ value: t, text: t })));
 }
 
 /* ---------------- 특약 등록 모달 ---------------- */
@@ -282,13 +282,14 @@ function renderTypeSelect() {
 function openClauseForm() {
   document.getElementById("cText").value = "";
   document.getElementById("cMaemul").value = "";
-  document.getElementById("cDate").value = "";
+  clauseDatePicker.setValue("");
   document.getElementById("clauseFormError").textContent = "";
   document.querySelectorAll("#clauseTagPicker .tp-chip").forEach(c => c.classList.remove("sel"));
 
-  const refSel = document.getElementById("cContractRef");
-  refSel.innerHTML = `<option value="">연결 안 함</option>` +
-    dealRows.map(r => `<option value="${r.regId}">${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}</option>`).join("");
+  const refOptions = [{ value: "", text: "연결 안 함" }].concat(
+    dealRows.map(r => ({ value: r.regId, text: `${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}` }))
+  );
+  clauseRefPicker.setOptions(refOptions, "");
 
   document.getElementById("clauseFormOverlay").classList.add("show");
 }
@@ -298,8 +299,8 @@ async function saveClause() {
   const tags = [...document.querySelectorAll("#clauseTagPicker .tp-chip.sel")].map(b => b.dataset.tag);
   const text = document.getElementById("cText").value.trim();
   const maemulNo = document.getElementById("cMaemul").value.trim();
-  const usedDate = document.getElementById("cDate").value;
-  const contractRegId = document.getElementById("cContractRef").value;
+  const usedDate = clauseDatePicker.getValue();
+  const contractRegId = clauseRefPicker.getValue();
   const errEl = document.getElementById("clauseFormError");
 
   if (!text) { errEl.textContent = "특약문구를 입력하세요."; return; }
@@ -511,7 +512,7 @@ async function finalizeDocSlot(key) {
     const pdfDoc = new jsPDF({ unit: "px", format: [first.width, first.height] });
     slot.pageStates.forEach((st, i) => {
       if (i > 0) pdfDoc.addPage([st.canvas.width, st.canvas.height]);
-      pdfDoc.addImage(st.canvas.toDataURL("image/png"), "PNG", 0, 0, st.canvas.width, st.canvas.height);
+      pdfDoc.addImage(st.canvas.toDataURL("image/jpeg", 0.85), "JPEG", 0, 0, st.canvas.width, st.canvas.height);
     });
     slot.pdfBlob = pdfDoc.output("blob");
   } else {
@@ -543,7 +544,7 @@ function resetWizard() {
   document.getElementById("statusContract").textContent = "";
   document.getElementById("statusConfirm").textContent = "";
   document.getElementById("fMaemul").value = "";
-  document.getElementById("fDate").value = "";
+  if (contractDatePicker) contractDatePicker.setValue("");
   document.getElementById("fSummary").value = "";
   document.getElementById("fMemo").value = "";
   document.getElementById("dealModeNew").classList.add("sel");
@@ -586,15 +587,14 @@ async function wizardGoNext() {
       if (!ok) return;
     }
     // 거래건 선택 단계 진입 전, 기존 거래건 목록 채워두기
-    const refSel = document.getElementById("existingDealSelect");
     const groups = groupDeals(dealRows);
-    refSel.innerHTML = groups.map(g => `<option value="${g.dealId}">${g.maemulNo || g.dealId} · 최근 ${g.latestDate || ""}</option>`).join("");
+    existingDealPicker.setOptions(groups.map(g => ({ value: g.dealId, text: `${g.maemulNo || g.dealId} · 최근 ${g.latestDate || ""}` })));
     showWizardStep(2);
     return;
   }
   if (wizardStep === 2) {
     const maemulNo = document.getElementById("fMaemul").value.trim();
-    const date = document.getElementById("fDate").value;
+    const date = contractDatePicker.getValue();
     if (!maemulNo) { toast("매물번호를 입력하세요."); return; }
     if (!date) { toast("계약일자를 입력하세요."); return; }
     showWizardStep(3);
@@ -618,16 +618,16 @@ async function submitWizard() {
   await finalizeDocSlot("contract");
   await finalizeDocSlot("confirm");
 
-  progEl.innerHTML = `<div class="spin"></div>Drive에 업로드하고 저장하는 중...`;
+  progEl.innerHTML = `<div class="spin"></div>Drive에 업로드하고 저장하는 중... (문서 용량에 따라 최대 1분 정도 걸릴 수 있어요)`;
 
   const fileContractBase64 = await blobToBase64(wizardDocs.contract.pdfBlob);
   const fileConfirmBase64 = await blobToBase64(wizardDocs.confirm.pdfBlob);
 
   const payload = {
-    dealId: wizardDealMode === "existing" ? document.getElementById("existingDealSelect").value : "",
+    dealId: wizardDealMode === "existing" ? existingDealPicker.getValue() : "",
     maemulNo: document.getElementById("fMaemul").value.trim(),
-    type: document.getElementById("fType").value,
-    date: document.getElementById("fDate").value,
+    type: fTypePicker.getValue(),
+    date: contractDatePicker.getValue(),
     summary: document.getElementById("fSummary").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
     fileContractBase64, fileConfirmBase64,
@@ -647,9 +647,201 @@ async function submitWizard() {
   }
 }
 
+/* ============================================================
+   커스텀 달력 팝오버 (네이티브 date input 대체)
+   ============================================================ */
+
+function pad2_(n) { return String(n).padStart(2, "0"); }
+function fmtDateStr_(y, m, d) { return `${y}-${pad2_(m + 1)}-${pad2_(d)}`; }
+function todayStr_() {
+  const t = new Date();
+  return fmtDateStr_(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+function makeDatePicker(btnId, popId, labelId) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popId);
+  const label = document.getElementById(labelId);
+  const today = new Date();
+  const state = { year: today.getFullYear(), month: today.getMonth(), value: "" };
+
+  function render() {
+    const first = new Date(state.year, state.month, 1);
+    const startDow = first.getDay();
+    const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(state.year, state.month, 0).getDate();
+    const cells = [];
+    for (let i = startDow - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrevMonth - i, muted: true, dateStr: null });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, muted: false, dateStr: fmtDateStr_(state.year, state.month, d) });
+    }
+    while (cells.length % 7 !== 0) {
+      const idx = cells.length - (startDow + daysInMonth);
+      cells.push({ day: idx + 1, muted: true, dateStr: null });
+    }
+
+    const tStr = todayStr_();
+    pop.innerHTML = `
+      <div class="cal-pop-head">
+        <button type="button" class="calPrev">‹</button>
+        <span class="cal-title">${state.year}년 ${state.month + 1}월</span>
+        <button type="button" class="calNext">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+      <div class="cal-grid">
+        ${cells.map(c => {
+          if (c.muted) return `<button type="button" class="cal-day muted" disabled>${c.day}</button>`;
+          const isToday = c.dateStr === tStr;
+          const isSel = c.dateStr === state.value;
+          return `<button type="button" class="cal-day${isToday ? " today" : ""}${isSel ? " sel" : ""}" data-date="${c.dateStr}">${c.day}</button>`;
+        }).join("")}
+      </div>
+      <div class="cal-pop-foot">
+        <button type="button" class="calClear">삭제</button>
+        <button type="button" class="calToday">오늘</button>
+      </div>
+    `;
+
+    pop.querySelector(".calPrev").addEventListener("click", () => {
+      state.month--; if (state.month < 0) { state.month = 11; state.year--; }
+      render();
+    });
+    pop.querySelector(".calNext").addEventListener("click", () => {
+      state.month++; if (state.month > 11) { state.month = 0; state.year++; }
+      render();
+    });
+    pop.querySelectorAll(".cal-day[data-date]").forEach(el => {
+      el.addEventListener("click", () => {
+        state.value = el.dataset.date;
+        label.textContent = state.value;
+        closePop();
+      });
+    });
+    pop.querySelector(".calToday").addEventListener("click", () => {
+      const t = new Date();
+      state.year = t.getFullYear(); state.month = t.getMonth();
+      state.value = todayStr_();
+      label.textContent = state.value;
+      render();
+      closePop();
+    });
+    pop.querySelector(".calClear").addEventListener("click", () => {
+      state.value = "";
+      label.textContent = "날짜 선택";
+      closePop();
+    });
+  }
+
+  function openPop() {
+    render();
+    pop.classList.add("open");
+    btn.classList.add("open");
+    document.addEventListener("click", onOutsideClick, true);
+  }
+  function closePop() {
+    pop.classList.remove("open");
+    btn.classList.remove("open");
+    document.removeEventListener("click", onOutsideClick, true);
+  }
+  function onOutsideClick(e) {
+    if (!pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) closePop();
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (pop.classList.contains("open")) closePop(); else openPop();
+  });
+
+  return {
+    getValue: () => state.value,
+    setValue: (v) => {
+      state.value = v || "";
+      label.textContent = state.value || "날짜 선택";
+      if (v) {
+        const d = new Date(v + "T00:00:00");
+        if (!isNaN(d)) { state.year = d.getFullYear(); state.month = d.getMonth(); }
+      }
+    },
+  };
+}
+
+let contractDatePicker, clauseDatePicker;
+
+/* ---------------- 커스텀 드롭다운 (네이티브 select 대체, dash-select-pop 재사용) ---------------- */
+
+function makeCustomSelect(btnId, popId, labelId) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popId);
+  const label = document.getElementById(labelId);
+  let value = "";
+  let options = [];
+
+  function render() {
+    pop.innerHTML = options.map(o =>
+      `<div class="opt${o.value === value ? " sel" : ""}" data-value="${o.value}">${o.text}<span class="ck">✓</span></div>`
+    ).join("");
+    pop.querySelectorAll(".opt").forEach(el => {
+      el.addEventListener("click", () => {
+        value = el.dataset.value;
+        const opt = options.find(o => o.value === value);
+        label.textContent = opt ? opt.text : "선택";
+        render();
+        closePop();
+      });
+    });
+  }
+
+  function openPop() {
+    render();
+    pop.classList.add("open");
+    btn.classList.add("open");
+    document.addEventListener("click", onOutsideClick, true);
+  }
+  function closePop() {
+    pop.classList.remove("open");
+    btn.classList.remove("open");
+    document.removeEventListener("click", onOutsideClick, true);
+  }
+  function onOutsideClick(e) {
+    if (!pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) closePop();
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (pop.classList.contains("open")) closePop(); else openPop();
+  });
+
+  return {
+    setOptions(opts, selectedValue) {
+      options = opts;
+      value = selectedValue !== undefined && opts.some(o => o.value === selectedValue)
+        ? selectedValue
+        : (opts[0] ? opts[0].value : "");
+      const opt = options.find(o => o.value === value);
+      label.textContent = opt ? opt.text : "선택";
+    },
+    getValue: () => value,
+    setValue(v) {
+      value = v || "";
+      const opt = options.find(o => o.value === value);
+      label.textContent = opt ? opt.text : (options[0] ? "선택" : "선택");
+    },
+  };
+}
+
+let fTypePicker, existingDealPicker, clauseRefPicker;
+
 /* ---------------- 이벤트 바인딩 ---------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
+  contractDatePicker = makeDatePicker("fDateBtn", "fDatePop", "fDateLabel");
+  clauseDatePicker = makeDatePicker("cDateBtn", "cDatePop", "cDateLabel");
+  fTypePicker = makeCustomSelect("fTypeBtn", "fTypePop", "fTypeLabel");
+  existingDealPicker = makeCustomSelect("existingDealBtn", "existingDealPop", "existingDealLabel");
+  clauseRefPicker = makeCustomSelect("cContractRefBtn", "cContractRefPop", "cContractRefLabel");
+
   loadAll();
 
   // 세그먼트 탭
@@ -676,11 +868,11 @@ document.addEventListener("DOMContentLoaded", () => {
     openWizard();
     wizardDealMode = "existing";
     document.getElementById("dealModeExisting").click();
-    setTimeout(() => {
-      document.getElementById("existingDealSelect").value = selectedDealId;
-      const g = groupDeals(dealRows).find(g => g.dealId === selectedDealId);
-      if (g) document.getElementById("fMaemul").value = g.maemulNo || "";
-    }, 0);
+    const groups = groupDeals(dealRows);
+    existingDealPicker.setOptions(groups.map(g => ({ value: g.dealId, text: `${g.maemulNo || g.dealId} · 최근 ${g.latestDate || ""}` })));
+    existingDealPicker.setValue(selectedDealId);
+    const g = groups.find(g => g.dealId === selectedDealId);
+    if (g) document.getElementById("fMaemul").value = g.maemulNo || "";
   });
 
   // 메인 FAB — 탭에 따라 다른 동작
@@ -716,97 +908,4 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clauseFormClose").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormCancel").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormSave").addEventListener("click", saveClause);
-
-  initFabDrag();
 });
-
-/* ---------------- FAB 드래그 이동 (다른 페이지들과 동일한 patt. localStorage 영구저장) ---------------- */
-const FAB_POS_KEY = "theo_dashboard_contract_fab_pos";
-
-function initFabDrag() {
-  const fab = document.getElementById("mainFab");
-  if (!fab) return;
-
-  // 저장된 위치 복원
-  try {
-    const saved = JSON.parse(localStorage.getItem(FAB_POS_KEY) || "null");
-    if (saved && typeof saved.right === "number" && typeof saved.bottom === "number") {
-      fab.style.right = saved.right + "px";
-      fab.style.bottom = saved.bottom + "px";
-    }
-  } catch (e) {}
-
-  let dragging = false;
-  let moved = false;
-  let startX, startY, startRight, startBottom;
-
-  function getPos(e) {
-    if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    return { x: e.clientX, y: e.clientY };
-  }
-
-  function onDown(e) {
-    dragging = true;
-    moved = false;
-    const p = getPos(e);
-    startX = p.x; startY = p.y;
-    const rect = fab.getBoundingClientRect();
-    startRight = window.innerWidth - rect.right;
-    startBottom = window.innerHeight - rect.bottom;
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    document.addEventListener("touchmove", onMove, { passive: false });
-    document.addEventListener("touchend", onUp);
-  }
-
-  function onMove(e) {
-    if (!dragging) return;
-    const p = getPos(e);
-    const dx = p.x - startX;
-    const dy = p.y - startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
-    if (!moved) return;
-    if (e.cancelable) e.preventDefault();
-
-    let newRight = startRight - dx;
-    let newBottom = startBottom - dy;
-
-    const fabW = fab.offsetWidth, fabH = fab.offsetHeight;
-    newRight = Math.min(Math.max(newRight, 4), window.innerWidth - fabW - 4);
-    newBottom = Math.min(Math.max(newBottom, 4), window.innerHeight - fabH - 4);
-
-    fab.style.right = newRight + "px";
-    fab.style.bottom = newBottom + "px";
-  }
-
-  function onUp() {
-    dragging = false;
-    document.removeEventListener("mousemove", onMove);
-    document.removeEventListener("mouseup", onUp);
-    document.removeEventListener("touchmove", onMove);
-    document.removeEventListener("touchend", onUp);
-
-    if (moved) {
-      const rect = fab.getBoundingClientRect();
-      const pos = {
-        right: window.innerWidth - rect.right,
-        bottom: window.innerHeight - rect.bottom,
-      };
-      try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(pos)); } catch (e) {}
-      // 드래그 직후 클릭 이벤트로 모달이 열려버리는 것 방지
-      fab.dataset.justDragged = "1";
-      setTimeout(() => { delete fab.dataset.justDragged; }, 50);
-    }
-  }
-
-  fab.addEventListener("mousedown", onDown);
-  fab.addEventListener("touchstart", onDown, { passive: true });
-
-  // 드래그 직후의 클릭은 무시 (모달이 실수로 안 열리게)
-  fab.addEventListener("click", (e) => {
-    if (fab.dataset.justDragged) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  }, true);
-}
