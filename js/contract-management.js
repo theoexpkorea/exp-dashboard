@@ -68,6 +68,38 @@ function toast(msg) {
   setTimeout(() => t.classList.remove("show"), 2600);
 }
 
+async function refreshWithFeedback(btnId, loadFn) {
+  const btn = document.getElementById(btnId);
+  if (!btn) { loadFn(); return; }
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  try {
+    await loadFn();
+    toast("새로고침 완료");
+  } catch (e) {
+    toast("새로고침 실패: " + ((e && e.message) || e));
+  }
+  btn.disabled = false;
+  btn.style.opacity = "";
+  btn.innerHTML = original;
+}
+
+function handleMaemulDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const maemul = (params.get("maemul") || "").trim();
+  if (!maemul) return;
+  document.getElementById("dealSearch").value = maemul;
+  // dealRows가 아직 로딩 중일 수 있으므로 로딩 완료 후 한 번 더 시도
+  const tryOpen = () => {
+    renderDealList();
+    const groups = groupDeals(dealRows.filter(r => (r.maemulNo || "") === maemul));
+    if (groups.length === 1) openDealPanel(groups[0].dealId);
+  };
+  tryOpen();
+  setTimeout(tryOpen, 1200); // 초기 jsonp 로딩 늦을 경우 대비
+}
+
 /* ---------------- 초기 로딩 ---------------- */
 
 async function loadAll() {
@@ -174,7 +206,9 @@ function renderDealList() {
   listEl.innerHTML = groups.map(g => `
     <div class="deal-card" data-deal="${g.dealId}">
       <div class="deal-card-top">
-        <span class="deal-maemul">${g.maemulNo || "(매물번호 미지정)"}</span>
+        ${g.maemulNo
+          ? `<a class="deal-maemul deal-maemul-link" href="${maemulViewUrl(g.maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">${g.maemulNo}</a>`
+          : `<span class="deal-maemul">(매물번호 미지정)</span>`}
         <span class="deal-date">${g.latestDate || ""}</span>
       </div>
       <div class="deal-doc-badges">
@@ -185,8 +219,16 @@ function renderDealList() {
   `).join("");
 
   listEl.querySelectorAll(".deal-card").forEach(card => {
-    card.addEventListener("click", () => openDealPanel(card.dataset.deal));
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".deal-maemul-link")) return; // 매물뷰 링크 클릭은 패널을 열지 않음
+      openDealPanel(card.dataset.deal);
+    });
   });
+}
+
+// 매물뷰(exp-maemul) 열람 링크 — 카드/타임라인에서 공용으로 사용
+function maemulViewUrl(maemulNo) {
+  return `https://theoexpkorea.github.io/exp-maemul/?q=${encodeURIComponent(maemulNo)}`;
 }
 
 function openDealPanel(dealId) {
@@ -194,7 +236,10 @@ function openDealPanel(dealId) {
   const docs = dealRows.filter(r => r.dealId === dealId).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   if (!docs.length) return;
 
-  document.getElementById("dealPanelTitle").textContent = docs[0].maemulNo || dealId;
+  const maemulNo = docs[0].maemulNo;
+  document.getElementById("dealPanelTitle").innerHTML = maemulNo
+    ? `${maemulNo} <a class="dp-maemul-link" href="${maemulViewUrl(maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">매물뷰 ↗</a>`
+    : dealId;
   document.getElementById("dealPanelSub").textContent = `${dealId} · 문서 ${docs.length}건`;
 
   document.getElementById("dealPanelBody").innerHTML = docs.map(d => `
@@ -207,7 +252,9 @@ function openDealPanel(dealId) {
       <div class="timeline-files">
         <a class="timeline-file-btn ${d.fileContract ? "" : "disabled"}" href="${d.fileContract || "#"}" target="_blank" rel="noopener">계약서 열기</a>
         <a class="timeline-file-btn ${d.fileConfirm ? "" : "disabled"}" href="${d.fileConfirm || "#"}" target="_blank" rel="noopener">확인설명서 열기</a>
+        ${d.fileOther ? `<a class="timeline-file-btn" href="${d.fileOther}" target="_blank" rel="noopener">${escapeHtml(d.otherLabel || "기타 문서")} 열기</a>` : ""}
         <button type="button" class="timeline-file-btn timeline-edit-btn" data-regid="${d.regId}">수정</button>
+        <button type="button" class="timeline-file-btn danger timeline-delete-btn" data-regid="${d.regId}">삭제</button>
       </div>
     </div>
   `).join("");
@@ -257,24 +304,41 @@ function renderClauseList() {
     return;
   }
 
-  listEl.innerHTML = filtered.map((c, idx) => `
+  listEl.innerHTML = filtered.map((c, idx) => {
+    const sourceDeal = c.contractRegId ? dealRows.find(r => r.regId === c.contractRegId) : null;
+    return `
     <div class="clause-card">
       <div class="clause-tags">${(c.tags || []).map(t => `<span class="clause-tag" data-tag="${t}">${t}</span>`).join("")}</div>
       <div class="clause-text">${escapeHtml(c.text || "")}</div>
       <div class="clause-meta-row">
-        <span class="clause-meta">${c.maemulNo ? c.maemulNo + " · " : ""}${c.usedDate || ""}</span>
+        <span class="clause-meta">
+          ${c.maemulNo ? c.maemulNo + " · " : ""}${c.usedDate || ""}
+          ${sourceDeal ? ` · <a href="#" class="clause-source-link" data-deal="${sourceDeal.dealId}">출처계약 열람 ↗</a>` : ""}
+        </span>
         <span style="display:flex; gap:6px;">
           <button class="clause-copy-btn clause-edit-btn" data-regid="${c.regId}">수정</button>
+          <button class="clause-copy-btn danger clause-delete-btn" data-regid="${c.regId}">삭제</button>
           <button class="clause-copy-btn" data-idx="${idx}">복사</button>
         </span>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   listEl.querySelectorAll(".clause-edit-btn").forEach(btn => {
     btn.addEventListener("click", () => openClauseForm(btn.dataset.regid));
   });
-  listEl.querySelectorAll(".clause-copy-btn:not(.clause-edit-btn)").forEach((btn, i) => {
+  listEl.querySelectorAll(".clause-delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => deleteClause(btn.dataset.regid));
+  });
+  listEl.querySelectorAll(".clause-source-link").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.querySelector('.seg-tab[data-tab="contract"]').click();
+      openDealPanel(btn.dataset.deal);
+    });
+  });
+  listEl.querySelectorAll(".clause-copy-btn:not(.clause-edit-btn):not(.clause-delete-btn)").forEach((btn, i) => {
     btn.addEventListener("click", async () => {
       await navigator.clipboard.writeText(filtered[i].text || "");
       btn.textContent = "복사됨";
@@ -364,6 +428,39 @@ async function saveClause() {
   saveBtn.disabled = false; saveBtn.textContent = "저장";
 }
 
+async function deleteClause(regId) {
+  if (!regId) return;
+  if (!confirm("이 특약을 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
+  try {
+    const data = await postJSON("clauseDelete", { regId });
+    if (data && data.ok) {
+      toast("특약이 삭제되었습니다.");
+      loadClauses();
+    } else {
+      toast("삭제 실패: " + ((data && data.error) || "알 수 없는 오류"));
+    }
+  } catch (e) {
+    toast("삭제 실패: " + ((e && e.message) || e));
+  }
+}
+
+async function deleteContractDoc(regId) {
+  if (!regId) return;
+  if (!confirm("이 문서를 삭제하시겠습니까? Drive의 원본 파일과 시트 기록이 함께 삭제되며 되돌릴 수 없습니다.")) return;
+  try {
+    const data = await postJSON("contractDelete", { regId });
+    if (data && data.ok) {
+      toast("문서가 삭제되었습니다.");
+      closeDealPanel();
+      await loadDeals();
+    } else {
+      toast("삭제 실패: " + ((data && data.error) || "알 수 없는 오류"));
+    }
+  } catch (e) {
+    toast("삭제 실패: " + ((e && e.message) || e));
+  }
+}
+
 /* ============================================================
    등록 마법사 (업로드 + 마스킹 → 메타데이터 → 저장)
    masking-prototype.html 로직을 문서 슬롯 2개(계약서/확인설명서)로 재사용
@@ -394,6 +491,7 @@ async function getOcrWorker() {
 const wizardDocs = {
   contract: { file: null, pageStates: [], pdfBlob: null, ocrDone: false },
   confirm: { file: null, pageStates: [], pdfBlob: null, ocrDone: false },
+  other: { file: null, pageStates: [], pdfBlob: null, ocrDone: false },
 };
 let wizardStep = 1;
 let wizardDealMode = "new"; // 'new' | 'existing'
@@ -578,12 +676,17 @@ function resetWizard() {
   wizardDealMode = "new";
   wizardDocs.contract = { file: null, pageStates: [], pdfBlob: null, ocrDone: false };
   wizardDocs.confirm = { file: null, pageStates: [], pdfBlob: null, ocrDone: false };
+  wizardDocs.other = { file: null, pageStates: [], pdfBlob: null, ocrDone: false };
   document.getElementById("fileContract").value = "";
   document.getElementById("fileConfirm").value = "";
+  document.getElementById("fileOther").value = "";
+  document.getElementById("fOtherLabel").value = "";
   document.getElementById("pagesContract").innerHTML = "";
   document.getElementById("pagesConfirm").innerHTML = "";
+  document.getElementById("pagesOther").innerHTML = "";
   document.getElementById("statusContract").textContent = "";
   document.getElementById("statusConfirm").textContent = "";
+  document.getElementById("statusOther").textContent = "";
   document.getElementById("fMaemul").value = "";
   if (contractDatePicker) contractDatePicker.setValue("");
   document.getElementById("fSummary").value = "";
@@ -618,11 +721,15 @@ function showWizardStep(n) {
 
 async function wizardGoNext() {
   if (wizardStep === 1) {
-    if (!wizardDocs.contract.file && !wizardDocs.confirm.file) {
-      toast("계약서 또는 확인설명서를 최소 1개 업로드하세요.");
+    if (!wizardDocs.contract.file && !wizardDocs.confirm.file && !wizardDocs.other.file) {
+      toast("계약서·확인설명서·기타 문서 중 최소 1개를 업로드하세요.");
       return;
     }
-    const skippedOcr = ["contract", "confirm"].filter(k => wizardDocs[k].file && !wizardDocs[k].ocrDone);
+    if (wizardDocs.other.file && !document.getElementById("fOtherLabel").value.trim()) {
+      toast("기타 PDF의 문서명을 입력하세요. (예: 합의서)");
+      return;
+    }
+    const skippedOcr = ["contract", "confirm", "other"].filter(k => wizardDocs[k].file && !wizardDocs[k].ocrDone);
     if (skippedOcr.length) {
       const ok = confirm("아직 OCR/마스킹을 실행하지 않은 문서가 있습니다. 마스킹 없이 원본 그대로 저장하시겠습니까?\n(개인정보가 그대로 남아있을 수 있습니다)");
       if (!ok) return;
@@ -658,11 +765,13 @@ async function submitWizard() {
 
   await finalizeDocSlot("contract");
   await finalizeDocSlot("confirm");
+  await finalizeDocSlot("other");
 
   progEl.innerHTML = `<div class="spin"></div>Drive에 업로드하고 저장하는 중... (문서 용량에 따라 최대 1분 정도 걸릴 수 있어요)`;
 
   const fileContractBase64 = await blobToBase64(wizardDocs.contract.pdfBlob);
   const fileConfirmBase64 = await blobToBase64(wizardDocs.confirm.pdfBlob);
+  const fileOtherBase64 = await blobToBase64(wizardDocs.other.pdfBlob);
 
   const payload = {
     dealId: wizardDealMode === "existing" ? existingDealPicker.getValue() : "",
@@ -672,6 +781,8 @@ async function submitWizard() {
     summary: document.getElementById("fSummary").value.trim(),
     memo: document.getElementById("fMemo").value.trim(),
     fileContractBase64, fileConfirmBase64,
+    fileOtherBase64,
+    otherLabel: document.getElementById("fOtherLabel").value.trim(),
   };
 
   try {
@@ -952,8 +1063,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("dealSearch").addEventListener("input", renderDealList);
   document.getElementById("clauseSearch").addEventListener("input", renderClauseList);
-  document.getElementById("dealRefreshBtn").addEventListener("click", loadDeals);
-  document.getElementById("clauseRefreshBtn").addEventListener("click", loadClauses);
+  document.getElementById("dealRefreshBtn").addEventListener("click", () => refreshWithFeedback("dealRefreshBtn", loadDeals));
+  document.getElementById("clauseRefreshBtn").addEventListener("click", () => refreshWithFeedback("clauseRefreshBtn", loadClauses));
+
+  // 매물뷰(exp-maemul)에서 "?maemul=매물번호"로 넘어온 경우 자동 검색 + 단독 매치 시 패널 자동 오픈
+  handleMaemulDeepLink();
 
   document.getElementById("dealPanelClose").addEventListener("click", closeDealPanel);
   document.getElementById("dealOverlay").addEventListener("click", closeDealPanel);
@@ -997,6 +1111,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fileConfirm").addEventListener("change", (e) => {
     handleFileSelected("confirm", e.target.files[0] || null, "pagesConfirm", "statusConfirm");
   });
+  document.getElementById("fileOther").addEventListener("change", (e) => {
+    handleFileSelected("other", e.target.files[0] || null, "pagesOther", "statusOther");
+  });
 
   // 특약 등록 모달
   document.getElementById("clauseFormClose").addEventListener("click", closeClauseForm);
@@ -1005,8 +1122,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 계약서 타임라인 패널 안의 "수정" 버튼 (동적으로 그려지므로 위임 방식)
   document.getElementById("dealPanelBody").addEventListener("click", (e) => {
-    const btn = e.target.closest(".timeline-edit-btn");
-    if (btn) openContractEdit(btn.dataset.regid);
+    const editBtn = e.target.closest(".timeline-edit-btn");
+    if (editBtn) { openContractEdit(editBtn.dataset.regid); return; }
+    const delBtn = e.target.closest(".timeline-delete-btn");
+    if (delBtn) { deleteContractDoc(delBtn.dataset.regid); return; }
+  });
+
+  // KPI 카드 클릭 → 해당 탭으로 이동
+  document.querySelectorAll("#statGrid .rec-stat-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const tab = card.dataset.gotoTab;
+      if (!tab) return;
+      document.querySelector(`.seg-tab[data-tab="${tab}"]`).click();
+      document.querySelector(".main-content").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   });
   document.getElementById("contractEditClose").addEventListener("click", closeContractEdit);
   document.getElementById("contractEditCancel").addEventListener("click", closeContractEdit);
