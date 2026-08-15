@@ -716,4 +716,97 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clauseFormClose").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormCancel").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormSave").addEventListener("click", saveClause);
+
+  initFabDrag();
 });
+
+/* ---------------- FAB 드래그 이동 (다른 페이지들과 동일한 patt. localStorage 영구저장) ---------------- */
+const FAB_POS_KEY = "theo_dashboard_contract_fab_pos";
+
+function initFabDrag() {
+  const fab = document.getElementById("mainFab");
+  if (!fab) return;
+
+  // 저장된 위치 복원
+  try {
+    const saved = JSON.parse(localStorage.getItem(FAB_POS_KEY) || "null");
+    if (saved && typeof saved.right === "number" && typeof saved.bottom === "number") {
+      fab.style.right = saved.right + "px";
+      fab.style.bottom = saved.bottom + "px";
+    }
+  } catch (e) {}
+
+  let dragging = false;
+  let moved = false;
+  let startX, startY, startRight, startBottom;
+
+  function getPos(e) {
+    if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onDown(e) {
+    dragging = true;
+    moved = false;
+    const p = getPos(e);
+    startX = p.x; startY = p.y;
+    const rect = fab.getBoundingClientRect();
+    startRight = window.innerWidth - rect.right;
+    startBottom = window.innerHeight - rect.bottom;
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("touchend", onUp);
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const p = getPos(e);
+    const dx = p.x - startX;
+    const dy = p.y - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (!moved) return;
+    if (e.cancelable) e.preventDefault();
+
+    let newRight = startRight - dx;
+    let newBottom = startBottom - dy;
+
+    const fabW = fab.offsetWidth, fabH = fab.offsetHeight;
+    newRight = Math.min(Math.max(newRight, 4), window.innerWidth - fabW - 4);
+    newBottom = Math.min(Math.max(newBottom, 4), window.innerHeight - fabH - 4);
+
+    fab.style.right = newRight + "px";
+    fab.style.bottom = newBottom + "px";
+  }
+
+  function onUp() {
+    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+    document.removeEventListener("touchmove", onMove);
+    document.removeEventListener("touchend", onUp);
+
+    if (moved) {
+      const rect = fab.getBoundingClientRect();
+      const pos = {
+        right: window.innerWidth - rect.right,
+        bottom: window.innerHeight - rect.bottom,
+      };
+      try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(pos)); } catch (e) {}
+      // 드래그 직후 클릭 이벤트로 모달이 열려버리는 것 방지
+      fab.dataset.justDragged = "1";
+      setTimeout(() => { delete fab.dataset.justDragged; }, 50);
+    }
+  }
+
+  fab.addEventListener("mousedown", onDown);
+  fab.addEventListener("touchstart", onDown, { passive: true });
+
+  // 드래그 직후의 클릭은 무시 (모달이 실수로 안 열리게)
+  fab.addEventListener("click", (e) => {
+    if (fab.dataset.justDragged) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
