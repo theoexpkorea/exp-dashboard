@@ -254,6 +254,7 @@ function openDealPanel(dealId) {
         <a class="timeline-file-btn ${d.fileContract ? "" : "disabled"}" href="${d.fileContract || "#"}" target="_blank" rel="noopener">계약서</a>
         <a class="timeline-file-btn ${d.fileConfirm ? "" : "disabled"}" href="${d.fileConfirm || "#"}" target="_blank" rel="noopener">확인설명서</a>
         ${d.fileOther ? `<a class="timeline-file-btn" href="${d.fileOther}" target="_blank" rel="noopener">${escapeHtml(d.otherLabel || "기타 문서")}</a>` : ""}
+        <button type="button" class="timeline-file-btn timeline-action-btn primary timeline-add-clause-btn" data-regid="${d.regId}" data-maemul="${escapeHtml(d.maemulNo || "")}">+ 특약등록</button>
         <button type="button" class="timeline-file-btn timeline-action-btn timeline-edit-btn" data-regid="${d.regId}">수정</button>
         <button type="button" class="timeline-file-btn timeline-action-btn danger timeline-delete-btn" data-regid="${d.regId}">삭제</button>
       </div>
@@ -398,13 +399,13 @@ function renderTypeSelect() {
 
 let editingClauseRegId = null;
 
-function openClauseForm(regId) {
+function openClauseForm(regId, prefill) {
   editingClauseRegId = regId || null;
   const existing = editingClauseRegId ? clauseRows.find(r => r.regId === editingClauseRegId) : null;
 
   document.getElementById("clauseFormTitle").textContent = existing ? "특약 수정" : "새 특약 등록";
   document.getElementById("cText").value = existing ? (existing.text || "") : "";
-  document.getElementById("cMaemul").value = existing ? (existing.maemulNo || "") : "";
+  document.getElementById("cMaemul").value = existing ? (existing.maemulNo || "") : ((prefill && prefill.maemulNo) || "");
   clauseDatePicker.setValue(existing ? (existing.usedDate || "") : "");
   document.getElementById("clauseFormError").textContent = "";
 
@@ -416,7 +417,8 @@ function openClauseForm(regId) {
   const refOptions = [{ value: "", text: "연결 안 함" }].concat(
     dealRows.map(r => ({ value: r.regId, text: `${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}` }))
   );
-  clauseRefPicker.setOptions(refOptions, existing ? (existing.contractRegId || "") : "");
+  const refValue = existing ? (existing.contractRegId || "") : ((prefill && prefill.contractRegId) || "");
+  clauseRefPicker.setOptions(refOptions, refValue);
 
   document.getElementById("clauseFormOverlay").classList.add("show");
 }
@@ -1149,12 +1151,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clauseFormCancel").addEventListener("click", closeClauseForm);
   document.getElementById("clauseFormSave").addEventListener("click", saveClause);
 
-  // 계약서 타임라인 패널 안의 "수정" 버튼 (동적으로 그려지므로 위임 방식)
+  // 계약서 타임라인 패널 안의 "수정"/"삭제"/"특약등록" 버튼 (동적으로 그려지므로 위임 방식)
   document.getElementById("dealPanelBody").addEventListener("click", (e) => {
     const editBtn = e.target.closest(".timeline-edit-btn");
     if (editBtn) { openContractEdit(editBtn.dataset.regid); return; }
     const delBtn = e.target.closest(".timeline-delete-btn");
     if (delBtn) { deleteContractDoc(delBtn.dataset.regid); return; }
+    const addClauseBtn = e.target.closest(".timeline-add-clause-btn");
+    if (addClauseBtn) {
+      closeDealPanel();
+      document.querySelector('.seg-tab[data-tab="clause"]').click();
+      openClauseForm(null, { maemulNo: addClauseBtn.dataset.maemul, contractRegId: addClauseBtn.dataset.regid });
+      return;
+    }
   });
 
   // KPI 카드 클릭 → 해당 탭으로 이동
