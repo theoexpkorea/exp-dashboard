@@ -36,12 +36,29 @@ function jsonp(mode, params = {}) {
 }
 
 async function postJSON(mode, payload) {
-  const res = await fetch(CONTRACT_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" }, // Apps Script doPost는 이 방식이 CORS preflight를 안 타서 안전
-    body: JSON.stringify({ mode, ...payload }),
-  });
-  return await res.json();
+  let res;
+  try {
+    res = await fetch(CONTRACT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // Apps Script doPost는 이 방식이 CORS preflight를 안 타서 안전
+      body: JSON.stringify({ mode, ...payload }),
+    });
+  } catch (e) {
+    // fetch 자체가 실패 (CORS, 네트워크 끊김, 잘못된 URL 등) — 원인 문자열을 그대로 담아 위로 던짐
+    throw new Error("FETCH_FAILED: " + (e && e.message ? e.message : String(e)));
+  }
+  if (!res.ok) {
+    let bodyText = "";
+    try { bodyText = await res.text(); } catch (e2) {}
+    throw new Error(`HTTP_${res.status}: ${bodyText.slice(0, 300)}`);
+  }
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e3) {
+    // Apps Script가 JSON이 아니라 HTML(로그인/권한 오류 페이지 등)을 돌려준 경우
+    throw new Error("응답이 JSON이 아님 (서버가 에러 페이지를 반환했을 수 있음): " + text.slice(0, 300));
+  }
 }
 
 function toast(msg) {
@@ -318,7 +335,7 @@ async function saveClause() {
       errEl.textContent = (data && data.error) || "저장에 실패했습니다.";
     }
   } catch (e) {
-    errEl.textContent = "네트워크 오류로 저장하지 못했습니다.";
+    errEl.textContent = "저장 실패: " + ((e && e.message) || e);
   }
   saveBtn.disabled = false; saveBtn.textContent = "저장";
 }
@@ -643,7 +660,7 @@ async function submitWizard() {
       progEl.innerHTML = `❌ 저장 실패: ${(data && data.error) || "알 수 없는 오류"}`;
     }
   } catch (e) {
-    progEl.innerHTML = `❌ 네트워크 오류로 저장하지 못했습니다.`;
+    progEl.innerHTML = `❌ 저장 실패: ${escapeHtml(String((e && e.message) || e))}`;
   }
 }
 
