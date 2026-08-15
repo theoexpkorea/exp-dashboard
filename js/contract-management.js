@@ -254,8 +254,8 @@ function openDealPanel(dealId) {
         <a class="timeline-file-btn ${d.fileContract ? "" : "disabled"}" href="${d.fileContract || "#"}" target="_blank" rel="noopener">계약서</a>
         <a class="timeline-file-btn ${d.fileConfirm ? "" : "disabled"}" href="${d.fileConfirm || "#"}" target="_blank" rel="noopener">확인설명서</a>
         ${d.fileOther ? `<a class="timeline-file-btn" href="${d.fileOther}" target="_blank" rel="noopener">${escapeHtml(d.otherLabel || "기타 문서")}</a>` : ""}
-        <button type="button" class="timeline-file-btn timeline-edit-btn" data-regid="${d.regId}">수정</button>
-        <button type="button" class="timeline-file-btn danger timeline-delete-btn" data-regid="${d.regId}">삭제</button>
+        <button type="button" class="timeline-file-btn timeline-action-btn timeline-edit-btn" data-regid="${d.regId}">수정</button>
+        <button type="button" class="timeline-file-btn timeline-action-btn danger timeline-delete-btn" data-regid="${d.regId}">삭제</button>
       </div>
     </div>
   `).join("");
