@@ -133,6 +133,22 @@
   }
   .tag-picker .tp-chip.sel { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
 
+  /* 태그 관리 모달 */
+  .tag-manage-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+  .tag-manage-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; }
+  .tag-manage-badge { padding:4px 10px; border-radius:999px; font-size:12.5px; font-weight:800; }
+  .tag-manage-actions { margin-left:auto; display:flex; gap:6px; flex-shrink:0; }
+  .tag-manage-icon-btn {
+    border:1px solid var(--border); background:var(--surface); border-radius:8px; width:28px; height:28px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-secondary); font-size:13px; font-family:inherit;
+  }
+  .tag-manage-icon-btn:hover { background:var(--accent-soft); color:var(--accent); border-color:#D7DEFB; }
+  .tag-manage-icon-btn.danger:hover { background:#FBE9E9; color:var(--danger,#D64545); border-color:var(--danger,#D64545); }
+  .tag-rename-input {
+    flex:1; height:28px; border:1px solid var(--border); border-radius:8px; padding:0 8px;
+    font-size:12.5px; font-family:inherit; color:var(--text);
+  }
+
   /* ---- 등록 마법사 (마스킹 캔버스가 있어서 넓은 전용 오버레이) ---- */
   .wiz-overlay {
     position:fixed; inset:0; z-index:120; background:rgba(16,24,40,0.5);
@@ -289,7 +305,11 @@
         <div class="rec-toolbar">
           <input type="text" class="rec-search" id="clauseSearch" placeholder="태그·문구 검색">
           <div class="rec-filters" id="clauseTagFilters"></div>
-          <button class="farm-tool-btn" id="clauseRefreshBtn" style="margin-left:auto;">
+          <button class="farm-tool-btn" id="tagManageBtn" style="margin-left:auto;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83 3.83 11 13.41 20.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+            태그 관리
+          </button>
+          <button class="farm-tool-btn" id="clauseRefreshBtn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
             새로고침
           </button>
@@ -455,6 +475,32 @@
     <div class="rec-modal-foot">
       <button class="btn-soft" id="clauseFormCancel" style="margin-left:auto;">취소</button>
       <button class="btn-solid" id="clauseFormSave" style="margin-left:0;background:var(--accent);">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 태그 관리 모달 ===================== -->
+<div class="rec-modal-overlay" id="tagManageOverlay">
+  <div class="rec-modal" style="max-width:440px;">
+    <div class="rec-modal-head">
+      <h2>태그 관리</h2>
+      <button class="rec-modal-close" id="tagManageClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="tag-manage-list" id="tagManageList"></div>
+      <div class="rec-form-grid full" style="margin-top:14px;">
+        <div class="rec-field">
+          <label>새 태그 추가</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="tagNewInput" placeholder="태그 이름" style="flex:1;">
+            <button class="btn-solid" id="tagAddBtn" style="margin-left:0;background:var(--accent);white-space:nowrap;">추가</button>
+          </div>
+        </div>
+      </div>
+      <div class="rec-modal-error" id="tagManageError"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-soft" id="tagManageDone" style="margin-left:auto;">닫기</button>
     </div>
   </div>
 </div>
