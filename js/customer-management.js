@@ -628,7 +628,7 @@ function crmBuildItemEl(ev) {
   const isDone = crmIsDoneToday(ev);
   const statusOpts = crmStatusOptions[ev.cat] || [];
   const contractDocLink = (ev.cat === 'CONTRACT' && ev.maemulNo)
-    ? '<a class="cust-doc-link" href="contract-management.html?maemul=' + encodeURIComponent(ev.maemulNo) + '" target="_blank" rel="noopener">' +
+    ? '<a class="cust-doc-link" href="contract-management.html?maemul=' + encodeURIComponent(ev.maemulNo) + '">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
         '계약서 보기' +
       '</a>'

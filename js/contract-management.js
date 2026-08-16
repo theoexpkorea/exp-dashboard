@@ -265,7 +265,7 @@ function openDealPanel(dealId) {
 
   const maemulNo = docs[0].maemulNo;
   document.getElementById("dealPanelTitle").innerHTML = maemulNo
-    ? `${maemulNo} <a class="dp-maemul-link" href="${maemulViewUrl(maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">매물뷰 ↗</a> <a class="dp-maemul-link" href="${customerViewUrl(maemulNo)}" target="_blank" rel="noopener" title="고객관리에서 열기">고객관리 ↗</a>`
+    ? `${maemulNo} <a class="dp-maemul-link" href="${maemulViewUrl(maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">매물뷰 ↗</a> <a class="dp-maemul-link" href="${customerViewUrl(maemulNo)}" title="고객관리에서 열기">고객관리 ↗</a>`
     : dealId;
   document.getElementById("dealPanelSub").textContent = `${dealId} · 문서 ${docs.length}건`;
 
