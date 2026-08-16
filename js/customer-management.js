@@ -63,9 +63,13 @@ function crmOpenKakaoShare(name, tel) {
   if (crmKakaoReady && window.Kakao && Kakao.Share) {
     try {
       Kakao.Share.sendDefault({
-        objectType: 'text',
-        text: (name ? name + '님, ' : '') + '연락드립니다.',
-        link: { mobileWebUrl: 'https://theoexpkorea.github.io/exp-dashboard/', webUrl: 'https://theoexpkorea.github.io/exp-dashboard/' }
+        objectType: 'feed',
+        content: {
+          title: (name ? name + '님' : '고객') + ' 연락',
+          description: '안녕하세요, 연락드립니다.',
+          imageUrl: 'https://theoexpkorea.github.io/exp-dashboard/icon-192.png',
+          link: { mobileWebUrl: 'https://theoexpkorea.github.io/exp-dashboard/', webUrl: 'https://theoexpkorea.github.io/exp-dashboard/' }
+        }
       });
       return;
     } catch (e) { /* 실패 시 아래 복사 방식으로 폴백 */ }
@@ -591,7 +595,7 @@ function crmBuildItemEl(ev) {
     ? '<a href="' + EXP_MAEMUL_URL + '?q=' + encodeURIComponent(ev.id) + '" target="_blank">' + crmEsc(titleText) + linkIcon + '</a>'
     : crmEsc(titleText);
   const telHtml = ev.tel ? '<a href="tel:' + ev.tel + '">' + crmEsc(ev.tel) + '</a>' : '';
-  const kakaoNameArg = crmEscAttr(titleText || '');
+  const kakaoNameArg = crmEscAttr(ev.name || '');
   const telActionsHtml = ev.tel
     ? '<button type="button" class="tel-action-btn" data-sms-tel="' + crmEsc(ev.tel) + '" aria-label="문자 보내기">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
