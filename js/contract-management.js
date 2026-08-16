@@ -884,9 +884,14 @@ async function finalizeDocSlot(key) {
   if (slot.pageStates.length) {
     const { jsPDF } = window.jspdf;
     const first = slot.pageStates[0].canvas;
-    const pdfDoc = new jsPDF({ unit: "px", format: [first.width, first.height] });
+    // orientation을 명시하지 않으면 jsPDF가 기본값(세로)을 강제 적용해
+    // 가로가 더 긴 이미지도 세로 페이지 틀에 욱여넣어 오른쪽이 잘려나간다 (2026-08-16 발견된 버그).
+    // 각 페이지 실제 가로/세로 비율에 맞춰 orientation을 명시해 페이지 크기가 이미지와 항상 일치하게 한다.
+    const firstOrientation = first.width >= first.height ? "l" : "p";
+    const pdfDoc = new jsPDF({ unit: "px", format: [first.width, first.height], orientation: firstOrientation });
     slot.pageStates.forEach((st, i) => {
-      if (i > 0) pdfDoc.addPage([st.canvas.width, st.canvas.height]);
+      const orientation = st.canvas.width >= st.canvas.height ? "l" : "p";
+      if (i > 0) pdfDoc.addPage([st.canvas.width, st.canvas.height], orientation);
       pdfDoc.addImage(st.canvas.toDataURL("image/jpeg", 0.85), "JPEG", 0, 0, st.canvas.width, st.canvas.height);
     });
     slot.pdfBlob = pdfDoc.output("blob");
