@@ -11,6 +11,7 @@ const NAV_WORKAREAS = [
   { key: "schedule", label: "일정관리", href: "pages/schedule-management.html", icon: "calendar" },
   { key: "contract", label: "계약관리", href: "pages/contract-management.html", icon: "contract" },
   { key: "marketing", label: "마케팅툴", href: "pages/marketing-tool.html", icon: "megaphone" },
+  { key: "premium", label: "권리금검증", href: "pages/premium-verification.html", icon: "coin" },
 ];
 
 const NAV_APPLINKS = [
@@ -29,6 +30,7 @@ const NAV_ICONS = {
   calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
   megaphone: '<path d="M3 10v4a1 1 0 0 0 1 1h2l4 3.5V5.5L6 9H4a1 1 0 0 0-1 1Z"/><path d="M14 8.2a4.5 4.5 0 0 1 0 7.6M17.2 5.8a8.8 8.8 0 0 1 0 12.4"/>',
   contract: '<path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/><path d="M8.5 13h7M8.5 16.5h4.5"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M9.5 15.2c0 1 1 1.8 2.5 1.8s2.5-.8 2.5-1.8-1-1.5-2.5-1.9-2.5-.9-2.5-1.9 1-1.8 2.5-1.8 2.5.8 2.5 1.8"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
   grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.3"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.3"/>',
   star: '<path d="M12 3.2 14.7 9l6.3.6-4.7 4.2 1.4 6.2-5.7-3.4-5.7 3.4 1.4-6.2-4.7-4.2 6.3-.6Z"/>',
