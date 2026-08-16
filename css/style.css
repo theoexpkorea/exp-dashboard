@@ -1646,6 +1646,14 @@ a { color: inherit; text-decoration: none; }
   .rec-stat-card .stat-label { font-size: 10.5px; }
 }
 
+/* 일정관리/계약관리처럼 KPI 카드가 3장뿐인 그리드는, 바형 폰(480px 이하)에서는 위 규칙으로 2x2에 가깝게,
+   그 이상(폴드 펼친 화면 등 중간 폭 포함)에서는 기본 auto-fit 계산과 무관하게 항상 한 줄 3열로 고정한다.
+   auto-fit(minmax(150px,200px))이 폴드 펼친 화면의 CSS 폭(약 600~750px)에서 딱 2열로 떨어지는 문제를 우회. */
+@media (min-width: 481px) {
+  .rec-kpi-grid.kpi-row-3 { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+  .rec-kpi-grid.kpi-row-4 { grid-template-columns: repeat(4, minmax(110px, 1fr)); }
+}
+
 @media (max-width: 760px) {
   .farm-cal-cell { min-height: 58px; padding: 3px 3px 4px; }
   .farm-date-num { width: 18px; height: 18px; font-size: 11px; }
