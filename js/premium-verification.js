@@ -638,6 +638,16 @@ function pvInit() {
 
   pvRestoreDraft_();
 
+  // 이전 세션 draft에 업종은 저장돼 있는데 원가율이 비어있는 경우(예전 버그 때 저장된 값 등)
+  // 방금 fix한 change 리스너는 "재선택"할 때만 동작하므로, 복원 직후에도 한 번 보정해준다.
+  (function pvBackfillCostRate_() {
+    const bizVal = document.getElementById('pvBiz').value;
+    const costRateEl = document.getElementById('pvCostRateRef');
+    if (bizVal && costRateEl && !costRateEl.value && PV_COST_RATE_DEFAULTS[bizVal] !== undefined) {
+      costRateEl.value = PV_COST_RATE_DEFAULTS[bizVal];
+    }
+  })();
+
   // 업종 선택 시 원가율 참고값 자동 채움(그 다음부터는 손으로 수정 가능).
   // 이전엔 "필드가 비어있을 때만" 채웠는데, sessionStorage 임시저장 값이 남아있으면
   // 업종을 바꿔도 필드가 비어있지 않아 갱신이 안 되는 문제가 있었음 → 업종 변경 시 항상 갱신.
