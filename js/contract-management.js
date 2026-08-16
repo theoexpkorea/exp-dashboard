@@ -641,7 +641,9 @@ function openClauseForm(regId, prefill) {
   });
 
   const refOptions = [{ value: "", text: "연결 안 함" }].concat(
-    dealRows.map(r => ({ value: r.regId, text: `${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}` }))
+    dealRows
+      .filter(r => !!r.fileContract)
+      .map(r => ({ value: r.regId, text: `${r.maemulNo || r.dealId} · ${r.type} · ${r.date || ""}` }))
   );
   const refValue = existing ? (existing.contractRegId || "") : ((prefill && prefill.contractRegId) || "");
   clauseRefPicker.setOptions(refOptions, refValue);
