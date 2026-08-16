@@ -1758,10 +1758,11 @@ a { color: inherit; text-decoration: none; }
 .hidden { display: none !important; }
 
 .visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
 }
 /* ===== 파밍현황 카드 추가분 (2026-07-22) =====
    고객조건 적합여부 태그 + 네이버지도/매물광고 링크 버튼
