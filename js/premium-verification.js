@@ -28,10 +28,10 @@ const PV_COST_RATE_DEFAULTS = {
 };
 
 const PV_PAYBACK_REF = [
-  { label: '★★★ 매우 우수', range: '12개월 이내', note: '1년 안에 권리금 회수' },
-  { label: '★★ 양호', range: '12~24개월', note: '인수자 설득 용이' },
-  { label: '★ 보통', range: '24~36개월', note: '검토 필요, 협상 여지' },
-  { label: '☆ 부담 큼', range: '36개월 초과', note: '과도 신호, 재산정 권장' },
+  { label: '매우 우수', range: '12개월 이내', note: '1년 안에 권리금 회수' },
+  { label: '양호', range: '12~24개월', note: '인수자 설득 용이' },
+  { label: '보통', range: '24~36개월', note: '검토 필요, 협상 여지' },
+  { label: '부담 큼', range: '36개월 초과', note: '과도 신호, 재산정 권장' },
 ];
 
 const PV_GAP_REF = [
