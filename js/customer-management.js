@@ -645,7 +645,7 @@ function crmBuildItemEl(ev) {
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
     contactRowHtml +
-    '<div class="cust-sub-row">' + crmEsc(subText) + '</div>' +
+    '<div class="cust-sub-row">' + crmEsc(subText) + (ev.cat === 'CONTRACT' && ev.maemulNo ? ' · 매물 <b>' + crmEsc(ev.maemulNo) + '</b>' : '') + '</div>' +
     noteHtml +
     '<div class="farm-dp-specs">' +
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
