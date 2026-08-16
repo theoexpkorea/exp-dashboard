@@ -81,6 +81,15 @@ const PV_DOC_GROUPS = [
   },
 ];
 
+const PV_COST_RATE_TABLE_REF = [
+  { biz: '한식/일반음식', rate: '38%' },
+  { biz: '카페/디저트', rate: '30%' },
+  { biz: '주점/호프/바', rate: '33%' },
+  { biz: '프랜차이즈(외식)', rate: '40%' },
+  { biz: '편의점/소매', rate: '75%' },
+  { biz: '미용/서비스', rate: '15%' },
+];
+
 const PV_FIELD_IDS = [
   'pvShop', 'pvBiz', 'pvArea', 'pvDeposit', 'pvRent', 'pvMgmtFee', 'pvAskPremium',
   'pvFacConstruction', 'pvFacEquip', 'pvFacYears', 'pvFacLifespan', 'pvFacResidual',
@@ -88,6 +97,19 @@ const PV_FIELD_IDS = [
   'pvCostRateRef',
   'pvFloorPrice',
 ];
+
+// 신뢰도(최상>상>중) → 구분(필수>권장) 순으로 정렬 — 중요한 서류부터 보이게
+(function pvSortDocGroups_() {
+  const relRank = { '최상': 0, '상': 1, '중': 2 };
+  const typeRank = { '필수': 0, '권장': 1 };
+  PV_DOC_GROUPS.forEach((g) => {
+    g.items.sort((a, b) => {
+      const r = (relRank[a.rel] ?? 9) - (relRank[b.rel] ?? 9);
+      if (r !== 0) return r;
+      return (typeRank[a.type] ?? 9) - (typeRank[b.type] ?? 9);
+    });
+  });
+})();
 
 function pvNum_(id) {
   const el = document.getElementById(id);
@@ -300,6 +322,12 @@ function pvRenderRefTables_() {
       `<tr><td>${r.label}</td><td class="center">${r.range}</td><td>${r.note}</td></tr>`
     ).join('');
   }
+  const costRateBody = document.getElementById('pvRefCostRateBody');
+  if (costRateBody) {
+    costRateBody.innerHTML = PV_COST_RATE_TABLE_REF.map((r) =>
+      `<tr><td>${r.biz}</td><td class="center">${r.rate}</td></tr>`
+    ).join('');
+  }
 }
 
 /* ---------------- 검토서류 체크리스트 (확보여부는 세션 내 상태만, 저장 안 함) ---------------- */
@@ -372,6 +400,8 @@ function pvRenderDocSummary_() {
    jsPDF의 text() 기반 렌더링은 한글 폰트 임베딩 없이는 깨지므로(계약서 라이브러리 사진→PDF와 달리
    여긴 텍스트 리포트라 그 방식이 안 맞음), 브라우저 네이티브 인쇄를 이용해 한글이 항상 정확히 나오게 함. */
 
+const PV_DISCLAIMER = '※ 본 자료는 권리금 협상을 위한 참고용 추정치이며 법적 감정평가서가 아닙니다. 입력된 정보를 기초로 자동 계산된 결과로 정확성이나 최종 거래금액을 보증하지 않습니다. 실제 거래 진행 전 반드시 원본 증빙자료를 당사자가 직접 확인해야 하며, 본 자료의 활용으로 발생하는 판단 및 책임은 이를 활용하는 당사자에게 있습니다.';
+
 function pvRowVal_(id, kind, unit) {
   const el = document.getElementById(id);
   if (!el) return '-';
@@ -387,8 +417,44 @@ function pvRowVal_(id, kind, unit) {
 function pvPrintRows_(rows) {
   return rows.map(([label, id, kind, unit]) => {
     const val = pvRowVal_(id, kind, unit);
-    return `<tr><td>${label}</td><td>${val}</td></tr>`;
+    return `<div class="pv-print-row"><span class="prl">${label}</span><span class="prv">${val}</span></div>`;
   }).join('');
+}
+
+// 화면의 판정 박스를 그대로 재사용 — class(색상)와 문구를 그대로 복사해서
+// 인쇄본도 화면과 같은 초록/주황/빨강 색으로 나오게 함 (별도 로직 중복 없음)
+function pvVerdictHtml_(id) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  if (el.style.display === 'none') return '';
+  const text = el.textContent.trim();
+  if (!text) return '';
+  return `<div class="${el.className}">${text}</div>`;
+}
+
+function pvDateStamp_() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+}
+
+// 브라우저 인쇄창이 자동으로 붙이는 머리글(제목)에 "업무현황" 대신 이 이름이 뜨게 하고,
+// PDF로 저장할 때 기본 파일명도 이걸로 잡히게 함. 다만 날짜/URL 꼬리말은 브라우저 인쇄창
+// 자체가 붙이는 요소라 페이지 코드로는 제어 불가 — 인쇄창의 "머리글과 바닥글" 체크를
+// 꺼야 완전히 없앨 수 있음.
+function pvDoPrint_(titleBase) {
+  const origTitle = document.title;
+  document.title = titleBase;
+  let restored = false;
+  const restore = () => {
+    if (restored) return;
+    restored = true;
+    document.title = origTitle;
+    window.removeEventListener('afterprint', restore);
+  };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  setTimeout(restore, 5000);
 }
 
 function pvPrintSummary_() {
@@ -443,48 +509,50 @@ function pvPrintSummary_() {
     ['차액 (제시 − 산출)', 'rDiff', 'readout'],
     ['괴리율', 'rGapRate', 'readout'],
     ['투자 회수기간', 'rPayback', 'readout'],
-    ['권리금/월세 배수', 'rRatioMultiple', 'readout'],
-    ['권리금/월매출 비율', 'rRatioSales', 'readout'],
-    ['순이익률', 'rRatioMargin', 'readout'],
   ];
-
-  const opWarnBox = document.getElementById('pvOpWarn');
-  const opWarnHtml = (opWarnBox && opWarnBox.style.display !== 'none')
-    ? `<div class="pv-print-verdict">${opWarnBox.textContent.trim()}</div>` : '';
-
-  const costVerdictText = document.getElementById('pvCostRateVerdict').textContent.trim();
-  const gapVerdictText = document.getElementById('rGapVerdict').textContent.trim();
-  const paybackVerdictBox = document.getElementById('rPaybackVerdict');
-  const paybackVerdictHtml = (paybackVerdictBox && paybackVerdictBox.style.display !== 'none')
-    ? `<div class="pv-print-verdict">${paybackVerdictBox.textContent.trim()}</div>` : '';
+  const ratioItems = [
+    ['rRatioMultiple', '권리금/월세배수'],
+    ['rRatioSales', '권리금/월매출비율'],
+    ['rRatioMargin', '순이익률'],
+  ];
 
   const html = `
     <h1>권리금검증 결과 — ${shop}</h1>
-    <div class="pv-print-sub">생성일시: ${now} · 이 리포트는 협상·검토용 추정치이며 법적 평가나 감정가가 아닙니다.</div>
+    <div class="pv-print-sub">생성일시: ${now}</div>
 
-    <h2>기본 정보</h2>
-    <table class="pv-print-table">${pvPrintRows_(basicRows)}</table>
+    <div class="pv-print-card"><h2>기본 정보</h2>${pvPrintRows_(basicRows)}</div>
 
-    <h2>① 시설권리금</h2>
-    <table class="pv-print-table">${pvPrintRows_(facRows)}</table>
+    <div class="pv-print-card"><h2>① 시설권리금</h2>${pvPrintRows_(facRows)}</div>
 
-    <h2>② 영업권리금</h2>
-    <table class="pv-print-table">${pvPrintRows_(opRows)}</table>
-    ${opWarnHtml}
-    <table class="pv-print-table" style="margin-top:6px;">${pvPrintRows_(costRateRows)}</table>
-    <div class="pv-print-verdict">재료비 교차검증: ${costVerdictText}</div>
+    <div class="pv-print-card">
+      <h2>② 영업권리금</h2>
+      ${pvPrintRows_(opRows)}
+      ${pvVerdictHtml_('pvOpWarn')}
+    </div>
 
-    <h2>③ 바닥(지역)권리금</h2>
-    <table class="pv-print-table">${pvPrintRows_(floorRows)}</table>
+    <div class="pv-print-card">
+      <h2>재료비 적정성 교차검증</h2>
+      ${pvPrintRows_(costRateRows)}
+      ${pvVerdictHtml_('pvCostRateVerdict')}
+    </div>
 
-    <h2>★ 종합 검증 결과</h2>
-    <table class="pv-print-table">${pvPrintRows_(resultRows)}</table>
-    <div class="pv-print-verdict">${gapVerdictText}</div>
-    ${paybackVerdictHtml}
+    <div class="pv-print-card"><h2>③ 바닥(지역)권리금</h2>${pvPrintRows_(floorRows)}</div>
+
+    <div class="pv-print-card">
+      <h2>종합 검증 결과</h2>
+      ${pvPrintRows_(resultRows)}
+      ${pvVerdictHtml_('rGapVerdict')}
+      ${pvVerdictHtml_('rPaybackVerdict')}
+      <div class="pv-print-ratio-grid">
+        ${ratioItems.map(([id, label]) => `<div class="pv-print-ratio-box"><div class="v">${pvRowVal_(id, 'readout')}</div><div class="l">${label}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="pv-print-disclaimer">${PV_DISCLAIMER}</div>
   `;
 
   document.getElementById('pvPrintArea').innerHTML = html;
-  window.print();
+  pvDoPrint_('권리금검증_' + shop.replace(/[\\/:*?"<>|]/g, '') + '_' + pvDateStamp_());
 }
 
 function pvPrintDocChecklist_() {
@@ -496,17 +564,19 @@ function pvPrintDocChecklist_() {
 
   let itemsHtml = '';
   PV_DOC_GROUPS.forEach((group, gi) => {
-    itemsHtml += `<h2>${group.title}</h2>`;
+    itemsHtml += `<h2 style="font-size:13px;font-weight:800;color:var(--accent);margin:18px 0 8px;">${group.title}</h2>`;
     group.items.forEach((item, ii) => {
       const key = pvDocKey_(gi, ii);
       const status = pvDocStatus[key] || '미확인';
+      const statusColor = status === '확보' ? '#15803D' : status === '거부' ? '#E0364F' : '#9aa1ab';
       itemsHtml += `
         <div class="pv-print-doc-item">
           <span class="pdi-name">${item.name}</span>
-          <span class="pdi-badges">[${item.rel}] [${item.type}]</span>
+          <span class="pv-doc-badge rel-${item.rel}" style="margin-left:6px;">${item.rel}</span>
+          <span class="pv-doc-badge type-${item.type}">${item.type}</span>
           <div class="pdi-meta">${item.source} · 검증항목: ${item.verify}</div>
           <div class="pdi-meta">${item.point}</div>
-          <div class="pdi-status">확보여부: ${status}</div>
+          <div class="pdi-status" style="color:${statusColor};">확보여부: ${status}</div>
         </div>`;
     });
   });
@@ -516,10 +586,11 @@ function pvPrintDocChecklist_() {
     <div class="pv-print-sub">생성일시: ${now}</div>
     <div class="pv-print-doc-summary">확보 ${secured}/${total} · 거부 ${refused}건</div>
     ${itemsHtml}
+    <div class="pv-print-disclaimer">${PV_DISCLAIMER}</div>
   `;
 
   document.getElementById('pvPrintArea').innerHTML = html;
-  window.print();
+  pvDoPrint_('권리금검증_체크리스트_' + pvDateStamp_());
 }
 
 /* ---------------- 참고표 / 체크리스트 모달 ---------------- */
@@ -550,6 +621,13 @@ function pvInitModals_() {
   if (printSummaryBtn) printSummaryBtn.addEventListener('click', pvPrintSummary_);
   const printDocBtn = document.getElementById('pvPrintDocBtn');
   if (printDocBtn) printDocBtn.addEventListener('click', pvPrintDocChecklist_);
+
+  const guideOpen = document.getElementById('pvGuideOpenBtn');
+  const guideOverlay = document.getElementById('pvGuideOverlay');
+  const guideClose = document.getElementById('pvGuideClose');
+  if (guideOpen) guideOpen.addEventListener('click', () => pvOpenModal_('pvGuideOverlay'));
+  if (guideClose) guideClose.addEventListener('click', () => pvCloseModal_('pvGuideOverlay'));
+  if (guideOverlay) guideOverlay.addEventListener('click', (e) => { if (e.target === guideOverlay) pvCloseModal_('pvGuideOverlay'); });
 }
 
 function pvInit() {
@@ -560,13 +638,15 @@ function pvInit() {
 
   pvRestoreDraft_();
 
-  // 업종 선택 시 원가율 참고값 자동 채움(직접 수정 가능)
+  // 업종 선택 시 원가율 참고값 자동 채움(그 다음부터는 손으로 수정 가능).
+  // 이전엔 "필드가 비어있을 때만" 채웠는데, sessionStorage 임시저장 값이 남아있으면
+  // 업종을 바꿔도 필드가 비어있지 않아 갱신이 안 되는 문제가 있었음 → 업종 변경 시 항상 갱신.
   const bizEl = document.getElementById('pvBiz');
   if (bizEl) {
     bizEl.addEventListener('change', () => {
       const def = PV_COST_RATE_DEFAULTS[bizEl.value];
       const costRateEl = document.getElementById('pvCostRateRef');
-      if (def !== undefined && costRateEl && !costRateEl.value) costRateEl.value = def;
+      if (def !== undefined && costRateEl) costRateEl.value = def;
       pvCalc();
       pvSaveDraft_();
     });
