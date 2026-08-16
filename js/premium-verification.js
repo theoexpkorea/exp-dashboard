@@ -564,7 +564,7 @@ function pvPrintDocChecklist_() {
 
   let itemsHtml = '';
   PV_DOC_GROUPS.forEach((group, gi) => {
-    itemsHtml += `<h2 style="font-size:13px;font-weight:800;color:var(--accent);margin:18px 0 8px;">${group.title}</h2>`;
+    itemsHtml += `<h2 style="font-size:15px;font-weight:800;color:var(--accent);margin:20px 0 10px;">${group.title}</h2>`;
     group.items.forEach((item, ii) => {
       const key = pvDocKey_(gi, ii);
       const status = pvDocStatus[key] || '미확인';
