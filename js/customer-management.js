@@ -211,17 +211,14 @@ function crmHandleMaemulDeepLink() {
   const params = new URLSearchParams(window.location.search);
   const maemul = (params.get('maemul') || '').trim();
   if (!maemul) return;
-  const tryOpen = () => {
-    const match = crmAllItems.find(x => x.cat === 'CONTRACT' && (x.maemulNo || '') === maemul);
-    if (!match) return;
-    crmScope = 'CONTRACT';
-    document.querySelectorAll('#scopeTabs .rec-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.scope === 'CONTRACT'));
-    crmBucket();
-    crmRenderCalendar();
-    crmOpenEditForm(match);
-  };
-  tryOpen();
-  setTimeout(tryOpen, 1200); // 초기 데이터 로딩이 늦을 경우 대비
+  crmScope = 'CONTRACT';
+  document.querySelectorAll('#scopeTabs .rec-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.scope === 'CONTRACT'));
+  crmBucket();
+  crmRenderCalendar();
+  crmOpenCatPanel('CONTRACT');
+  // 초기 데이터 로딩이 이 시점에 아직 안 끝났을 수 있어서, 잠시 후 패널을 한 번 더 갱신
+  // (그 사이 사용자가 다른 패널로 이동했으면 건드리지 않음)
+  setTimeout(() => { if (crmPanelMode === 'cat:CONTRACT') crmOpenCatPanel('CONTRACT'); }, 1200);
 }
 
 /* ===== 모바일 판별 (도트 렌더링 전환) ===== */
