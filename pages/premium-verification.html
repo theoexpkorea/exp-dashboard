@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<script>
+(function(){
+  var locked = true;
+  try {
+    var raw = sessionStorage.getItem('theo_dashboard_unlocked');
+    if (raw) {
+      var data = JSON.parse(raw);
+      if (data && data.ts && (Date.now() - data.ts <= 30 * 60 * 1000)) locked = false;
+    }
+  } catch (e) {}
+  if (locked) document.documentElement.classList.add('theo-locking');
+})();
+</script>
+<style>html.theo-locking .app-shell{visibility:hidden}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>업무현황</title>
+<link rel="icon" href="../favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<link rel="manifest" href="../manifest.json" />
+<meta name="theme-color" content="#2746E6" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="HUB" />
+<meta property="og:image" content="../og-image.png" />
+<link rel="stylesheet" href="../css/style.css?v=20260816b" />
+
+<style>
+  /* ---- 권리금검증 페이지 전용 스타일 ---- */
+
+  .pv-toolbar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .pv-toolbar .btn-soft { display:flex; align-items:center; gap:6px; }
+
+  .pv-print-only { display:none; }
+  @media print {
+    body * { visibility: hidden; }
+    .pv-print-only, .pv-print-only * { visibility: visible; }
+    .pv-print-only { display:block; position:absolute; left:0; top:0; width:100%; padding:0; }
+    .pv-print-only h1 { font-size:18px; margin:0 0 3px; }
+    .pv-print-only .pv-print-sub { font-size:11px; color:#666; margin-bottom:18px; }
+    .pv-print-only h2 { font-size:13px; margin:18px 0 8px; padding-bottom:5px; border-bottom:1.5px solid #333; }
+    .pv-print-table { width:100%; border-collapse:collapse; margin-bottom:4px; }
+    .pv-print-table td { padding:4px 6px; font-size:11.5px; border-bottom:1px solid #eee; }
+    .pv-print-table td:first-child { color:#666; width:40%; }
+    .pv-print-verdict { font-size:11.5px; font-weight:700; margin:8px 0; padding:7px 9px; background:#f2f2f2; border-radius:4px; }
+    .pv-print-doc-summary { font-size:12px; font-weight:700; margin-bottom:12px; }
+    .pv-print-doc-item { margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #eee; font-size:11.5px; break-inside:avoid; }
+    .pv-print-doc-item .pdi-name { font-weight:700; }
+    .pv-print-doc-item .pdi-badges { font-size:10px; color:#666; margin-left:6px; }
+    .pv-print-doc-item .pdi-meta { color:#666; font-size:10.5px; margin-top:2px; }
+    .pv-print-doc-item .pdi-status { font-size:10.5px; font-weight:700; margin-top:3px; }
+  }
+
+  .pv-layout { display:grid; grid-template-columns: 1fr 360px; gap:16px; align-items:start; }
+  @media (max-width: 980px) { .pv-layout { grid-template-columns: 1fr; } }
+  .pv-col-main { display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .pv-col-side { position:sticky; top:76px; display:flex; flex-direction:column; gap:14px; }
+  @media (max-width: 980px) { .pv-col-side { position:static; } }
+
+  .pv-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; box-shadow:var(--shadow-sm); }
+  .pv-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .pv-card-head h3 { margin:0; font-size:14.5px; font-weight:800; }
+  .pv-card-head .pv-sub { font-size:11.5px; color:var(--text-muted); font-weight:600; }
+
+  .pv-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pv-field-grid.cols-3 { grid-template-columns:repeat(3, 1fr); }
+  @media (max-width: 560px) { .pv-field-grid, .pv-field-grid.cols-3 { grid-template-columns:1fr 1fr; } }
+
+  .pv-field label { display:block; font-size:12px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; }
+  .pv-field .pv-hint { font-weight:600; color:var(--text-muted); font-size:10.5px; margin-left:4px; }
+  .pv-field input[type="text"], .pv-field input[type="number"], .pv-field select {
+    width:100%; padding:9px 12px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm);
+    background:var(--bg); font-size:13.5px; font-family:inherit; outline:none;
+  }
+  .pv-field input:focus, .pv-field select:focus { border-color:var(--accent); background:var(--surface); }
+  .pv-field .pv-suffix-wrap { position:relative; }
+  .pv-field .pv-suffix-wrap input { padding-right:34px; }
+  .pv-field .pv-suffix { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); font-weight:700; pointer-events:none; }
+
+  .pv-readout { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 12px; font-size:13.5px; font-weight:700; color:var(--text-secondary); }
+  .pv-readout.accent { color:var(--accent); }
+
+  .pv-divider { border:none; border-top:1px dashed var(--border); margin:14px 0; }
+  .pv-subhead { font-size:12px; font-weight:800; color:var(--text-secondary); margin:0 0 10px; display:flex; align-items:center; gap:6px; }
+  .pv-subhead .pv-subhead-tag { font-size:10px; font-weight:700; color:var(--text-muted); background:var(--bg); border-radius:6px; padding:2px 7px; }
+
+  .pv-result-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
+  .pv-result-row:last-child { border-bottom:none; }
+  .pv-result-row .pv-r-label { font-size:12.5px; color:var(--text-secondary); font-weight:600; }
+  .pv-result-row .pv-r-value { font-size:14.5px; font-weight:800; }
+  .pv-result-row.big .pv-r-label { font-size:13px; font-weight:700; color:var(--text); }
+  .pv-result-row.big .pv-r-value { font-size:19px; }
+
+  .pv-verdict { border-radius:var(--radius-md); padding:12px 14px; font-size:12.5px; font-weight:700; line-height:1.5; margin-top:6px; }
+  .pv-verdict.good { background:#DCFCE7; color:#15803D; }
+  .pv-verdict.warn { background:#FBF1E2; color:#9A5B14; }
+  .pv-verdict.bad { background:#FDECEF; color:#E0364F; }
+  .pv-verdict.muted { background:var(--bg); color:var(--text-muted); }
+
+  .pv-ratio-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+  .pv-ratio-box { background:var(--bg); border-radius:var(--radius-sm); padding:9px 8px; text-align:center; }
+  .pv-ratio-box .v { font-size:14px; font-weight:800; }
+  .pv-ratio-box .l { font-size:10px; color:var(--text-muted); font-weight:700; margin-top:2px; }
+
+  .pv-warn-box { background:#FDECEF; color:#E0364F; border-radius:var(--radius-sm); padding:10px 12px; font-size:12px; font-weight:700; line-height:1.5; margin-top:10px; }
+  .pv-note-box { background:var(--bg); color:var(--text-secondary); border-radius:var(--radius-sm); padding:10px 12px; font-size:11.5px; font-weight:600; line-height:1.6; margin-top:10px; }
+
+  .pv-ref-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .pv-ref-table th, .pv-ref-table td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--border); }
+  .pv-ref-table th { color:var(--text-muted); font-weight:700; font-size:11px; }
+  .pv-ref-table td.center, .pv-ref-table th.center { text-align:center; }
+
+  .pv-toolbar-btns { display:flex; gap:8px; }
+  .pv-btn-reset { height:32px; padding:0 12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-secondary); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pv-btn-reset:hover { background:var(--danger-soft); color:var(--danger); border-color:var(--danger); }
+
+  /* 검토서류 체크리스트 */
+  .pv-doc-group-title { font-size:13px; font-weight:800; color:var(--accent); margin:20px 0 10px; }
+  .pv-doc-group-title:first-child { margin-top:0; }
+  .pv-doc-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:13px 15px; box-shadow:var(--shadow-sm); margin-bottom:9px; }
+  .pv-doc-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .pv-doc-name { font-size:13.5px; font-weight:800; }
+  .pv-doc-source { font-size:11.5px; color:var(--text-muted); font-weight:600; margin-top:2px; }
+  .pv-doc-badges { display:flex; gap:5px; flex-shrink:0; }
+  .pv-doc-badge { font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; white-space:nowrap; }
+  .pv-doc-badge.rel-최상 { background:#DCFCE7; color:#15803D; }
+  .pv-doc-badge.rel-상 { background:#DBEAFE; color:#1D4ED8; }
+  .pv-doc-badge.rel-중 { background:#FBF1E2; color:#9A5B14; }
+  .pv-doc-badge.type-필수 { background:#FDECEF; color:#E0364F; }
+  .pv-doc-badge.type-권장 { background:var(--bg); color:var(--text-muted); }
+  .pv-doc-verify { font-size:12px; color:var(--text); font-weight:600; margin-bottom:5px; }
+  .pv-doc-point { font-size:11.5px; color:var(--text-secondary); line-height:1.5; }
+  .pv-doc-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+  .pv-doc-status { display:flex; gap:5px; }
+  .pv-doc-status-btn { height:28px; padding:0 11px; border-radius:999px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-secondary); font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pv-doc-status-btn.sel-확보 { background:#DCFCE7; color:#15803D; border-color:#A9E6C3; }
+  .pv-doc-status-btn.sel-미확보 { background:var(--bg); color:var(--text-muted); border-color:var(--border-strong); }
+  .pv-doc-status-btn.sel-거부 { background:#FDECEF; color:#E0364F; border-color:#F9C9D1; }
+
+  .pv-doc-summary { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
+  <div class="main-col">
+    <header class="topbar">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="메뉴 열기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <span class="topbar-title">권리금검증</span>
+      <a class="topbar-mark" href="../index.html" aria-label="홈으로">the<span class="o">o</span></a>
+    </header>
+
+    <div class="content-row">
+    <main class="main-content">
+      <div class="page-head">
+        <h1>권리금검증</h1>
+        <p>시설·영업·바닥권리금 기준으로 제시 권리금의 적정성을 검증합니다 · 입력값은 저장되지 않습니다</p>
+      </div>
+
+      <div class="pv-toolbar">
+        <button class="btn-soft" id="pvRefOpenBtn">참고표</button>
+        <button class="btn-soft" id="pvDocOpenBtn">검토서류 체크리스트</button>
+        <button class="btn-soft" id="pvPrintSummaryBtn">전체 내역 PDF 저장</button>
+      </div>
+
+      <div class="pv-layout">
+          <div class="pv-col-main">
+
+            <!-- 기본정보 -->
+            <div class="pv-card">
+              <div class="pv-card-head">
+                <h3>기본 정보</h3>
+                <div class="pv-toolbar-btns"><button class="pv-btn-reset" id="pvResetBtn">전체 초기화</button></div>
+              </div>
+              <div class="pv-field-grid">
+                <div class="pv-field"><label>점포명 / 소재지</label><input type="text" id="pvShop" placeholder="예: 청라 OO상가 1층 102호"></div>
+                <div class="pv-field">
+                  <label>업종</label>
+                  <select id="pvBiz">
+                    <option value="">선택</option>
+                    <option>한식/일반음식</option>
+                    <option>카페/디저트</option>
+                    <option>주점/호프/바</option>
+                    <option>편의점/소매</option>
+                    <option>프랜차이즈(외식)</option>
+                    <option>미용/네일/피부</option>
+                    <option>학원/교습</option>
+                    <option>일반 서비스/소매</option>
+                    <option>기타</option>
+                  </select>
+                </div>
+              </div>
+              <div class="pv-field-grid cols-3" style="margin-top:12px;">
+                <div class="pv-field">
+                  <label>전용면적</label>
+                  <div class="pv-suffix-wrap"><input type="number" id="pvArea" placeholder="0"><span class="pv-suffix">㎡</span></div>
+                </div>
+                <div class="pv-field">
+                  <label>평 환산 <span class="pv-hint">자동</span></label>
+                  <div class="pv-readout" id="pvAreaPyeong">0 평</div>
+                </div>
+                <div class="pv-field">
+                  <label>보증금</label>
+                  <div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvDeposit" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div>
+                </div>
+              </div>
+              <div class="pv-field-grid cols-3" style="margin-top:12px;">
+                <div class="pv-field">
+                  <label>월세 <span class="pv-hint">부가세 별도</span></label>
+                  <div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvRent" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div>
+                </div>
+                <div class="pv-field">
+                  <label>관리비</label>
+                  <div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvMgmtFee" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div>
+                </div>
+                <div class="pv-field">
+                  <label>제시 권리금 <span class="pv-hint">검증 대상</span></label>
+                  <div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvAskPremium" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ① 시설권리금 -->
+            <div class="pv-card">
+              <div class="pv-card-head"><h3>① 시설권리금</h3><span class="pv-sub">감가상각 후 시설가치</span></div>
+              <p class="pv-subhead">투자비 증빙 <span class="pv-subhead-tag">근거 서류 기준</span></p>
+              <div class="pv-field-grid">
+                <div class="pv-field"><label>인테리어·시설 공사비</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvFacConstruction" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>집기·장비 구입비</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvFacEquip" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+              </div>
+              <hr class="pv-divider">
+              <div class="pv-field-grid cols-3">
+                <div class="pv-field">
+                  <label>초기 투자비 합계 <span class="pv-hint">자동</span></label>
+                  <div class="pv-readout" id="pvFacInvestTotal">0원</div>
+                </div>
+                <div class="pv-field"><label>시설 경과연수</label><div class="pv-suffix-wrap"><input type="number" id="pvFacYears" placeholder="0"><span class="pv-suffix">년</span></div></div>
+                <div class="pv-field"><label>내용연수 <span class="pv-hint">통상 5년</span></label><div class="pv-suffix-wrap"><input type="number" id="pvFacLifespan" value="5"><span class="pv-suffix">년</span></div></div>
+              </div>
+              <div class="pv-field-grid" style="margin-top:12px;">
+                <div class="pv-field"><label>잔존가치율 <span class="pv-hint">통상 10%</span></label><div class="pv-suffix-wrap"><input type="number" id="pvFacResidual" value="10"><span class="pv-suffix">%</span></div></div>
+                <div class="pv-field">
+                  <label>▶ 시설권리금 평가액</label>
+                  <div class="pv-readout accent" id="pvFacResult">0원</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ② 영업권리금 -->
+            <div class="pv-card">
+              <div class="pv-card-head"><h3>② 영업권리금</h3><span class="pv-sub">수익가치 기준</span></div>
+
+              <p class="pv-subhead">매출 증빙 집계 <span class="pv-subhead-tag">월 평균</span></p>
+              <div class="pv-field-grid cols-3">
+                <div class="pv-field"><label>카드매출</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpCard" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>배달앱 매출</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpDelivery" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>부가세 신고매출 <span class="pv-hint">총액</span></label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpTaxSales" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+              </div>
+              <div class="pv-field-grid" style="margin-top:12px;">
+                <div class="pv-field">
+                  <label>현금매출 <span class="pv-hint">자동 역산 · 미신고 현금 불인정</span></label>
+                  <div class="pv-readout" id="pvOpCash">0원</div>
+                </div>
+                <div class="pv-field">
+                  <label>▶ 월매출 합계 <span class="pv-hint">자동</span></label>
+                  <div class="pv-readout accent" id="pvOpSalesTotal">0원</div>
+                </div>
+              </div>
+
+              <hr class="pv-divider">
+              <p class="pv-subhead">비용 증빙 <span class="pv-subhead-tag">월 평균</span></p>
+              <div class="pv-field-grid cols-3">
+                <div class="pv-field"><label>재료비·매출원가</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpCost" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>인건비 <span class="pv-hint">본인 제외</span></label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpLabor" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>관리비·공과금·기타</label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvOpMgmt" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+              </div>
+              <div class="pv-field-grid" style="margin-top:12px;">
+                <div class="pv-field">
+                  <label>임차료 <span class="pv-hint">기본정보 월세 자동연동</span></label>
+                  <div class="pv-readout" id="pvOpRent">0원</div>
+                </div>
+                <div class="pv-field">
+                  <label>▶ 월 순이익 <span class="pv-hint">자동</span></label>
+                  <div class="pv-readout accent" id="pvOpNetProfit">0원</div>
+                </div>
+              </div>
+
+              <hr class="pv-divider">
+              <div class="pv-field-grid">
+                <div class="pv-field"><label>적용 개월수 <span class="pv-hint">통상 6~12, 보수 12 권장</span></label><div class="pv-suffix-wrap"><input type="number" id="pvOpMonths" value="12"><span class="pv-suffix">개월</span></div></div>
+                <div class="pv-field">
+                  <label>▶ 영업권리금 평가액</label>
+                  <div class="pv-readout accent" id="pvOpResult">0원</div>
+                </div>
+              </div>
+              <div class="pv-warn-box" id="pvOpWarn" style="display:none;">⚠ 순이익이 없거나 음수 → 영업권리금 정당화 불가. 시설가치만 검토하세요.</div>
+
+              <hr class="pv-divider">
+              <p class="pv-subhead">재료비 적정성 교차검증 <span class="pv-subhead-tag">참고</span></p>
+              <div class="pv-field-grid cols-3">
+                <div class="pv-field"><label>업종 평균 원가율 <span class="pv-hint">업종 선택 시 자동, 수정 가능</span></label><div class="pv-suffix-wrap"><input type="number" id="pvCostRateRef" placeholder="0"><span class="pv-suffix">%</span></div></div>
+                <div class="pv-field"><label>역산 재료비 <span class="pv-hint">자동</span></label><div class="pv-readout" id="pvCostRateCalc">0원</div></div>
+                <div class="pv-field"><label>제시값 대비 차이 <span class="pv-hint">자동</span></label><div class="pv-readout" id="pvCostRateDiff">0원</div></div>
+              </div>
+              <div class="pv-verdict muted" id="pvCostRateVerdict" style="margin-top:10px;">업종과 매출·재료비를 입력하면 판정이 표시됩니다.</div>
+            </div>
+
+            <!-- ③ 바닥권리금 -->
+            <div class="pv-card">
+              <div class="pv-card-head"><h3>③ 바닥(지역)권리금</h3><span class="pv-sub">입지 프리미엄 · 참고</span></div>
+              <div class="pv-field-grid">
+                <div class="pv-field"><label>인근 동일조건 시세 권리금 <span class="pv-hint">모르면 0</span></label><div class="pv-suffix-wrap"><input type="text" inputmode="numeric" id="pvFloorPrice" class="pv-money" placeholder="0"><span class="pv-suffix">원</span></div></div>
+                <div class="pv-field"><label>▶ 바닥권리금 반영액</label><div class="pv-readout" id="pvFloorResult">0원</div></div>
+              </div>
+            </div>
+
+            <div class="pv-note-box">
+              ※ 이 계산기는 협상·검토용 추정치이며 법적 평가나 감정가가 아닙니다. 실제 거래는 증빙자료 확인이 우선입니다.
+            </div>
+
+          </div>
+
+          <!-- 종합검증결과 -->
+          <div class="pv-col-side">
+            <div class="pv-card">
+              <div class="pv-card-head"><h3 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>종합 검증 결과</h3></div>
+              <div class="pv-result-row"><span class="pv-r-label">산출 권리금 합계</span><span class="pv-r-value" id="rSumCalc">0원</span></div>
+              <div class="pv-result-row"><span class="pv-r-label">제시 권리금</span><span class="pv-r-value" id="rAskPremium">0원</span></div>
+              <div class="pv-result-row"><span class="pv-r-label">차액 (제시 − 산출)</span><span class="pv-r-value" id="rDiff">0원</span></div>
+              <div class="pv-result-row big"><span class="pv-r-label">괴리율</span><span class="pv-r-value" id="rGapRate">0%</span></div>
+              <div class="pv-result-row big"><span class="pv-r-label">투자 회수기간</span><span class="pv-r-value" id="rPayback">-</span></div>
+
+              <div class="pv-verdict muted" id="rGapVerdict">기본 정보를 입력하면 판정이 표시됩니다.</div>
+              <div class="pv-verdict muted" id="rPaybackVerdict" style="display:none;"></div>
+
+              <div class="pv-ratio-grid">
+                <div class="pv-ratio-box"><div class="v" id="rRatioMultiple">-</div><div class="l">권리금/월세배수</div></div>
+                <div class="pv-ratio-box"><div class="v" id="rRatioSales">-</div><div class="l">권리금/월매출비율</div></div>
+                <div class="pv-ratio-box"><div class="v" id="rRatioMargin">-</div><div class="l">순이익률</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    </main>
+    <aside class="favorites-panel" data-fav-mount="desktop"></aside>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 참고표 모달 ===================== -->
+<div class="rec-modal-overlay" id="pvRefOverlay">
+  <div class="rec-modal" style="max-width:640px;">
+    <div class="rec-modal-head">
+      <h2>참고표</h2>
+      <button class="rec-modal-close" id="pvRefClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <p class="pv-subhead">업종별 영업권리금 배수 기준</p>
+      <table class="pv-ref-table">
+        <thead><tr><th>업종</th><th class="center">통상 배수</th><th>비고</th></tr></thead>
+        <tbody id="pvRefMultiplierBody"></tbody>
+      </table>
+
+      <p class="pv-subhead" style="margin-top:20px;">회수기간 별표 <span class="pv-subhead-tag">투자회수기간 기준</span></p>
+      <table class="pv-ref-table">
+        <thead><tr><th>판정</th><th class="center">기준</th><th>해석</th></tr></thead>
+        <tbody id="pvRefPaybackBody"></tbody>
+      </table>
+
+      <p class="pv-subhead" style="margin-top:20px;">괴리율 적정성 <span class="pv-subhead-tag">괴리율 기준</span></p>
+      <table class="pv-ref-table">
+        <thead><tr><th>판정</th><th class="center">기준</th><th>해석</th></tr></thead>
+        <tbody id="pvRefGapBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 검토서류 체크리스트 모달 ===================== -->
+<div class="rec-modal-overlay" id="pvDocOverlay">
+  <div class="rec-modal" style="max-width:720px;">
+    <div class="rec-modal-head">
+      <h2>검토서류 체크리스트</h2>
+      <button class="rec-modal-close" id="pvDocClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="pv-doc-summary" id="pvDocSummary"></div>
+      <div id="pvDocList"></div>
+    </div>
+    <div class="rec-modal-foot">
+      <button class="btn-solid" id="pvPrintDocBtn" style="margin-left:auto;">PDF로 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="pv-print-only" id="pvPrintArea"></div>
+
+<div class="rec-toast" id="toast"></div>
+
+<script src="../js/sidebar.js?v=20260816"></script>
+<script src="../js/lock.js?v=20260816"></script>
+<script src="../js/favorites.js?v=20260816"></script>
+<script src="../js/premium-verification.js?v=20260816"></script>
+<script>
+  renderSidebar("premium", { basePrefix: "../" });
+  initLockScreen("../");
+</script>
+</body>
+</html>
