@@ -644,7 +644,9 @@ function crmBuildItemEl(ev) {
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
     contactRowHtml +
-    '<div class="cust-sub-row">' + crmEsc(subText) + (ev.cat === 'CONTRACT' && ev.maemulNo ? ' · 매물 <b>' + crmEsc(ev.maemulNo) + '</b>' : '') + '</div>' +
+    '<div class="cust-sub-row">' + crmEsc(subText) + (ev.cat === 'CONTRACT' && ev.maemulNo
+      ? ' · 매물 <a class="cust-maemul-link" href="' + EXP_MAEMUL_URL + '?q=' + encodeURIComponent(ev.maemulNo) + '" target="_blank" rel="noopener"><b>' + crmEsc(ev.maemulNo) + '</b>' + linkIcon + '</a>'
+      : '') + '</div>' +
     noteHtml +
     '<div class="farm-dp-specs">' +
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
