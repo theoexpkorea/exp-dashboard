@@ -614,10 +614,9 @@ function crmBuildItemEl(ev) {
   if (ev.cat === 'SALE') {
     const parts = [ev.bldg, ev.addr].filter(Boolean);
     if (parts.length) noteHtml = '<div class="farm-dp-sub2">' + crmEsc(parts.join(' · ')) + '</div>';
-  } else if (ev.cat === 'LEAD' && ev.remark) {
+  } else if ((ev.cat === 'LEAD' || ev.cat === 'CONTRACT') && ev.remark) {
     noteHtml = '<div class="farm-dp-sub2">' + crmEsc(ev.remark) + '</div>';
   }
-  // 계약고객은 exp-crm과 동일하게 비고를 표시하지 않음
 
   const sc = crmStatusColor(ev.cat, ev.status);
   const statusStyle = sc ? ' style="background:' + sc.bg + ';color:' + sc.fg + '"' : '';
