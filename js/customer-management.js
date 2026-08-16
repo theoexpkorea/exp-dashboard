@@ -205,6 +205,25 @@ $('scopeTabs').addEventListener('click', e => {
   crmRenderCalendar();
 });
 
+/* 계약관리(contract-management)에서 "?maemul=매물번호"로 넘어온 경우
+   해당 매물번호를 가진 계약고객을 찾아 스코프 전환 + 수정 폼 자동 오픈 */
+function crmHandleMaemulDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const maemul = (params.get('maemul') || '').trim();
+  if (!maemul) return;
+  const tryOpen = () => {
+    const match = crmAllItems.find(x => x.cat === 'CONTRACT' && (x.maemulNo || '') === maemul);
+    if (!match) return;
+    crmScope = 'CONTRACT';
+    document.querySelectorAll('#scopeTabs .rec-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.scope === 'CONTRACT'));
+    crmBucket();
+    crmRenderCalendar();
+    crmOpenEditForm(match);
+  };
+  tryOpen();
+  setTimeout(tryOpen, 1200); // 초기 데이터 로딩이 늦을 경우 대비
+}
+
 /* ===== 모바일 판별 (도트 렌더링 전환) ===== */
 function crmIsMobile() { return window.matchMedia('(max-width: 760px)').matches; }
 let __crmLastMobile = crmIsMobile();
@@ -608,6 +627,12 @@ function crmBuildItemEl(ev) {
 
   const isDone = crmIsDoneToday(ev);
   const statusOpts = crmStatusOptions[ev.cat] || [];
+  const contractDocLink = (ev.cat === 'CONTRACT' && ev.maemulNo)
+    ? '<a class="cust-doc-link" href="contract-management.html?maemul=' + encodeURIComponent(ev.maemulNo) + '" target="_blank" rel="noopener">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
+        '계약서 보기' +
+      '</a>'
+    : '';
   const editIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
   item.innerHTML =
@@ -629,6 +654,7 @@ function crmBuildItemEl(ev) {
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
       '<span>next <b>' + (ev.nextContact || '-') + '</b></span>' +
     '</div>' +
+    contractDocLink +
     '<button type="button" class="cust-done-btn' + (isDone ? ' done' : '') + '" data-toggle="' + key + '">' + (isDone ? '연락완료' : '연락예정') + '</button>' +
     '<div class="cust-contact-panel" id="panel_' + key + '">' +
       '<div class="rec-field"><label>상태</label><select id="sel_' + key + '" data-dash-select>' +
@@ -771,6 +797,7 @@ function crmFieldsHtml(cat, item) {
   const remarkVal = item ? (item.remark || '') : '';
   const memoVal = item ? (item.memo || '') : '';
   const statusVal = item ? item.status : '';
+  const maemulVal = item ? (item.maemulNo || '') : '';
 
   const memoField = crmField('메모', '<textarea id="f_memo" placeholder="통화·연락 메모">' + crmEsc(memoVal) + '</textarea>');
   const idLabelSale = item ? '매물번호' : '매물번호 (선택 · 매물뷰 연동용)';
@@ -794,6 +821,7 @@ function crmFieldsHtml(cat, item) {
     + crmField('성명', '<input type="text" id="f_name" value="' + crmEscAttr(nameVal) + '" placeholder="고객 성명">')
     + crmField('연락처', '<input type="text" id="f_tel" value="' + crmEscAttr(telVal) + '" placeholder="010-0000-0000">')
     + crmBaseFieldHtml(cat) + crmStatusFieldHtml(cat, statusVal)
+    + crmField('매물번호 (선택 · 계약관리 연동용)', '<input type="text" id="f_maemul" value="' + crmEscAttr(maemulVal) + '" placeholder="예: FS0002">')
     + crmField('비고', '<textarea id="f_remark" placeholder="특이사항을 남겨보세요.">' + crmEsc(remarkVal) + '</textarea>')
     + memoField;
 }
@@ -907,7 +935,7 @@ $('formSave').addEventListener('click', async () => {
       payload.id = idVal;
     }
     if (cat === 'LEAD') { payload.name2 = crmFv('f_name2'); payload.remark = crmFv('f_remark'); }
-    if (cat === 'CONTRACT') { payload.remark = crmFv('f_remark'); }
+    if (cat === 'CONTRACT') { payload.remark = crmFv('f_remark'); payload.maemulNo = crmFv('f_maemul'); }
     const memoVal = crmFv('f_memo');
     if (memoVal) payload.memoSet = crmTodayStr() + ' ' + memoVal;
 
@@ -940,7 +968,7 @@ $('formSave').addEventListener('click', async () => {
     if (status) payload.status = status;
     if (crmFormBaseDate) payload.baseDate = crmFormBaseDate;
     if (cat === 'LEAD') { payload.name2 = crmFv('f_name2'); payload.remark = crmFv('f_remark'); }
-    if (cat === 'CONTRACT') { payload.remark = crmFv('f_remark'); }
+    if (cat === 'CONTRACT') { payload.remark = crmFv('f_remark'); payload.maemulNo = crmFv('f_maemul'); }
     payload.memoSet = crmFv('f_memo');
 
     const qs = Object.keys(payload).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(payload[k])).join('&');
@@ -955,7 +983,7 @@ $('formSave').addEventListener('click', async () => {
           if (crmFormBaseDate) it.baseDate = crmFormBaseDate;
           it.memo = payload.memoSet;
           if (cat === 'LEAD') { it.name2 = payload.name2; it.remark = payload.remark; }
-          if (cat === 'CONTRACT') { it.remark = payload.remark; }
+          if (cat === 'CONTRACT') { it.remark = payload.remark; it.maemulNo = payload.maemulNo; }
           if (res.nextContact) it.nextContact = res.nextContact;
         }
         crmWriteCache(crmAllItems, crmStatusOptions);
@@ -1073,4 +1101,5 @@ $('todayBtn').addEventListener('click', () => {
   } else {
     crmLoadData();
   }
+  crmHandleMaemulDeepLink();
 })();

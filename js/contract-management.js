@@ -253,6 +253,11 @@ function maemulViewUrl(maemulNo) {
   return `https://theoexpkorea.github.io/exp-maemul/?q=${encodeURIComponent(maemulNo)}`;
 }
 
+// 고객관리(계약고객 CRM) 열람 링크 — 같은 매물번호로 등록된 계약고객이 있으면 그 수정폼이 자동으로 열림
+function customerViewUrl(maemulNo) {
+  return `customer-management.html?maemul=${encodeURIComponent(maemulNo)}`;
+}
+
 function openDealPanel(dealId) {
   selectedDealId = dealId;
   const docs = dealRows.filter(r => r.dealId === dealId).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
@@ -260,7 +265,7 @@ function openDealPanel(dealId) {
 
   const maemulNo = docs[0].maemulNo;
   document.getElementById("dealPanelTitle").innerHTML = maemulNo
-    ? `${maemulNo} <a class="dp-maemul-link" href="${maemulViewUrl(maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">매물뷰 ↗</a>`
+    ? `${maemulNo} <a class="dp-maemul-link" href="${maemulViewUrl(maemulNo)}" target="_blank" rel="noopener" title="매물뷰에서 열기">매물뷰 ↗</a> <a class="dp-maemul-link" href="${customerViewUrl(maemulNo)}" target="_blank" rel="noopener" title="고객관리에서 열기">고객관리 ↗</a>`
     : dealId;
   document.getElementById("dealPanelSub").textContent = `${dealId} · 문서 ${docs.length}건`;
 
