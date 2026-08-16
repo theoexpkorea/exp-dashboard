@@ -413,7 +413,10 @@ function renderTagManageList() {
     return;
   }
   wrap.innerHTML = clauseTags.map(t => `
-    <div class="tag-manage-row" data-tag="${escapeHtml(t)}">
+    <div class="tag-manage-row" draggable="true" data-tag="${escapeHtml(t)}">
+      <span class="tag-manage-handle" title="드래그해서 순서변경">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+      </span>
       <span class="tag-manage-badge" style="${tagStyle_(t)}">${escapeHtml(t)}</span>
       <span class="tag-manage-actions">
         <button type="button" class="tag-manage-icon-btn tag-rename-btn" title="이름변경">✎</button>
@@ -428,10 +431,74 @@ function renderTagManageList() {
   wrap.querySelectorAll(".tag-remove-btn").forEach(btn => {
     btn.addEventListener("click", () => removeTag(btn.closest(".tag-manage-row").dataset.tag));
   });
+  bindTagDragEvents(wrap);
+}
+
+/* ---------------- 태그 드래그 순서변경 (즐겨찾기 편집과 동일한 개념 — 드래그로 재배열 후 서버에 순서 저장) ---------------- */
+
+let tagDragEl = null;
+
+function bindTagDragEvents(wrap) {
+  const rows = wrap.querySelectorAll(".tag-manage-row");
+  rows.forEach(row => {
+    row.addEventListener("dragstart", () => {
+      tagDragEl = row;
+      // 다음 tick에 클래스 부여 — 드래그 고스트 이미지에 opacity가 바로 반영되는 걸 방지
+      setTimeout(() => row.classList.add("dragging"), 0);
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      wrap.querySelectorAll(".tag-manage-row.drag-over").forEach(r => r.classList.remove("drag-over"));
+      tagDragEl = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!tagDragEl || tagDragEl === row) return;
+      wrap.querySelectorAll(".tag-manage-row.drag-over").forEach(r => r.classList.remove("drag-over"));
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drag-over");
+    });
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (!tagDragEl || tagDragEl === row) return;
+      const rect = row.getBoundingClientRect();
+      const insertAfter = (e.clientY - rect.top) > rect.height / 2;
+      if (insertAfter) {
+        row.after(tagDragEl);
+      } else {
+        row.before(tagDragEl);
+      }
+      saveTagOrder(wrap);
+    });
+  });
+}
+
+async function saveTagOrder(wrap) {
+  const newOrder = Array.from(wrap.querySelectorAll(".tag-manage-row")).map(r => r.dataset.tag);
+  const errEl = document.getElementById("tagManageError");
+  errEl.textContent = "";
+  try {
+    const data = await postJSON("tagReorder", { order: newOrder });
+    if (data && data.ok) {
+      clauseTags = data.tags;
+      renderClauseTagFilters();
+      renderTagPicker();
+    } else {
+      errEl.textContent = "순서 저장에 실패했습니다. 새로고침 후 다시 시도해주세요.";
+      renderTagManageList(); // 서버 반영 실패 시 원래 순서로 되돌림
+    }
+  } catch (e) {
+    errEl.textContent = "순서 저장 실패: " + ((e && e.message) || e);
+    renderTagManageList();
+  }
 }
 
 function startTagRename(row) {
   const oldName = row.dataset.tag;
+  row.draggable = false; // 편집 중엔 텍스트 선택과 드래그가 충돌하지 않도록 비활성화 (취소/저장 시 렌더링으로 복구됨)
   row.innerHTML = `
     <input type="text" class="tag-rename-input" value="${escapeHtml(oldName)}">
     <span class="tag-manage-actions">
