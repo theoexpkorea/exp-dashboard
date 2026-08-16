@@ -1873,6 +1873,8 @@ a { color: inherit; text-decoration: none; }
 .cust-name-row { font-size: 14.5px; font-weight: 800; margin: 11px 0 5px; }
 .cust-name-row a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
 .cust-name-row a:hover { color: var(--accent); }
+.cust-contact-row { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 700; color: var(--accent); margin-bottom: 5px; }
+.cust-contact-row a { color: var(--accent); font-weight: 800; text-decoration: none; }
 .cust-sub-row { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
 .cust-sub-row a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .tel-action-btn {
