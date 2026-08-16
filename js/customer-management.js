@@ -12,6 +12,9 @@ const CRM_CAT_LABEL = { SALE: '매도임대', LEAD: '가망고객', CONTRACT: '�
 const CRM_NEXT_DAYS_DEFAULT = { SALE: 20, CONTRACT: 30 };
 const CRM_LEAD_TEMP_DAYS = { hot: 7, warm: 14, cold: 30 };
 const EXP_MAEMUL_URL = 'https://theoexpkorea.github.io/exp-maemul/';
+// 카카오 디벨로퍼스 > 내 애플리케이션 > 앱 키 > "JavaScript 키"를 여기에 붙여넣으세요.
+// 발급 전에는 빈 문자열로 두면 카카오 공유 버튼이 자동으로 "번호 복사" 방식으로 대체 동작합니다.
+const KAKAO_JS_KEY = 'bc0b457c45ac6e44d41c8c38c64b4a92';
 
 const SALE_STATUS_COLOR = {
   '접수': { bg: '#E8F5E9', fg: '#1B5E20' }, '광고중': { bg: '#E3F2FD', fg: '#0D47A1' },
@@ -46,6 +49,30 @@ function crmOpenSms(tel) {
   if (!tel) return;
   location.href = 'sms:' + tel;
 }
+
+let crmKakaoReady = false;
+try {
+  if (KAKAO_JS_KEY && window.Kakao && !Kakao.isInitialized()) {
+    Kakao.init(KAKAO_JS_KEY);
+    crmKakaoReady = Kakao.isInitialized();
+  }
+} catch (e) { crmKakaoReady = false; }
+
+function crmOpenKakaoShare(name, tel) {
+  if (!tel) return;
+  if (crmKakaoReady && window.Kakao && Kakao.Share) {
+    try {
+      Kakao.Share.sendDefault({
+        objectType: 'text',
+        text: (name ? name + '님, ' : '') + '연락드립니다.',
+        link: { mobileWebUrl: 'https://theoexpkorea.github.io/exp-dashboard/', webUrl: 'https://theoexpkorea.github.io/exp-dashboard/' }
+      });
+      return;
+    } catch (e) { /* 실패 시 아래 복사 방식으로 폴백 */ }
+  }
+  crmCopyTel(tel);
+}
+
 function crmCopyTel(tel) {
   if (!tel) return;
   const done = () => crmToast('번호가 복사됐어요 · 카톡에서 붙여넣으세요');
@@ -422,8 +449,8 @@ function crmConsultBuildEl(it) {
           '<button type="button" class="tel-action-btn" data-sms-tel="' + crmEsc(it.tel) + '" aria-label="문자 보내기">' +
             '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
           '</button>' +
-          '<button type="button" class="tel-action-btn" data-copy-tel="' + crmEsc(it.tel) + '" aria-label="번호 복사(카톡용)">' +
-            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          '<button type="button" class="tel-action-btn" data-kakao-tel="' + crmEsc(it.tel) + '" data-kakao-name="' + crmEscAttr(it.name || '') + '" aria-label="카카오톡 공유">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M8 16h5M21 11.5c0 4.7-4 8.5-9 8.5-1 0-2-.15-2.9-.42L4 21l1.2-3.6C3.8 16 3 13.9 3 11.5 3 6.8 7 3 12 3s9 3.8 9 8.5Z"/></svg>' +
           '</button>'
         : '연락처 없음') +
     '</div>' +
@@ -437,8 +464,8 @@ function crmConsultBuildEl(it) {
   const smsBtn = item.querySelector('[data-sms-tel]');
   if (smsBtn) smsBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenSms(smsBtn.dataset.smsTel); });
 
-  const copyBtn = item.querySelector('[data-copy-tel]');
-  if (copyBtn) copyBtn.addEventListener('click', e => { e.stopPropagation(); crmCopyTel(copyBtn.dataset.copyTel); });
+  const kakaoBtn = item.querySelector('[data-kakao-tel]');
+  if (kakaoBtn) kakaoBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenKakaoShare(kakaoBtn.dataset.kakaoName, kakaoBtn.dataset.kakaoTel); });
 
   return item;
 }
@@ -563,15 +590,17 @@ function crmBuildItemEl(ev) {
   const nameHtml = ev.cat === 'SALE'
     ? '<a href="' + EXP_MAEMUL_URL + '?q=' + encodeURIComponent(ev.id) + '" target="_blank">' + crmEsc(titleText) + linkIcon + '</a>'
     : crmEsc(titleText);
-  const telHtml = ev.tel ? ' · <a href="tel:' + ev.tel + '">' + crmEsc(ev.tel) + '</a>' : '';
+  const telHtml = ev.tel ? '<a href="tel:' + ev.tel + '">' + crmEsc(ev.tel) + '</a>' : '';
+  const kakaoNameArg = crmEscAttr(titleText || '');
   const telActionsHtml = ev.tel
     ? '<button type="button" class="tel-action-btn" data-sms-tel="' + crmEsc(ev.tel) + '" aria-label="문자 보내기">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
       '</button>' +
-      '<button type="button" class="tel-action-btn" data-copy-tel="' + crmEsc(ev.tel) + '" aria-label="번호 복사(카톡용)">' +
-        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+      '<button type="button" class="tel-action-btn" data-kakao-tel="' + crmEsc(ev.tel) + '" data-kakao-name="' + kakaoNameArg + '" aria-label="카카오톡 공유">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M8 16h5M21 11.5c0 4.7-4 8.5-9 8.5-1 0-2-.15-2.9-.42L4 21l1.2-3.6C3.8 16 3 13.9 3 11.5 3 6.8 7 3 12 3s9 3.8 9 8.5Z"/></svg>' +
       '</button>'
     : '';
+  const contactRowHtml = ev.tel ? '<div class="cust-contact-row">' + telHtml + telActionsHtml + '</div>' : '';
 
   let noteHtml = '';
   if (ev.cat === 'SALE') {
@@ -601,7 +630,8 @@ function crmBuildItemEl(ev) {
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
-    '<div class="cust-sub-row">' + crmEsc(subText) + telHtml + telActionsHtml + '</div>' +
+    contactRowHtml +
+    '<div class="cust-sub-row">' + crmEsc(subText) + '</div>' +
     noteHtml +
     '<div class="farm-dp-specs">' +
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
@@ -636,8 +666,8 @@ function crmBuildItemEl(ev) {
   const smsBtn = item.querySelector('[data-sms-tel]');
   if (smsBtn) smsBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenSms(smsBtn.dataset.smsTel); });
 
-  const copyBtn = item.querySelector('[data-copy-tel]');
-  if (copyBtn) copyBtn.addEventListener('click', e => { e.stopPropagation(); crmCopyTel(copyBtn.dataset.copyTel); });
+  const kakaoBtn = item.querySelector('[data-kakao-tel]');
+  if (kakaoBtn) kakaoBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenKakaoShare(kakaoBtn.dataset.kakaoName, kakaoBtn.dataset.kakaoTel); });
 
   return item;
 }
