@@ -42,6 +42,28 @@ function crmToast(msg) {
 function crmEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function crmEscAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
+function crmOpenSms(tel) {
+  if (!tel) return;
+  location.href = 'sms:' + tel;
+}
+function crmCopyTel(tel) {
+  if (!tel) return;
+  const done = () => crmToast('번호가 복사됐어요 · 카톡에서 붙여넣으세요');
+  const fail = () => crmToast('복사에 실패했어요. 번호를 길게 눌러 복사해 주세요.');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tel).then(done).catch(fail);
+  } else {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = tel; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { fail(); }
+  }
+}
+
 /* ===== 날짜 유틸 (exp-crm과 동일 로직) ===== */
 function crmTodayStr() {
   const d = new Date();
@@ -394,13 +416,29 @@ function crmConsultBuildEl(it) {
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + crmEsc(it.name || '(이름없음)') + '</div>' +
-    '<div class="cust-sub-row">' + (it.tel ? '<a href="tel:' + it.tel + '">' + crmEsc(it.tel) + '</a>' : '연락처 없음') + '</div>' +
+    '<div class="cust-sub-row">' +
+      (it.tel
+        ? '<a href="tel:' + it.tel + '">' + crmEsc(it.tel) + '</a>' +
+          '<button type="button" class="tel-action-btn" data-sms-tel="' + crmEsc(it.tel) + '" aria-label="문자 보내기">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+          '</button>' +
+          '<button type="button" class="tel-action-btn" data-copy-tel="' + crmEsc(it.tel) + '" aria-label="번호 복사(카톡용)">' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          '</button>'
+        : '연락처 없음') +
+    '</div>' +
     (specs ? '<div class="farm-dp-sub2">' + crmEsc(specs) + '</div>' : '') +
     (it.request ? '<div class="farm-dp-sub2">' + crmEsc(it.request) + '</div>' : '') +
     '<div class="farm-dp-specs"><span>마케팅동의 <b>' + crmEsc(it.marketingAgree || '-') + '</b></span></div>';
 
   const viewBtn = item.querySelector('[data-consult-view]');
   if (viewBtn) viewBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenConsultEditForm(it); });
+
+  const smsBtn = item.querySelector('[data-sms-tel]');
+  if (smsBtn) smsBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenSms(smsBtn.dataset.smsTel); });
+
+  const copyBtn = item.querySelector('[data-copy-tel]');
+  if (copyBtn) copyBtn.addEventListener('click', e => { e.stopPropagation(); crmCopyTel(copyBtn.dataset.copyTel); });
 
   return item;
 }
@@ -526,6 +564,14 @@ function crmBuildItemEl(ev) {
     ? '<a href="' + EXP_MAEMUL_URL + '?q=' + encodeURIComponent(ev.id) + '" target="_blank">' + crmEsc(titleText) + linkIcon + '</a>'
     : crmEsc(titleText);
   const telHtml = ev.tel ? ' · <a href="tel:' + ev.tel + '">' + crmEsc(ev.tel) + '</a>' : '';
+  const telActionsHtml = ev.tel
+    ? '<button type="button" class="tel-action-btn" data-sms-tel="' + crmEsc(ev.tel) + '" aria-label="문자 보내기">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+      '</button>' +
+      '<button type="button" class="tel-action-btn" data-copy-tel="' + crmEsc(ev.tel) + '" aria-label="번호 복사(카톡용)">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+      '</button>'
+    : '';
 
   let noteHtml = '';
   if (ev.cat === 'SALE') {
@@ -555,7 +601,7 @@ function crmBuildItemEl(ev) {
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
-    '<div class="cust-sub-row">' + crmEsc(subText) + telHtml + '</div>' +
+    '<div class="cust-sub-row">' + crmEsc(subText) + telHtml + telActionsHtml + '</div>' +
     noteHtml +
     '<div class="farm-dp-specs">' +
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
@@ -586,6 +632,12 @@ function crmBuildItemEl(ev) {
 
   const editBtn = item.querySelector('[data-editbtn]');
   if (editBtn) editBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenEditForm(ev); });
+
+  const smsBtn = item.querySelector('[data-sms-tel]');
+  if (smsBtn) smsBtn.addEventListener('click', e => { e.stopPropagation(); crmOpenSms(smsBtn.dataset.smsTel); });
+
+  const copyBtn = item.querySelector('[data-copy-tel]');
+  if (copyBtn) copyBtn.addEventListener('click', e => { e.stopPropagation(); crmCopyTel(copyBtn.dataset.copyTel); });
 
   return item;
 }
