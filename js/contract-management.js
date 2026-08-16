@@ -1293,7 +1293,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const tab = btn.dataset.tab;
       document.getElementById("panel-contract").classList.toggle("active", tab === "contract");
       document.getElementById("panel-clause").classList.toggle("active", tab === "clause");
-      document.getElementById("mainFabLabel").textContent = tab === "contract" ? "새 계약서 등록" : "새 특약 등록";
+      document.getElementById("mainFabLabel").textContent = tab === "contract" ? "계약서 등록" : "특약 등록";
     });
   });
 
