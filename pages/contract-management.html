@@ -135,7 +135,14 @@
 
   /* 태그 관리 모달 */
   .tag-manage-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
-  .tag-manage-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; }
+  .tag-manage-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+  .tag-manage-row.dragging { opacity:.4; }
+  .tag-manage-row.drag-over { border-color:var(--accent); background:var(--accent-soft); }
+  .tag-manage-handle {
+    flex-shrink:0; width:18px; height:18px; display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted); cursor:grab; touch-action:none;
+  }
+  .tag-manage-handle:active { cursor:grabbing; }
   .tag-manage-badge { padding:4px 10px; border-radius:999px; font-size:12.5px; font-weight:800; }
   .tag-manage-actions { margin-left:auto; display:flex; gap:6px; flex-shrink:0; }
   .tag-manage-icon-btn {
@@ -256,7 +263,7 @@
         <p>계약서 라이브러리 · 특약 라이브러리</p>
       </div>
 
-      <div class="rec-kpi-grid" id="statGrid">
+      <div class="rec-kpi-grid kpi-row-3" id="statGrid">
         <div class="rec-stat-card tint-total" data-goto-tab="contract">
           <div class="icon-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/></svg>
@@ -444,8 +451,8 @@
       <button class="rec-modal-close" id="clauseFormClose">✕</button>
     </div>
     <div class="rec-modal-body">
-      <div class="rec-field" style="margin-bottom:14px;">
-        <label>태그 (여러 개 선택 가능)</label>
+      <div class="rec-field" style="margin-bottom:18px;">
+        <label style="margin-bottom:10px;">태그 (여러 개 선택 가능)</label>
         <div class="tag-picker" id="clauseTagPicker"></div>
       </div>
       <div class="rec-form-grid full">
