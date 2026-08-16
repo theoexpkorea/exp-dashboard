@@ -155,6 +155,26 @@ function updateKpis() {
 
 /* ---------------- 계약서 라이브러리: 거래그룹 리스트 ---------------- */
 
+// 카드 미리보기 설명은 "본계약"(매매·임대차) 문서의 특이사항요약을 최우선으로 사용한다.
+// 같은 매물번호로 권리금계약/전대차/가계약/합의서/기타가 함께 엮여 있어도, 매매나 임대차 문서가
+// 하나라도 있으면 무조건 그 문서의 요약을 카드에 노출한다(날짜와 무관하게 최우선순위).
+// 매매·임대차가 없는 거래건(권리금계약만 있는 경우 등)에 한해서만, 가계약/합의서/기타를 제외한
+// 나머지 중 최신 문서를 차선으로 사용하고, 그마저도 없으면 전체 중 최신 문서를 사용한다.
+const MAIN_CONTRACT_TYPES = ["매매", "임대차"];
+const NON_MAIN_CONTRACT_TYPES = ["가계약", "합의서", "기타"];
+
+function pickMainDoc(docs) {
+  const byLatest = list => list.slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")).pop();
+
+  const mainDocs = docs.filter(d => MAIN_CONTRACT_TYPES.includes(d.type));
+  if (mainDocs.length) return byLatest(mainDocs);
+
+  const secondaryDocs = docs.filter(d => !NON_MAIN_CONTRACT_TYPES.includes(d.type));
+  if (secondaryDocs.length) return byLatest(secondaryDocs);
+
+  return byLatest(docs);
+}
+
 function groupDeals(rows) {
   const map = new Map();
   for (const r of rows) {
@@ -165,7 +185,8 @@ function groupDeals(rows) {
   for (const [dealId, docs] of map.entries()) {
     docs.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
     const latest = docs[docs.length - 1];
-    groups.push({ dealId, maemulNo: latest.maemulNo, docs, latestDate: latest.date, latestSummary: latest.summary });
+    const mainDoc = pickMainDoc(docs);
+    groups.push({ dealId, maemulNo: latest.maemulNo, docs, latestDate: latest.date, latestSummary: mainDoc.summary });
   }
   groups.sort((a, b) => (b.latestDate || "").localeCompare(a.latestDate || ""));
   return groups;
