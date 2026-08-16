@@ -148,9 +148,9 @@ async function loadClauses() {
 
 function updateKpis() {
   const dealIds = new Set(dealRows.map(r => r.dealId));
-  document.getElementById("statDeals").textContent = dealIds.size;
-  document.getElementById("statDocs").textContent = dealRows.length;
-  document.getElementById("statClauses").textContent = clauseRows.length;
+  document.getElementById("statDeals").textContent = dealIds.size + "건";
+  document.getElementById("statDocs").textContent = dealRows.length + "건";
+  document.getElementById("statClauses").textContent = clauseRows.length + "건";
 }
 
 /* ---------------- 계약서 라이브러리: 거래그룹 리스트 ---------------- */
