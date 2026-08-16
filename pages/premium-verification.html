@@ -32,25 +32,44 @@
 
   .pv-toolbar { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
   .pv-toolbar .btn-soft { display:flex; align-items:center; gap:6px; }
+  .pv-btn-ref { background:var(--bg); color:var(--text-secondary); border-color:var(--border-strong); }
+  .pv-btn-doc { background:#EDE9FE; color:#6D28D9; border-color:transparent; }
+  .pv-btn-doc:hover { background:#E1D9FC; }
+  .pv-btn-print { background:var(--accent-soft); color:var(--accent); border-color:transparent; }
+  .pv-btn-print:hover { background:#DCE3FB; }
+  .pv-guide-link { background:none; border:none; color:var(--text-muted); font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; padding:0; display:flex; align-items:center; gap:4px; }
+  .pv-guide-link:hover { color:var(--accent); }
 
   .pv-print-only { display:none; }
   @media print {
     body * { visibility: hidden; }
-    .pv-print-only, .pv-print-only * { visibility: visible; }
+    .pv-print-only, .pv-print-only * {
+      visibility: visible;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
+    }
     .pv-print-only { display:block; position:absolute; left:0; top:0; width:100%; padding:0; }
-    .pv-print-only h1 { font-size:18px; margin:0 0 3px; }
-    .pv-print-only .pv-print-sub { font-size:11px; color:#666; margin-bottom:18px; }
-    .pv-print-only h2 { font-size:13px; margin:18px 0 8px; padding-bottom:5px; border-bottom:1.5px solid #333; }
-    .pv-print-table { width:100%; border-collapse:collapse; margin-bottom:4px; }
-    .pv-print-table td { padding:4px 6px; font-size:11.5px; border-bottom:1px solid #eee; }
-    .pv-print-table td:first-child { color:#666; width:40%; }
-    .pv-print-verdict { font-size:11.5px; font-weight:700; margin:8px 0; padding:7px 9px; background:#f2f2f2; border-radius:4px; }
+    .pv-print-only h1 { font-size:19px; margin:0 0 3px; color:var(--text); }
+    .pv-print-only .pv-print-sub { font-size:11px; color:#727A86; margin-bottom:18px; }
+
+    .pv-print-card { background:#F4F5F7; border-radius:10px; padding:14px 16px; margin-bottom:12px; break-inside:avoid; }
+    .pv-print-card h2 { margin:0 0 10px; font-size:13px; font-weight:800; color:var(--accent); }
+    .pv-print-row { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:1px solid #E6E8EC; font-size:11.5px; }
+    .pv-print-row:last-child { border-bottom:none; }
+    .pv-print-row .prl { color:#727A86; }
+    .pv-print-row .prv { font-weight:700; text-align:right; }
+
+    .pv-print-ratio-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+    .pv-print-ratio-box { background:#fff; border-radius:8px; padding:8px; text-align:center; }
+    .pv-print-ratio-box .v { font-size:13px; font-weight:800; }
+    .pv-print-ratio-box .l { font-size:9.5px; color:#727A86; margin-top:2px; }
+
     .pv-print-doc-summary { font-size:12px; font-weight:700; margin-bottom:12px; }
-    .pv-print-doc-item { margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #eee; font-size:11.5px; break-inside:avoid; }
-    .pv-print-doc-item .pdi-name { font-weight:700; }
-    .pv-print-doc-item .pdi-badges { font-size:10px; color:#666; margin-left:6px; }
-    .pv-print-doc-item .pdi-meta { color:#666; font-size:10.5px; margin-top:2px; }
-    .pv-print-doc-item .pdi-status { font-size:10.5px; font-weight:700; margin-top:3px; }
+    .pv-print-doc-item { margin-bottom:9px; padding:11px 13px; background:#F4F5F7; border-radius:8px; font-size:11.5px; break-inside:avoid; }
+    .pv-print-doc-item .pdi-name { font-weight:800; }
+    .pv-print-doc-item .pdi-meta { color:#727A86; font-size:10.5px; margin-top:3px; }
+    .pv-print-doc-item .pdi-status { font-size:10.5px; font-weight:700; margin-top:4px; }
+
+    .pv-print-disclaimer { margin-top:18px; padding:12px 14px; background:#FBF1E2; border:1px solid #F2DDB0; border-radius:8px; font-size:10.5px; color:#7A5A16; line-height:1.6; font-weight:600; break-inside:avoid; }
   }
 
   .pv-layout { display:grid; grid-template-columns: 1fr 360px; gap:16px; align-items:start; }
@@ -163,9 +182,9 @@
       </div>
 
       <div class="pv-toolbar">
-        <button class="btn-soft" id="pvRefOpenBtn">참고표</button>
-        <button class="btn-soft" id="pvDocOpenBtn">검토서류 체크리스트</button>
-        <button class="btn-soft" id="pvPrintSummaryBtn">전체 내역 PDF 저장</button>
+        <button class="btn-soft pv-btn-ref" id="pvRefOpenBtn">참고표</button>
+        <button class="btn-soft pv-btn-doc" id="pvDocOpenBtn">검토서류 체크리스트</button>
+        <button class="btn-soft pv-btn-print" id="pvPrintSummaryBtn">전체 내역 PDF 저장</button>
       </div>
 
       <div class="pv-layout">
@@ -178,10 +197,10 @@
                 <div class="pv-toolbar-btns"><button class="pv-btn-reset" id="pvResetBtn">전체 초기화</button></div>
               </div>
               <div class="pv-field-grid">
-                <div class="pv-field"><label>점포명 / 소재지</label><input type="text" id="pvShop" placeholder="예: 청라 OO상가 1층 102호"></div>
+                <div class="pv-field"><label>점포명 / 소재지</label><input type="text" id="pvShop"></div>
                 <div class="pv-field">
                   <label>업종</label>
-                  <select id="pvBiz">
+                  <select id="pvBiz" data-dash-select>
                     <option value="">선택</option>
                     <option>한식/일반음식</option>
                     <option>카페/디저트</option>
@@ -379,6 +398,12 @@
         <thead><tr><th>판정</th><th class="center">기준</th><th>해석</th></tr></thead>
         <tbody id="pvRefGapBody"></tbody>
       </table>
+
+      <p class="pv-subhead" style="margin-top:20px;">업종별 평균 원가율 <span class="pv-subhead-tag">재료비 교차검증용</span></p>
+      <table class="pv-ref-table">
+        <thead><tr><th>업종</th><th class="center">평균 원가율</th></tr></thead>
+        <tbody id="pvRefCostRateBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -391,11 +416,36 @@
       <button class="rec-modal-close" id="pvDocClose">✕</button>
     </div>
     <div class="rec-modal-body">
-      <div class="pv-doc-summary" id="pvDocSummary"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <div class="pv-doc-summary" id="pvDocSummary" style="margin-bottom:0;"></div>
+        <button type="button" class="pv-guide-link" id="pvGuideOpenBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+          활용 안내
+        </button>
+      </div>
       <div id="pvDocList"></div>
     </div>
     <div class="rec-modal-foot">
       <button class="btn-solid" id="pvPrintDocBtn" style="margin-left:auto;">PDF로 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 활용 안내 모달 ===================== -->
+<div class="rec-modal-overlay" id="pvGuideOverlay">
+  <div class="rec-modal" style="max-width:560px;">
+    <div class="rec-modal-head">
+      <h2>활용 안내</h2>
+      <button class="rec-modal-close" id="pvGuideClose">✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="pv-note-box" style="margin-top:0;">
+        • 매도인(임차인)은 이 서류들을 제출할 법적 의무가 없습니다. 전부 협상이며, 거부하면 그만큼 권리금을 깎거나 거래를 보류하는 것이 매수인 측 레버리지입니다.<br>
+        • 최소 마지노선: '카드매출 정산내역 + 부가세 신고서'. 이 둘조차 못 주면 제시 순이익은 근거 없음으로 보고 디스카운트하는 것이 합리적입니다.<br>
+        • 교차검증이 핵심: 카드매출 + 배달앱 + 추정 현금매출의 합과 부가세 신고매출이 크게 벌어지면 → 현금 누락(탈세)이거나 매수인에 부풀린 것입니다. 어느 쪽이든 협상 카드가 됩니다.<br>
+        • 서류 하나하나는 조작·왜곡 여지가 있으므로 단독 신뢰 금지. 신뢰도 '최상'(카드사·공공기관 직접 발급분)을 기준점으로 삼고 나머지를 대조하세요.<br>
+        • 이 체크리스트는 거래 검토용이며 법률 자문이 아닙니다. 최종 판단 전 권리금·임대차 관련 사항은 별도 확인이 필요합니다.
+      </div>
     </div>
   </div>
 </div>
@@ -407,6 +457,7 @@
 <script src="../js/sidebar.js?v=20260816"></script>
 <script src="../js/lock.js?v=20260816"></script>
 <script src="../js/favorites.js?v=20260816"></script>
+<script src="../js/dash-widgets.js?v=20260816"></script>
 <script src="../js/premium-verification.js?v=20260816"></script>
 <script>
   renderSidebar("premium", { basePrefix: "../" });
