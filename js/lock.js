@@ -222,13 +222,13 @@ function setupPasswordLock(overlay, credsRef) {
     }
     const creds = credsRef.current;
     if (!creds) {
-      errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요";
+      errorEl.textContent = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.";
       return;
     }
     if (creds.pass && input.value === creds.pass) {
       unlockAndRemove(overlay);
     } else {
-      errorEl.textContent = "비밀번호가 올바르지 않습니다";
+      errorEl.textContent = "비밀번호가 올바르지 않습니다.";
       input.value = "";
       input.focus();
     }
@@ -252,7 +252,7 @@ function patternLockMarkup() {
         <svg class="pattern-svg" id="pattern-svg"></svg>
         ${dots}
       </div>
-      <div class="lock-error" id="lock-error">패턴을 그려주세요</div>
+      <div class="lock-error" id="lock-error">패턴을 그려주세요.</div>
     </div>
   `;
 }
@@ -265,11 +265,11 @@ function setupPatternLock(overlay, credsRef) {
   const creds = credsRef.current;
 
   if (!creds) {
-    errorEl.textContent = "서버에 연결할 수 없습니다";
+    errorEl.textContent = "서버에 연결할 수 없습니다.";
     return; // 서버 응답 없으면 그리기 자체를 막음
   }
   if (!creds.pattern || creds.pattern.length < 3) {
-    errorEl.textContent = "패턴이 설정되지 않았습니다 (비번 탭 B2 확인)";
+    errorEl.textContent = "패턴이 설정되지 않았습니다. (비번 탭 B2 확인)";
     return;
   }
 
@@ -298,7 +298,7 @@ function setupPatternLock(overlay, credsRef) {
     lastY = null;
     dotEls.forEach((d) => d.classList.remove("active", "error"));
     svg.innerHTML = "";
-    errorEl.textContent = isError ? "패턴이 올바르지 않습니다. 다시 시도하세요" : "패턴을 그려주세요";
+    errorEl.textContent = isError ? "패턴이 올바르지 않습니다. 다시 시도하세요." : "패턴을 그려주세요.";
   }
 
   function addPoint(n) {
