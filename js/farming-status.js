@@ -449,7 +449,8 @@ const farmDealSelect = DashUI.initSelect($('fDealBtn'), $('fDealPop'), FARM_DEAL
 /* 고객 배정 커스텀 드롭다운 (동적 옵션 — 열 때마다 새로 초기화) */
 let farmCustSelect = null;
 function farmRebuildCustSelect(selectedId) {
-  const sorted = [...farmCustomers].sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
+  const visible = farmCustomers.filter(c => c.상태 !== '보류' || c.고객ID === selectedId);
+  const sorted = [...visible].sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
   const options = sorted.map(c => c.고객ID + ' · ' + (c.고객명 || ''));
   const idByLabel = {};
   options.forEach((label, i) => { idByLabel[label] = sorted[i].고객ID; });
@@ -647,7 +648,7 @@ $('formDelete').addEventListener('click', async () => {
 /* ===== 고객조건 보기 (목록 ↔ 상세) ===== */
 const farmCustOverlay = $('custOverlay');
 function farmSortedCustomers() {
-  return [...farmCustomers].sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
+  return farmCustomers.filter(c => c.상태 !== '보류').sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
 }
 function farmRenderCustList() {
   $('custModalTitle').textContent = '고객조건 보기';
