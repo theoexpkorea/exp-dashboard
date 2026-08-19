@@ -652,6 +652,7 @@ function farmSortedCustomers() {
 }
 function farmRenderCustList() {
   $('custModalTitle').textContent = '고객조건 보기';
+  if ($('custAddBtn')) $('custAddBtn').style.display = '';
   const list = farmSortedCustomers();
   $('custModalBody').innerHTML = list.length ? list.map(c =>
     '<div class="farm-cust-row" data-cust="' + c.고객ID + '">' +
@@ -664,6 +665,7 @@ function farmRenderCustDetail(id) {
   const c = farmCustomers.find(x => x.고객ID === id);
   if (!c) return;
   $('custModalTitle').textContent = c.고객ID;
+  if ($('custAddBtn')) $('custAddBtn').style.display = 'none';
   const tel = c.연락처 ? '<a href="tel:' + c.연락처 + '" style="color:var(--accent);font-weight:700;text-decoration:none;">' + c.연락처 + '</a>' : '-';
   const rows = [
     ['고객명', c.고객명 || '-'],
@@ -681,6 +683,7 @@ function farmRenderCustDetail(id) {
     '<button class="farm-cust-back" id="custBackBtn">← 목록으로</button>' +
     rows.map(([k, v, raw]) => '<div class="farm-cust-detail-row"><div class="k">' + k + '</div><div class="v">' + (raw ? v : v) + '</div></div>').join('') +
     '<div style="display:flex;gap:8px;margin-top:16px;">' +
+      '<button class="btn-soft" data-cust-hold="' + c.고객ID + '" style="flex:1;justify-content:center;">' + (c.상태 === '보류' ? '보류 해제' : '보류로 표시') + '</button>' +
       '<button class="btn-soft" data-cust-edit="' + c.고객ID + '" style="flex:1;justify-content:center;">수정</button>' +
       '<button class="btn-danger-outline" data-cust-del="' + c.고객ID + '" style="flex:1;justify-content:center;">삭제</button>' +
     '</div>';
@@ -690,6 +693,8 @@ $('custListBtn').addEventListener('click', () => { farmRenderCustList(); farmCus
 $('custModalClose').addEventListener('click', () => farmCustOverlay.classList.remove('show'));
 farmCustOverlay.addEventListener('click', e => { if (e.target === farmCustOverlay) farmCustOverlay.classList.remove('show'); });
 $('custModalBody').addEventListener('click', e => {
+  const holdBtn = e.target.closest('[data-cust-hold]');
+  if (holdBtn) { farmToggleCustHold(holdBtn.dataset.custHold); return; }
   const editBtn = e.target.closest('[data-cust-edit]');
   if (editBtn) { farmOpenCustForm(editBtn.dataset.custEdit); return; }
   const delBtn = e.target.closest('[data-cust-del]');
@@ -697,6 +702,23 @@ $('custModalBody').addEventListener('click', e => {
   const row = e.target.closest('[data-cust]'); if (!row) return;
   farmRenderCustDetail(row.dataset.cust);
 });
+async function farmToggleCustHold(id) {
+  const c = farmCustomers.find(x => x.고객ID === id);
+  if (!c) return;
+  const prev = c.상태;
+  const next = c.상태 === '보류' ? '' : '보류';
+  c.상태 = next; // 화면 먼저 반영
+  farmRenderCustDetail(id);
+  try {
+    const res = await farmJsonp({ mode: 'custUpdate', 고객ID: id, 상태: next });
+    if (res && res.ok === false) throw new Error(res.error || '실패');
+    farmToast(next === '보류' ? '보류로 표시했어요.' : '보류를 해제했어요.');
+  } catch (e) {
+    c.상태 = prev; // 실패 시 원복
+    farmRenderCustDetail(id);
+    farmToast('저장 실패 — 다시 시도해 주세요.');
+  }
+}
 
 /* ===== 고객 추가/수정/삭제 (파밍서치와 동일한 백엔드 mode 재사용: custAdd/custUpdate/custDelete) ===== */
 const CUST_DEAL_OPTIONS = ['무관', ...FARM_DEAL_OPTIONS];
