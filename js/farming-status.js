@@ -648,15 +648,19 @@ $('formDelete').addEventListener('click', async () => {
 /* ===== 고객조건 보기 (목록 ↔ 상세) ===== */
 const farmCustOverlay = $('custOverlay');
 function farmSortedCustomers() {
-  return farmCustomers.filter(c => c.상태 !== '보류').sort((a, b) => String(a.고객ID).localeCompare(String(b.고객ID)));
+  return [...farmCustomers].sort((a, b) => {
+    const ah = a.상태 === '보류' ? 1 : 0, bh = b.상태 === '보류' ? 1 : 0;
+    if (ah !== bh) return ah - bh;
+    return String(a.고객ID).localeCompare(String(b.고객ID));
+  });
 }
 function farmRenderCustList() {
   $('custModalTitle').textContent = '고객조건 보기';
   if ($('custAddBtn')) $('custAddBtn').style.display = '';
   const list = farmSortedCustomers();
   $('custModalBody').innerHTML = list.length ? list.map(c =>
-    '<div class="farm-cust-row" data-cust="' + c.고객ID + '">' +
-      '<div class="farm-cust-name">' + c.고객ID + ' · ' + (c.고객명 || '') + '</div>' +
+    '<div class="farm-cust-row' + (c.상태 === '보류' ? ' is-hold' : '') + '" data-cust="' + c.고객ID + '">' +
+      '<div class="farm-cust-name">' + c.고객ID + ' · ' + (c.고객명 || '') + (c.상태 === '보류' ? ' <span style="color:#94a3b8;font-weight:600;font-size:12px;">· 보류</span>' : '') + '</div>' +
       '<div class="farm-cust-meta">' + [c.희망지역, c.희망거래유형, (c.평수최소 || '?') + '~' + (c.평수최대 || '?') + '평'].filter(Boolean).join(' · ') + (c.연락처 ? ' · ' + c.연락처 : '') + '</div>' +
     '</div>'
   ).join('') : '<div class="farm-cust-empty">등록된 고객이 없습니다.</div>';
