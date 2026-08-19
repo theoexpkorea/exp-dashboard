@@ -20,7 +20,8 @@ const SALE_STATUS_COLOR = {
 };
 const LEAD_STATUS_COLOR = {
   hot: { bg: '#FDECEC', fg: '#C0392B' }, warm: { bg: '#FBF1E2', fg: '#9A5B14' }, cold: { bg: '#EAF2FE', fg: '#1D5FBF' },
-  '계약완료': { bg: '#EDE7F6', fg: '#4527A0' }, '종료': { bg: '#F5F5F5', fg: '#9E9E9E' }
+  '계약완료': { bg: '#EDE7F6', fg: '#4527A0' }, '종료': { bg: '#F5F5F5', fg: '#9E9E9E' },
+  '보류': { bg: '#F1F5F9', fg: '#64748B' }
 };
 const CONTRACT_STATUS_COLOR = {
   '사후관리': { bg: '#E3F2FD', fg: '#0D47A1' }, '재계약예정': { bg: '#FFF8E1', fg: '#F57F17' },
@@ -108,11 +109,13 @@ function crmDDayBadge(nextStr) {
 }
 function crmEstimateNext(cat, status) {
   if (cat === 'LEAD') {
+    if (status === '보류') return null;
     const d = CRM_LEAD_TEMP_DAYS[status] || 30;
     return crmAddDays(crmTodayStr(), d);
   }
   return crmAddDays(crmTodayStr(), CRM_NEXT_DAYS_DEFAULT[cat] || 20);
 }
+function crmNextHidden(it) { return it.cat === 'LEAD' && it.status === '보류'; }
 
 /* ===== "당일 고정" 표시 로직 =====
    오늘 연락완료 처리한 항목은 서버가 이미 실제 다음연락일(미래 날짜, 시트 수식 그대로)로
@@ -158,6 +161,7 @@ function crmScopeMatch(it) { return crmScope === 'all' || it.cat === crmScope; }
 function crmBucket() {
   crmEventsByDate = {};
   crmAllItems.filter(crmScopeMatch).forEach(it => {
+    if (crmNextHidden(it)) return; // 보류 상태는 다음연락일을 화면에 표시하지 않음
     const d = crmDisplayDate(it); // 오늘 처리한 항목은 오늘 날짜에 고정, 아니면 실제 다음연락일
     if (!d) return;
     if (!crmEventsByDate[d]) crmEventsByDate[d] = [];
@@ -341,7 +345,7 @@ function crmRenderCalendar() {
 }
 
 function crmRenderStats() {
-  const todayCount = crmAllItems.filter(it => { const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
+  const todayCount = crmAllItems.filter(it => { if (crmNextHidden(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
   $('statToday').textContent = todayCount + '건';
   $('statSale').textContent = crmAllItems.filter(it => it.cat === 'SALE').length + '건';
   $('statLead').textContent = crmAllItems.filter(it => it.cat === 'LEAD').length + '건';
@@ -388,7 +392,7 @@ function crmOpenDayPanel(key, y, m, d, events) {
 function crmOpenTodayPanel() {
   crmPanelMode = 'today';
   const list = crmAllItems
-    .filter(it => { const x = crmDisplayDDay(it); return x !== null && x <= 0; })
+    .filter(it => { if (crmNextHidden(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; })
     .sort((a, b) => (crmDisplayDate(a) || '').localeCompare(crmDisplayDate(b) || ''));
   $('dpTitle').textContent = '오늘 처리';
   $('dpSub').textContent = list.length ? list.length + '건 (오늘 + 지난 연락 예정 포함)' : '처리할 항목이 없습니다';
@@ -639,7 +643,7 @@ function crmBuildItemEl(ev) {
       '</div>' +
       '<div class="cust-tags-right">' +
         '<button type="button" class="cust-edit-btn" data-editbtn="1" aria-label="정보 수정">' + editIcon + '</button>' +
-        (isDone ? '<span class="cust-dday-badge done">오늘 처리완료</span>' : crmDDayBadge(ev.nextContact)) +
+        (crmNextHidden(ev) ? '' : (isDone ? '<span class="cust-dday-badge done">오늘 처리완료</span>' : crmDDayBadge(ev.nextContact))) +
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
@@ -650,7 +654,7 @@ function crmBuildItemEl(ev) {
     noteHtml +
     '<div class="farm-dp-specs">' +
       '<span>last <b>' + (ev.lastContact || '-') + '</b></span>' +
-      '<span>next <b>' + (ev.nextContact || '-') + '</b></span>' +
+      (crmNextHidden(ev) ? '<span style="color:#9E9E9E;font-size:12px;">보류 · 다음연락 없음</span>' : '<span>next <b>' + (ev.nextContact || '-') + '</b></span>') +
     '</div>' +
     contractDocLink +
     '<button type="button" class="cust-done-btn' + (isDone ? ' done' : '') + '" data-toggle="' + key + '">' + (isDone ? '연락완료' : '연락예정') + '</button>' +
@@ -658,7 +662,9 @@ function crmBuildItemEl(ev) {
       '<div class="rec-field"><label>상태</label><select id="sel_' + key + '" data-dash-select>' +
         statusOpts.map(o => '<option value="' + crmEscAttr(o) + '"' + (o === ev.status ? ' selected' : '') + '>' + crmEsc(o) + '</option>').join('') +
       '</select></div>' +
-      '<div class="cust-contact-preview" id="preview_' + key + '">다음 연락일은 저장하면 <b>' + crmEstimateNext(ev.cat, ev.status) + '</b>(으)로 자동 계산돼요.</div>' +
+      '<div class="cust-contact-preview" id="preview_' + key + '">' +
+        (crmEstimateNext(ev.cat, ev.status) ? '다음 연락일은 저장하면 <b>' + crmEstimateNext(ev.cat, ev.status) + '</b>(으)로 자동 계산돼요.' : '보류 상태로 저장하면 다음 연락일이 표시되지 않아요.') +
+      '</div>' +
       '<div class="rec-field"><label>메모 추가 (선택)</label><textarea id="memo_' + key + '" placeholder="통화 내용을 간단히 남겨보세요."></textarea></div>' +
       '<div class="cust-contact-actions">' +
         '<button type="button" class="cust-contact-cancel" data-cancel="' + key + '">취소</button>' +
@@ -672,7 +678,8 @@ function crmBuildItemEl(ev) {
     DashUI.wrapNativeSelect(selectEl);
     selectEl.addEventListener('change', () => {
       const prev = item.querySelector('#preview_' + key);
-      if (prev) prev.innerHTML = '다음 연락일은 저장하면 <b>' + crmEstimateNext(ev.cat, selectEl.value) + '</b>(으)로 자동 계산돼요.';
+      const est = crmEstimateNext(ev.cat, selectEl.value);
+      if (prev) prev.innerHTML = est ? '다음 연락일은 저장하면 <b>' + est + '</b>(으)로 자동 계산돼요.' : '보류 상태로 저장하면 다음 연락일이 표시되지 않아요.';
     });
   }
 
