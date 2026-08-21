@@ -239,6 +239,7 @@ function openRecModal(client) {
   document.getElementById('rec-f-hideEum').checked = client ? !!client.hideEum : false;
   document.getElementById('rec-f-hideSemas').checked = client ? !!client.hideSemas : false;
   document.getElementById('rec-f-hideTradeReport').checked = client ? !!client.hideTradeReport : false;
+  document.getElementById('rec-f-hideContact').checked = client ? !!client.hideContact : false;
 
   titleEl.textContent = client ? '고객 정보 수정' : '추천매물 등록';
   document.getElementById('rec-delete-btn').classList.toggle('hidden', !client);
@@ -311,6 +312,7 @@ function saveRecClient() {
     hideEum: document.getElementById('rec-f-hideEum').checked,
     hideSemas: document.getElementById('rec-f-hideSemas').checked,
     hideTradeReport: document.getElementById('rec-f-hideTradeReport').checked,
+    hideContact: document.getElementById('rec-f-hideContact').checked,
     notes: notes
   };
 
