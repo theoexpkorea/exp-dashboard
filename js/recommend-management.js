@@ -335,7 +335,7 @@ function saveRecClient() {
     saveBtn.textContent = '저장';
     if (res && res.ok) {
       closeRecModal();
-      showRecToast('저장했어요');
+      showRecToast('저장했어요.');
       loadRecommendList();
     } else if (res && res.error === 'dup_access') {
       errEl.textContent = '이미 사용 중인 접속코드입니다.';
