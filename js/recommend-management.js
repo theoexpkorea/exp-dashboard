@@ -248,9 +248,9 @@ function openRecModal(client) {
   notesWrap.innerHTML = '';
   var existingNotes = client ? notesForAccess(client.access) : [];
   if (existingNotes.length) {
-    existingNotes.forEach(function (n) { addNoteRow(n.id, n.note); });
+    existingNotes.forEach(function (n) { addNoteRow(n.id, n.note, n.youtube); });
   } else {
-    addNoteRow('', '');
+    addNoteRow('', '', '');
   }
 
   overlay.classList.add('show');
@@ -262,7 +262,7 @@ function closeRecModal() {
   document.body.style.overflow = '';
 }
 
-function addNoteRow(id, note) {
+function addNoteRow(id, note, youtube) {
   recNoteRowSeq++;
   var wrap = document.getElementById('rec-notes-list');
   var row = document.createElement('div');
@@ -271,6 +271,8 @@ function addNoteRow(id, note) {
   row.innerHTML =
     '<input type="text" class="note-id" placeholder="매물번호" value="' + escapeHtml(id || '') + '" autocomplete="off" data-lpignore="true" />' +
     '<textarea class="note-text" placeholder="추천 멘트">' + escapeHtml(note || '') + '</textarea>' +
+    '<span class="note-youtube-label">유튜브 링크 입력</span>' +
+    '<input type="url" class="note-youtube" placeholder="https://youtu.be/..." value="' + escapeHtml(youtube || '') + '" autocomplete="off" data-lpignore="true" />' +
     '<button type="button" class="rec-note-del" title="삭제">' + trashIconSvg() + '</button>';
   row.querySelector('.rec-note-del').addEventListener('click', function () { row.remove(); });
   wrap.appendChild(row);
@@ -282,7 +284,8 @@ function collectNotes() {
   rows.forEach(function (row) {
     var id = row.querySelector('.note-id').value.trim();
     var note = row.querySelector('.note-text').value.trim();
-    if (id) out.push({ id: id, note: note });
+    var youtube = row.querySelector('.note-youtube').value.trim();
+    if (id) out.push({ id: id, note: note, youtube: youtube });
   });
   return out;
 }
@@ -513,5 +516,5 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('rec-cancel-btn').addEventListener('click', closeRecModal);
   document.getElementById('rec-save-btn').addEventListener('click', saveRecClient);
   document.getElementById('rec-delete-btn').addEventListener('click', deleteRecClient);
-  document.getElementById('rec-add-note-btn').addEventListener('click', function () { addNoteRow('', ''); });
+  document.getElementById('rec-add-note-btn').addEventListener('click', function () { addNoteRow('', '', ''); });
 });
