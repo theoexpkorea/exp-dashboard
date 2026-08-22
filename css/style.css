@@ -1337,6 +1337,7 @@ a { color: inherit; text-decoration: none; }
 .rec-note-row .rec-note-del { grid-area: del; }
 .rec-note-row .note-youtube-label {
   grid-area: lbl;
+  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
