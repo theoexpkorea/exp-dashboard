@@ -50,7 +50,7 @@ function crmOpenSms(tel) {
 
 function crmCopyKakaoMessage(name) {
   const msg = (name ? name + '님, ' : '') + '안녕하세요, 연락드립니다.';
-  const done = () => crmToast('메시지가 복사됐어요 · 카톡에서 붙여넣고 수정 후 보내세요');
+  const done = () => crmToast('메시지가 복사됐어요. · 카톡에서 붙여넣고 수정 후 보내세요.');
   const fail = () => crmToast('복사에 실패했어요. 잠시 후 다시 시도해 주세요.');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(msg).then(done).catch(fail);
@@ -68,7 +68,7 @@ function crmCopyKakaoMessage(name) {
 
 function crmCopyTel(tel) {
   if (!tel) return;
-  const done = () => crmToast('번호가 복사됐어요 · 카톡에서 붙여넣으세요');
+  const done = () => crmToast('번호가 복사됐어요. · 카톡에서 붙여넣으세요.');
   const fail = () => crmToast('복사에 실패했어요. 번호를 길게 눌러 복사해 주세요.');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(tel).then(done).catch(fail);
