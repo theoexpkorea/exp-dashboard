@@ -219,10 +219,10 @@ function crmHandleMaemulDeepLink() {
   document.querySelectorAll('#scopeTabs .rec-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.scope === 'CONTRACT'));
   crmBucket();
   crmRenderCalendar();
-  crmOpenCatPanel('CONTRACT');
+  crmOpenCatPanel('CONTRACT', maemul);
   // 초기 데이터 로딩이 이 시점에 아직 안 끝났을 수 있어서, 잠시 후 패널을 한 번 더 갱신
   // (그 사이 사용자가 다른 패널로 이동했으면 건드리지 않음)
-  setTimeout(() => { if (crmPanelMode === 'cat:CONTRACT') crmOpenCatPanel('CONTRACT'); }, 1200);
+  setTimeout(() => { if (crmPanelMode === 'cat:CONTRACT') crmOpenCatPanel('CONTRACT', maemul); }, 1200);
 }
 
 /* ===== 모바일 판별 (도트 렌더링 전환) ===== */
@@ -368,6 +368,7 @@ const crmDayPanel = $('dayPanel');
 const crmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let crmPanelKey = null, crmPanelYmd = [0, 0, 0];
 let crmPanelMode = 'date'; // 'date' | 'today' | 'cat:SALE'|'cat:LEAD'|'cat:CONTRACT' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
+let crmPanelMaemulFilter = ''; // cat 패널이 특정 매물번호로 필터링된 상태인지 (딥링크 진입 시)
 
 function crmOpenDayPanel(key, y, m, d, events) {
   crmPanelMode = 'date';
@@ -408,13 +409,23 @@ function crmOpenTodayPanel() {
 }
 // 매도임대/가망고객/계약고객 카드 클릭 — 다음연락일과 무관하게 해당 카테고리 전체를 보여줌
 // (statSale/statLead/statContract 뱃지 집계와 동일한 기준: it.cat === cat)
-function crmOpenCatPanel(cat) {
+function crmOpenCatPanel(cat, maemulFilter) {
   crmPanelMode = 'cat:' + cat;
-  const list = crmAllItems
+  crmPanelMaemulFilter = maemulFilter || '';
+  let list = crmAllItems
     .filter(it => it.cat === cat)
     .sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
-  $('dpTitle').textContent = CRM_CAT_LABEL[cat];
-  $('dpSub').textContent = list.length ? list.length + '건' : '등록된 고객이 없습니다';
+
+  let filtered = false;
+  if (maemulFilter) {
+    const matched = list.filter(it => (it.maemulNo || '').trim() === maemulFilter.trim());
+    if (matched.length > 0) { list = matched; filtered = true; }
+  }
+
+  $('dpTitle').textContent = filtered ? CRM_CAT_LABEL[cat] + ' · ' + maemulFilter : CRM_CAT_LABEL[cat];
+  $('dpSub').textContent = list.length
+    ? (list.length + '건' + (maemulFilter && !filtered ? ' (일치 고객 없음 · 전체 표시)' : ''))
+    : '등록된 고객이 없습니다';
   const body = $('dpBody');
   body.innerHTML = '';
   if (list.length === 0) {
@@ -757,7 +768,7 @@ async function crmSaveContact(cat, row, key, btnEl) {
       if (crmPanelMode === 'today') {
         crmOpenTodayPanel();
       } else if (crmPanelMode.indexOf('cat:') === 0) {
-        crmOpenCatPanel(crmPanelMode.slice(4));
+        crmOpenCatPanel(crmPanelMode.slice(4), crmPanelMaemulFilter);
       } else {
         crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
       }
