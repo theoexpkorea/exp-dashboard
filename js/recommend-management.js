@@ -229,7 +229,13 @@ function openRecModal(client) {
   document.getElementById('rec-f-code').value = client ? client.code : '';
   document.getElementById('rec-f-name').value = client ? client.name : '';
   document.getElementById('rec-f-access').value = client ? client.access : '';
-  document.getElementById('rec-f-type').value = client ? (client.type || '중개사') : '중개사';
+  var typeSelectEl = document.getElementById('rec-f-type');
+  typeSelectEl.value = client ? (client.type || '중개사') : '중개사';
+  // 커스텀 드롭다운(dash-widgets.js)은 페이지 로드 시 딱 한 번만 화면 표시를 초기화하고
+  // 이후 select.value가 JS로 바뀌어도 버튼 텍스트를 자동 갱신하지 않는 구조라,
+  // 고객마다 다른 "구분" 값이 항상 첫 옵션(중개사)으로만 표시되던 버그의 원인이었음.
+  // 값 설정 직후 명시적으로 동기화해서 화면과 실제 값이 항상 일치하도록 함.
+  if (window.DashUI && DashUI.syncSelect) DashUI.syncSelect(typeSelectEl);
   var mapParsed = parseMapUrl(client ? client.mapUrl : '');
   document.getElementById('rec-f-map-edit').value = mapParsed.edit;
   document.getElementById('rec-f-map-preview').value = mapParsed.preview;

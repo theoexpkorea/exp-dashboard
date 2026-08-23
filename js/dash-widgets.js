@@ -219,10 +219,14 @@
     Array.from(selectEl.options).forEach(o => { valueByLabel[o.textContent] = o.value; });
     const initialLabel = selectEl.selectedOptions[0] ? selectEl.selectedOptions[0].textContent : options[0];
 
-    initSelect(btn, pop, options, initialLabel, label => {
+    const ctrl = initSelect(btn, pop, options, initialLabel, label => {
       selectEl.value = valueByLabel[label];
       selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    // 커스텀 UI 컨트롤러를 원본 select에 매달아둔다 — 이후 페이지 JS가
+    // selectEl.value를 프로그래밍적으로 바꾼 뒤(예: 수정 폼에 기존 데이터 채우기)
+    // syncSelect()로 화면 표시도 강제로 맞출 수 있게 하기 위함.
+    selectEl._dashCtrl = ctrl;
   }
   function autoWrapSelects() {
     document.querySelectorAll('select[data-dash-select]').forEach(wrapNativeSelect);
@@ -233,5 +237,16 @@
     autoWrapSelects();
   }
 
-  window.DashUI = { initSelect, openCalendar, todayStr, wrapNativeSelect, openTimePicker };
+  /* wrapNativeSelect로 래핑된 select의 .value를 페이지 JS가 나중에
+     프로그래밍적으로 바꾼 경우(폼에 기존 데이터 채우기 등), 커스텀 드롭다운
+     버튼 표시가 자동으로 갱신되지 않는 문제를 해결하기 위한 강제 동기화 함수.
+     사용법: select.value = '고객'; DashUI.syncSelect(select); */
+  function syncSelect(selectEl) {
+    if (!selectEl || !selectEl._dashCtrl) return;
+    const opt = selectEl.selectedOptions[0];
+    const label = opt ? opt.textContent : '';
+    selectEl._dashCtrl.set(label);
+  }
+
+  window.DashUI = { initSelect, openCalendar, todayStr, wrapNativeSelect, openTimePicker, syncSelect };
 })();
