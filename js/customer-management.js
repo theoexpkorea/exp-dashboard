@@ -161,7 +161,7 @@ function crmScopeMatch(it) { return crmScope === 'all' || it.cat === crmScope; }
 function crmBucket() {
   crmEventsByDate = {};
   crmAllItems.filter(crmScopeMatch).forEach(it => {
-    if (crmNextHidden(it)) return; // 보류 상태는 다음연락일을 화면에 표시하지 않음
+    if (crmNextHidden(it) && !crmIsDoneToday(it)) return; // 보류 상태는 다음연락일을 화면에 표시하지 않음 (단, 오늘 처리한 건은 오늘 칸에 표시)
     const d = crmDisplayDate(it); // 오늘 처리한 항목은 오늘 날짜에 고정, 아니면 실제 다음연락일
     if (!d) return;
     if (!crmEventsByDate[d]) crmEventsByDate[d] = [];
@@ -345,7 +345,7 @@ function crmRenderCalendar() {
 }
 
 function crmRenderStats() {
-  const todayCount = crmAllItems.filter(it => { if (crmNextHidden(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
+  const todayCount = crmAllItems.filter(it => { if (crmNextHidden(it) && !crmIsDoneToday(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
   $('statToday').textContent = todayCount + '건';
   $('statSale').textContent = crmAllItems.filter(it => it.cat === 'SALE').length + '건';
   $('statLead').textContent = crmAllItems.filter(it => it.cat === 'LEAD').length + '건';
@@ -393,7 +393,7 @@ function crmOpenDayPanel(key, y, m, d, events) {
 function crmOpenTodayPanel() {
   crmPanelMode = 'today';
   const list = crmAllItems
-    .filter(it => { if (crmNextHidden(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; })
+    .filter(it => { if (crmNextHidden(it) && !crmIsDoneToday(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; })
     .sort((a, b) => (crmDisplayDate(a) || '').localeCompare(crmDisplayDate(b) || ''));
   $('dpTitle').textContent = '오늘 처리';
   $('dpSub').textContent = list.length ? list.length + '건 (오늘 + 지난 연락 예정 포함)' : '처리할 항목이 없습니다';
@@ -654,7 +654,7 @@ function crmBuildItemEl(ev) {
       '</div>' +
       '<div class="cust-tags-right">' +
         '<button type="button" class="cust-edit-btn" data-editbtn="1" aria-label="정보 수정">' + editIcon + '</button>' +
-        (crmNextHidden(ev) ? '' : (isDone ? '<span class="cust-dday-badge done">오늘 처리완료</span>' : crmDDayBadge(ev.nextContact))) +
+        (crmNextHidden(ev) && !isDone ? '' : (isDone ? '<span class="cust-dday-badge done">오늘 처리완료</span>' : crmDDayBadge(ev.nextContact))) +
       '</div>' +
     '</div>' +
     '<div class="cust-name-row">' + nameHtml + '</div>' +
