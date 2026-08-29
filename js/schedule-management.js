@@ -378,6 +378,7 @@ function schedOpenForm(existing, dateForNew) {
   // 동적으로 열리는 select라 dash-widgets.js의 자동 스캔(DOMContentLoaded 1회성)을 못 받음 —
   // 폼을 열 때마다 수동으로 커스텀 드롭다운 래핑 (등록/수정 폼 공통 패턴, 고객관리와 동일)
   if (window.DashUI) DashUI.wrapNativeSelect($('fType'));
+  if (window.DashUI && DashUI.syncSelect) DashUI.syncSelect($('fType'));
 
   schedCloseDayPanel();
   schedFormOverlay.classList.add('show');
