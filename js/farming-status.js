@@ -818,8 +818,14 @@ $('custFormSave').addEventListener('click', async () => {
 
 function farmDeleteCustomer(id) {
   if (!confirm('이 고객 조건을 삭제할까요? 배정된 매물의 적합여부 매칭이 끊어질 수 있습니다.')) return;
-  farmCustomers = farmCustomers.filter(c => c.고객ID !== id);
-  farmRenderCustList();
+  const body = $('custModalBody');
+  body.style.transition = 'opacity 0.15s ease';
+  body.style.opacity = '0';
+  setTimeout(() => {
+    farmCustomers = farmCustomers.filter(c => c.고객ID !== id);
+    farmRenderCustList();
+    body.style.opacity = '1';
+  }, 150);
   farmToast('삭제 완료');
   farmJsonp({ mode: 'custDelete', 고객ID: id })
     .then(() => farmLoadData(true).then(farmRenderCustList))
