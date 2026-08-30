@@ -25,7 +25,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="HUB" />
 <meta property="og:image" content="../og-image.png" />
-<link rel="stylesheet" href="../css/style.css?v=20260817a" />
+<link rel="stylesheet" href="../css/style.css?v=20260831a" />
 </head>
 <body>
 
@@ -142,6 +142,16 @@
     <div><div class="farm-dp-title" id="dpTitle">-</div><div class="farm-dp-sub" id="dpSub">-</div></div>
     <button class="farm-dp-close" id="dpClose">✕</button>
   </div>
+  <div class="cust-sort-row" id="dpSortRow" style="display:none;">
+    <button type="button" class="cust-sort-btn" id="dpSortBtn">
+      <span id="dpSortLabel">다음연락일순</span>
+      <span class="cust-sort-car">▾</span>
+    </button>
+    <div class="cust-sort-pop" id="dpSortPop">
+      <div class="cust-sort-opt sel" data-sort="dday">다음연락일순</div>
+      <div class="cust-sort-opt" data-sort="maemul">매물번호순</div>
+    </div>
+  </div>
   <div class="farm-dp-body" id="dpBody"></div>
 </div>
 
@@ -193,7 +203,7 @@
 <script src="../js/lock.js?v=20260805"></script>
 <script src="../js/favorites.js?v=20260805"></script>
 <script src="../js/dash-widgets.js?v=20260805"></script>
-<script src="../js/customer-management.js?v=20260817a"></script>
+<script src="../js/customer-management.js?v=20260831a"></script>
 <script>
   renderSidebar("customer", { basePrefix: "../" });
   initLockScreen("../");
