@@ -369,11 +369,24 @@ const crmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let crmPanelKey = null, crmPanelYmd = [0, 0, 0];
 let crmPanelMode = 'date'; // 'date' | 'today' | 'cat:SALE'|'cat:LEAD'|'cat:CONTRACT' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
 let crmPanelMaemulFilter = ''; // cat 패널이 특정 매물번호로 필터링된 상태인지 (딥링크 진입 시)
+let crmCatSortKey = 'dday'; // cat 패널 정렬 기준: 'dday'(다음연락일순, 기본) | 'maemul'(매물번호순, SALE 전용)
+let crmCatSortCat = '';     // 정렬 상태가 어느 카테고리에 대한 것인지 (카테고리 전환 시 기본값으로 리셋하기 위함)
+
+function crmSortCatList(list, cat) {
+  const sorted = list.slice();
+  if (cat === 'SALE' && crmCatSortKey === 'maemul') {
+    sorted.sort((a, b) => (a.id || '').localeCompare(b.id || '', 'ko', { numeric: true, sensitivity: 'base' }));
+  } else {
+    sorted.sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
+  }
+  return sorted;
+}
 
 function crmOpenDayPanel(key, y, m, d, events) {
   crmPanelMode = 'date';
   crmPanelKey = key;
   crmPanelYmd = [y, m, d];
+  const sortRow0 = $('dpSortRow'); if (sortRow0) sortRow0.style.display = 'none';
   const wd = crmWeekdayNames[new Date(y, m, d).getDay()];
   $('dpTitle').textContent = y + '년 ' + (m + 1) + '월 ' + d + '일 (' + wd + ')';
   $('dpSub').textContent = events.length ? events.length + '건의 다음연락 예정' : '기록 없음';
@@ -392,6 +405,7 @@ function crmOpenDayPanel(key, y, m, d, events) {
 // (statToday 뱃지 집계와 동일한 기준: crmDDay(nextContact) <= 0)
 function crmOpenTodayPanel() {
   crmPanelMode = 'today';
+  const sortRow0 = $('dpSortRow'); if (sortRow0) sortRow0.style.display = 'none';
   const list = crmAllItems
     .filter(it => { if (crmNextHidden(it) && !crmIsDoneToday(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; })
     .sort((a, b) => (crmDisplayDate(a) || '').localeCompare(crmDisplayDate(b) || ''));
@@ -409,12 +423,13 @@ function crmOpenTodayPanel() {
 }
 // 매도임대/가망고객/계약고객 카드 클릭 — 다음연락일과 무관하게 해당 카테고리 전체를 보여줌
 // (statSale/statLead/statContract 뱃지 집계와 동일한 기준: it.cat === cat)
-function crmOpenCatPanel(cat, maemulFilter) {
+function crmOpenCatPanel(cat, maemulFilter, keepSort) {
   crmPanelMode = 'cat:' + cat;
   crmPanelMaemulFilter = maemulFilter || '';
-  let list = crmAllItems
-    .filter(it => it.cat === cat)
-    .sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
+  if (!keepSort || crmCatSortCat !== cat) crmCatSortKey = 'dday'; // 카테고리 바뀌면 정렬 기본값(다음연락일순)으로 리셋
+  crmCatSortCat = cat;
+
+  let list = crmSortCatList(crmAllItems.filter(it => it.cat === cat), cat);
 
   let filtered = false;
   if (maemulFilter) {
@@ -426,6 +441,21 @@ function crmOpenCatPanel(cat, maemulFilter) {
   $('dpSub').textContent = list.length
     ? (list.length + '건' + (maemulFilter && !filtered ? ' (일치 고객 없음 · 전체 표시)' : ''))
     : '등록된 고객이 없습니다';
+
+  // 매도임대(SALE)만 매물번호순/다음연락일순 정렬 드롭다운 노출
+  const sortRow = $('dpSortRow');
+  if (sortRow) {
+    if (cat === 'SALE') {
+      sortRow.style.display = '';
+      const label = crmCatSortKey === 'maemul' ? '매물번호순' : '다음연락일순';
+      $('dpSortLabel').textContent = label;
+      sortRow.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o.dataset.sort === crmCatSortKey));
+    } else {
+      sortRow.style.display = 'none';
+      sortRow.classList.remove('open');
+    }
+  }
+
   const body = $('dpBody');
   body.innerHTML = '';
   if (list.length === 0) {
@@ -435,6 +465,25 @@ function crmOpenCatPanel(cat, maemulFilter) {
   }
   crmOverlay.classList.add('open');
   crmDayPanel.classList.add('open');
+}
+
+// 정렬 드롭다운 — 패널 자체는 유지한 채 목록만 다시 정렬해서 그림
+const crmDpSortRow = $('dpSortRow');
+const crmDpSortBtn = $('dpSortBtn');
+if (crmDpSortRow && crmDpSortBtn) {
+  crmDpSortBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    crmDpSortRow.classList.toggle('open');
+  });
+  crmDpSortRow.addEventListener('click', e => {
+    const opt = e.target.closest('.cust-sort-opt');
+    if (!opt) return;
+    crmDpSortRow.classList.remove('open');
+    if (opt.dataset.sort === crmCatSortKey) return;
+    crmCatSortKey = opt.dataset.sort;
+    crmOpenCatPanel(crmCatSortCat, crmPanelMaemulFilter, true);
+  });
+  document.addEventListener('click', () => crmDpSortRow.classList.remove('open'));
 }
 function crmCloseDayPanel() { crmOverlay.classList.remove('open'); crmDayPanel.classList.remove('open'); }
 crmOverlay.addEventListener('click', () => { crmCloseDayPanel(); crmCloseForm(); });
@@ -495,6 +544,7 @@ function crmConsultBuildEl(it) {
 
 async function crmOpenConsultPanel() {
   crmPanelMode = 'consult';
+  const sortRow0 = $('dpSortRow'); if (sortRow0) sortRow0.style.display = 'none';
   $('dpTitle').textContent = '신규상담';
   $('dpSub').textContent = '불러오는 중...';
   const body = $('dpBody');
@@ -768,7 +818,7 @@ async function crmSaveContact(cat, row, key, btnEl) {
       if (crmPanelMode === 'today') {
         crmOpenTodayPanel();
       } else if (crmPanelMode.indexOf('cat:') === 0) {
-        crmOpenCatPanel(crmPanelMode.slice(4), crmPanelMaemulFilter);
+        crmOpenCatPanel(crmPanelMode.slice(4), crmPanelMaemulFilter, true);
       } else {
         crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
       }
