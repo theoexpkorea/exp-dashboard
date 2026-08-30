@@ -1878,6 +1878,16 @@ a { color: inherit; text-decoration: none; }
 .cust-dot.overdue { background: var(--danger); }
 
 /* 일별 패널 상단 카테고리 태그 */
+.cust-sort-row { display: flex; justify-content: flex-end; padding: 8px 20px; border-bottom: 1px solid var(--border); position: relative; }
+.cust-sort-btn { display: flex; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); background: none; border: none; cursor: pointer; padding: 2px 0; }
+.cust-sort-btn:hover { color: var(--accent); }
+.cust-sort-car { font-size: 10px; transition: transform 0.15s; }
+.cust-sort-row.open .cust-sort-car { transform: rotate(180deg); }
+.cust-sort-pop { display: none; position: absolute; top: 34px; right: 20px; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); overflow: hidden; z-index: 5; min-width: 130px; }
+.cust-sort-row.open .cust-sort-pop { display: block; }
+.cust-sort-opt { font-size: 13px; padding: 9px 14px; color: var(--text-secondary); cursor: pointer; }
+.cust-sort-opt:hover { background: var(--bg); }
+.cust-sort-opt.sel { color: var(--accent); font-weight: 800; }
 .cust-tag { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
 .cust-tag.cat-SALE { background: #DCEBFD; color: #1D5FBF; }
 .cust-tag.cat-LEAD { background: #DCF3E9; color: #12805E; }
