@@ -9,6 +9,7 @@
 const CRM_DATA_URL = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
 const CRM_CAT_ORDER = ['SALE', 'LEAD', 'CONTRACT'];
 const CRM_CAT_LABEL = { SALE: '매도임대', LEAD: '가망고객', CONTRACT: '계약고객' };
+const CRM_SORT_ID_LABEL = { SALE: '매물번호순', LEAD: '고객코드순', CONTRACT: '고객코드순' }; // 정렬 드롭다운 2번째 옵션 라벨(카테고리별 명칭 차이)
 const CRM_NEXT_DAYS_DEFAULT = { SALE: 20, CONTRACT: 30 };
 const CRM_LEAD_TEMP_DAYS = { hot: 7, warm: 14, cold: 30 };
 const EXP_MAEMUL_URL = 'https://theoexpkorea.github.io/exp-maemul/';
@@ -369,12 +370,12 @@ const crmWeekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
 let crmPanelKey = null, crmPanelYmd = [0, 0, 0];
 let crmPanelMode = 'date'; // 'date' | 'today' | 'cat:SALE'|'cat:LEAD'|'cat:CONTRACT' — 저장 후 패널을 어떤 기준으로 다시 그릴지 구분
 let crmPanelMaemulFilter = ''; // cat 패널이 특정 매물번호로 필터링된 상태인지 (딥링크 진입 시)
-let crmCatSortKey = 'dday'; // cat 패널 정렬 기준: 'dday'(다음연락일순, 기본) | 'maemul'(매물번호순, SALE 전용)
+let crmCatSortKey = 'dday'; // cat 패널 정렬 기준: 'dday'(다음연락일순, 기본) | 'id'(매물번호순·고객코드순, 카테고리별 라벨만 다름)
 let crmCatSortCat = '';     // 정렬 상태가 어느 카테고리에 대한 것인지 (카테고리 전환 시 기본값으로 리셋하기 위함)
 
 function crmSortCatList(list, cat) {
   const sorted = list.slice();
-  if (cat === 'SALE' && crmCatSortKey === 'maemul') {
+  if (crmCatSortKey === 'id') {
     sorted.sort((a, b) => (a.id || '').localeCompare(b.id || '', 'ko', { numeric: true, sensitivity: 'base' }));
   } else {
     sorted.sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
@@ -442,18 +443,15 @@ function crmOpenCatPanel(cat, maemulFilter, keepSort) {
     ? (list.length + '건' + (maemulFilter && !filtered ? ' (일치 고객 없음 · 전체 표시)' : ''))
     : '등록된 고객이 없습니다';
 
-  // 매도임대(SALE)만 매물번호순/다음연락일순 정렬 드롭다운 노출
+  // 매도임대/가망고객/계약고객 전부 다음연락일순 / 매물번호·고객코드순 정렬 드롭다운 노출
   const sortRow = $('dpSortRow');
   if (sortRow) {
-    if (cat === 'SALE') {
-      sortRow.style.display = '';
-      const label = crmCatSortKey === 'maemul' ? '매물번호순' : '다음연락일순';
-      $('dpSortLabel').textContent = label;
-      sortRow.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o.dataset.sort === crmCatSortKey));
-    } else {
-      sortRow.style.display = 'none';
-      sortRow.classList.remove('open');
-    }
+    sortRow.style.display = '';
+    const idOpt = sortRow.querySelector('.cust-sort-opt[data-sort="id"]');
+    if (idOpt) idOpt.textContent = CRM_SORT_ID_LABEL[cat] || '고객코드순';
+    const label = crmCatSortKey === 'id' ? (CRM_SORT_ID_LABEL[cat] || '고객코드순') : '다음연락일순';
+    $('dpSortLabel').textContent = label;
+    sortRow.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o.dataset.sort === crmCatSortKey));
   }
 
   const body = $('dpBody');
