@@ -36,12 +36,12 @@ function mktToast(msg) {
 }
 
 /* ===== state ===== */
-let mktFormat = 'blog';           // 'blog' | 'insta' | 'naver'
+let mktFormat = 'naver';          // 'blog' | 'insta' | 'naver'
 let mktModel = 'sonnet';          // 'haiku' | 'sonnet'
 let mktModelTouched = false;      // 사용자가 직접 모델을 바꿨는지 (포맷 전환 시 기본값 덮어쓰기 방지용)
 let mktPhotos = [];               // [{ id, previewUrl, mediaType, base64 }]
 let mktLastGenPhotos = [];        // 마지막 생성 시점의 사진 스냅샷 (다운로드용, 생성 이후 첨부 목록이 바뀌어도 안 깨지게)
-let mktLastGenFormat = 'blog';
+let mktLastGenFormat = 'naver';
 let mktLastPhotoMeta = null;      // { order:[...], captions:{n:text} }
 let mktNaverTemplate = '';
 let mktInstaTemplate = '';
@@ -525,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('#mktModelToggle .mkt-model-btn').forEach((btn) => {
     btn.addEventListener('click', () => mktSetModel(btn.dataset.model, true));
   });
-  mktSetFormat('blog');
-  mktSetModel(MKT_DEFAULT_MODEL.blog, false);
+  mktSetFormat('naver');
+  mktSetModel(MKT_DEFAULT_MODEL.naver, false);
 
   const dropzone = $('mktDropzone');
   const fileInput = $('mktFileInput');

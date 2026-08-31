@@ -264,6 +264,8 @@ let schedPanelMode = 'day'; // 'day' | 'week' | 'month'
 function schedOpenDayPanel(key, y, m, d, events) {
   schedPanelMode = 'day';
   schedPanelKey = key;
+  schedListPanelMode = '';
+  const sortRow0 = $('dpSortRow'); if (sortRow0) sortRow0.style.display = 'none';
   const wd = schedWeekdayNames[new Date(y, m, d).getDay()];
   $('dpTitle').textContent = y + '년 ' + (m + 1) + '월 ' + d + '일 (' + wd + ')';
   $('dpSub').textContent = events.length ? events.length + '건의 일정' : '일정 없음';
@@ -279,14 +281,43 @@ function schedOpenDayPanel(key, y, m, d, events) {
   schedDayPanel.classList.add('open');
 }
 
+/* "이번주 일정"/"이번달 일정" 리스트 패널 정렬 — 'date'(날짜순, 기본) | 'type'(작업순, SCHED_TYPES 순서 기준) */
+let schedListSortKey = 'date';
+let schedListPanelMode = ''; // 'week' | 'month' | '' — 정렬 드롭다운은 이 두 모드에서만 노출
+let schedListPanelLabel = '';
+function schedSortListItems(list) {
+  const sorted = [...list];
+  if (schedListSortKey === 'type') {
+    sorted.sort((a, b) => {
+      const ai = SCHED_TYPES.indexOf(a.ev.type), bi = SCHED_TYPES.indexOf(b.ev.type);
+      const ax = ai === -1 ? SCHED_TYPES.length : ai, bx = bi === -1 ? SCHED_TYPES.length : bi;
+      if (ax !== bx) return ax - bx;
+      return (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || ''));
+    });
+  } else {
+    sorted.sort((a, b) => (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || '')));
+  }
+  return sorted;
+}
+
 /* "이번주 일정"/"이번달 일정" 카드 클릭 — 캘린더 렌더 시 함께 채워둔 캐시를 그대로 사용해서
    KPI 숫자와 목록 건수가 항상 정확히 일치하게 함 */
 function schedOpenListPanel(mode, label) {
   schedPanelMode = mode;
+  schedListPanelMode = mode;
+  schedListPanelLabel = label;
   const list = mode === 'week' ? schedWeekItemsCache : schedMonthItemsCache;
-  const sorted = [...list].sort((a, b) => (a.ev.date + (a.ev.time || '')).localeCompare(b.ev.date + (b.ev.time || '')));
+  const sorted = schedSortListItems(list);
   $('dpTitle').textContent = label;
   $('dpSub').textContent = sorted.length ? sorted.length + '건' : '일정 없음';
+
+  const sortRow = $('dpSortRow');
+  if (sortRow) {
+    sortRow.style.display = '';
+    $('dpSortLabel').textContent = schedListSortKey === 'type' ? '작업순' : '날짜순';
+    sortRow.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o.dataset.sort === schedListSortKey));
+  }
+
   const body = $('dpBody');
   body.innerHTML = '';
   if (sorted.length === 0) {
@@ -302,6 +333,25 @@ function schedCloseDayPanel() { schedOverlay.classList.remove('open'); schedDayP
 schedOverlay.addEventListener('click', () => { schedCloseDayPanel(); schedCloseForm(); });
 $('dpClose').addEventListener('click', schedCloseDayPanel);
 $('dpAdd').addEventListener('click', () => schedOpenForm(null, schedPanelKey));
+
+/* 정렬 드롭다운 — 패널은 유지한 채 목록만 다시 정렬해서 그림 (고객관리와 동일 패턴) */
+const schedDpSortRow = $('dpSortRow');
+const schedDpSortBtn = $('dpSortBtn');
+if (schedDpSortRow && schedDpSortBtn) {
+  schedDpSortBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    schedDpSortRow.classList.toggle('open');
+  });
+  schedDpSortRow.addEventListener('click', e => {
+    const opt = e.target.closest('.cust-sort-opt');
+    if (!opt) return;
+    schedDpSortRow.classList.remove('open');
+    if (opt.dataset.sort === schedListSortKey) return;
+    schedListSortKey = opt.dataset.sort;
+    schedOpenListPanel(schedListPanelMode, schedListPanelLabel);
+  });
+  document.addEventListener('click', () => schedDpSortRow.classList.remove('open'));
+}
 
 $('statGrid').addEventListener('click', e => {
   if (e.target.closest('#statTodayCard')) {
