@@ -78,10 +78,9 @@ async function sumLoadRecommend_() {
 const SUM_FARM_DATA_URL = 'https://script.google.com/macros/s/AKfycbzzJs4Y8_iNMYtXQjcBmKCgJkHrAR2YvFFAKJI4Xx0ujgjLkbIZGvXcWeM5B1WPN7kD/exec';
 function sumRenderFarm_(properties) {
   const list = Array.isArray(properties) ? properties : [];
-  const now = new Date();
-  const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  const monthCount = list.filter((p) => p.파밍일자 && String(p.파밍일자).indexOf(ym) === 0 && p.파밍여부 !== '파밍취소').length;
-  sumSet_('farming', monthCount.toLocaleString() + '건', '이번 달 파밍');
+  const todayStr = sumTodayStr_();
+  const todayCount = list.filter((p) => p.파밍일자 && String(p.파밍일자) === todayStr && p.파밍여부 !== '파밍취소').length;
+  sumSet_('farming', todayCount.toLocaleString() + '건', '오늘 파밍할 건');
 }
 async function sumLoadFarm_() {
   const cached = sumReadCache_('theo_dashboard_farm_cache_v1');
