@@ -744,6 +744,12 @@ $('cfKind').addEventListener('input', e => {
   e.target.value = e.target.value.toUpperCase();
   e.target.setSelectionRange(pos, pos);
 });
+/* 고객ID(예: SH-0009)도 입력하는 즉시 대문자로 보이도록 */
+$('cfId').addEventListener('input', e => {
+  const pos = e.target.selectionStart;
+  e.target.value = e.target.value.toUpperCase();
+  e.target.setSelectionRange(pos, pos);
+});
 
 function farmOpenCustForm(id) {
   farmCustEditId = id || null;
@@ -777,7 +783,7 @@ $('custFormSave').addEventListener('click', async () => {
   const isEdit = !!farmCustEditId;
   const name = $('cfName').value.trim();
   if (!name) { $('custFormError').textContent = '고객명을 입력해줘'; return; }
-  const typedId = $('cfId').value.trim();
+  const typedId = $('cfId').value.trim().toUpperCase();
   if (!isEdit && typedId && farmCustomers.some(x => x.고객ID === typedId)) {
     $('custFormError').textContent = '이미 존재하는 고객ID입니다'; return;
   }
