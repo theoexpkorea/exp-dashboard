@@ -738,6 +738,12 @@ function farmResetCustFormReadonly(){
 $('custFormOverlay').addEventListener('focusin', e => {
   if (e.target.matches('input[readonly]')) e.target.removeAttribute('readonly');
 });
+/* 고객구분(SH/CU)은 입력하는 즉시 대문자로 보이도록 */
+$('cfKind').addEventListener('input', e => {
+  const pos = e.target.selectionStart;
+  e.target.value = e.target.value.toUpperCase();
+  e.target.setSelectionRange(pos, pos);
+});
 
 function farmOpenCustForm(id) {
   farmCustEditId = id || null;
@@ -776,9 +782,9 @@ $('custFormSave').addEventListener('click', async () => {
     $('custFormError').textContent = '이미 존재하는 고객ID입니다'; return;
   }
   $('custFormError').textContent = '';
-  const c = isEdit ? farmCustomers.find(x => x.고객ID === farmCustEditId) : { 고객ID: typedId || '(임시)' };
-  Object.assign(c, {
-    고객구분: $('cfKind').value.trim(),
+  // 서버 응답을 받기 전까지는 화면(목록/모달)을 건드리지 않음 — 저장 성공이 확정된 뒤에만 반영
+  const draft = {
+    고객구분: $('cfKind').value.trim().toUpperCase(),
     고객명: name,
     연락처: $('cfPhone').value.trim(),
     희망지역: $('cfArea').value.trim(),
@@ -789,30 +795,37 @@ $('custFormSave').addEventListener('click', async () => {
     예산월세: $('cfBudgetRent').value.trim(),
     희망층수: $('cfFloor').value.trim(),
     기타요청: $('cfEtc').value.trim(),
-  });
-  if (!isEdit) farmCustomers.unshift(c);
-  farmCloseCustForm();
-  farmRenderCustList();
-  farmCustOverlay.classList.add('show');
-  farmToast(isEdit ? '수정 완료' : '고객 추가 완료');
-  const payload = { ...c };
-  if (!isEdit) payload.고객ID = typedId; // '(임시)' 대신 실제 입력값(빈 값이면 서버가 자동채번)을 전송
+  };
+  const payload = { ...draft };
+  payload.고객ID = isEdit ? farmCustEditId : typedId; // 신규는 빈 값이면 서버가 자동채번
+
   $('custFormSave').disabled = true;
+  $('custFormSave').textContent = '저장 중...';
   try {
     const res = await farmJsonp(isEdit ? { mode: 'custUpdate', ...payload } : { mode: 'custAdd', ...payload });
     if (res && res.ok === false) {
-      farmToast('저장 실패: ' + (res.error === 'duplicate id' ? '이미 존재하는 고객ID입니다' : res.error));
-      if (!isEdit) farmCustomers = farmCustomers.filter(x => x !== c);
-      farmRenderCustList();
-      return;
+      $('custFormError').textContent = '저장 실패: ' + (res.error === 'duplicate id' ? '이미 존재하는 고객ID입니다' : res.error);
+      return; // 모달 유지, 목록도 그대로
     }
-    if (!isEdit && res && res.고객ID) c.고객ID = res.고객ID;
+    // 저장 성공이 서버로부터 확인된 뒤에만 화면 반영
+    if (isEdit) {
+      const c = farmCustomers.find(x => x.고객ID === farmCustEditId);
+      if (c) Object.assign(c, draft);
+    } else {
+      const newId = (res && res.고객ID) ? res.고객ID : typedId;
+      farmCustomers.unshift({ 고객ID: newId, ...draft });
+    }
+    farmCloseCustForm();
+    farmCustOverlay.classList.add('show');
+    farmRenderCustList();
     await farmLoadData(true);
     farmRenderCustList();
+    farmToast(isEdit ? '수정 완료' : '고객 추가 완료');
   } catch (e) {
-    farmToast('전송 실패 — 시트에 반영 안됐을 수 있음');
+    $('custFormError').textContent = '전송 실패 — 저장되지 않았습니다. 다시 시도해주세요';
   } finally {
     $('custFormSave').disabled = false;
+    $('custFormSave').textContent = '저장';
   }
 });
 
