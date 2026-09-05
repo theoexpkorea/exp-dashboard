@@ -1666,7 +1666,10 @@ function buildDetailHtml_(item) {
     ).join('') +
     '  </select>' +
     '  <input class="cl-reclassify-code" type="text" value="' + crmEscAttr(existingCode) + '" placeholder="CRM코드(선택, 예: A0011)" />' +
-    '  <input class="cl-reclassify-counterpart" type="text" value="' + crmEscAttr(existingCounterpart) + '" placeholder="통화 상대(선택, 예: 구청 담당자)" />' +
+    '  <input class="cl-reclassify-counterpart" type="text" value="' + crmEscAttr(existingCounterpart) + '" placeholder="통화 상대(선택, 예: 구청 담당자)" data-original="' + crmEscAttr(existingCounterpart) + '" />' +
+    (existingCounterpart
+      ? '  <button type="button" class="btn-soft cl-btn--clear-counterpart" style="height:32px;padding:0 10px;font-size:12px;">✕ 태그 지우기</button>'
+      : '') +
     '  <button class="btn-soft cl-btn--reclassify" style="height:32px;padding:0 12px;font-size:12.5px;">' + (needsReclassify ? '재분류 확정' : '코드 다시 확정') + '</button>' +
     '</div>';
 
@@ -1748,6 +1751,20 @@ function wireDetailActions_(detailEl, cardEl, item) {
     });
   }
 
+  /* --- 제3자 태그 지우기 (토글: 누르면 "삭제 예정" 상태, 다시 누르면 취소) --- */
+  const clearCounterpartBtn = detailEl.querySelector('.cl-btn--clear-counterpart');
+  if (clearCounterpartBtn) {
+    clearCounterpartBtn.addEventListener('click', () => {
+      const input = detailEl.querySelector('.cl-reclassify-counterpart');
+      const willClear = input.dataset.willClear !== '1';
+      input.dataset.willClear = willClear ? '1' : '0';
+      input.value = willClear ? '' : input.dataset.original;
+      input.disabled = willClear;
+      input.placeholder = willClear ? '삭제 예정 (재분류 확정 시 태그가 사라져요)' : '통화 상대(선택, 예: 구청 담당자)';
+      clearCounterpartBtn.textContent = willClear ? '↺ 지우기 취소' : '✕ 태그 지우기';
+    });
+  }
+
   /* --- 재분류 --- */
   const reclassifyBtn = detailEl.querySelector('.cl-btn--reclassify');
   if (reclassifyBtn) {
@@ -1757,7 +1774,7 @@ function wireDetailActions_(detailEl, cardEl, item) {
       const counterpartInput = detailEl.querySelector('.cl-reclassify-counterpart');
       const targetCategory = CALL_LOG_CAT_TO_SHEET_CAT[select.value];
       const crmCode = codeInput.value.trim();
-      const counterpartNote = counterpartInput.value.trim();
+      const counterpartNote = counterpartInput.dataset.willClear === '1' ? '__CLEAR__' : counterpartInput.value.trim();
       const isSameCategory = targetCategory === item.category;
       const confirmMsg = isSameCategory
         ? (item.category + ' 안에서 코드 "' + (crmCode || '(미입력)') + '"(으)로 확정할까요?')
