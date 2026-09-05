@@ -1454,12 +1454,23 @@ function parseCallMatchStatus_(text) {
    "기존고객(매도임대:A0001)" → "A0001" / "수동재분류(가망고객)(SH-0013)" → "SH-0013"
    확정된 코드가 있는 matched/reclassified 상태에서만 의미 있으므로 그 외에는 호출측에서 빈 값 취급 */
 function extractCallCode_(text) {
-  const m = String(text || '').match(/\(([^()]+)\)\s*$/);
+  // 끝에 붙은 [제3자:...] 태그는 코드 파싱 대상에서 먼저 제외
+  const stripped = String(text || '').replace(/\[제3자:[^\]]+\]\s*$/, '').trim();
+  const m = stripped.match(/\(([^()]+)\)\s*$/);
   if (!m) return '';
   const inner = m[1];
-  const code = inner.indexOf(':') !== -1 ? inner.split(':').pop().trim() : inner.trim();
-  return code;
+  if (inner.indexOf(':') !== -1) return inner.split(':').pop().trim();
+
+  // "(매도임대)"처럼 카테고리명 괄호만 있고 코드가 없는 경우(코드 미입력 채 재분류된 건)를
+  // 코드로 오인하지 않도록 제외. 그 앞에 코드 괄호가 따로 있으면 그걸 씀.
+  if (CALL_LOG_CATEGORY_NAMES_.indexOf(inner.trim()) !== -1) {
+    const before = stripped.slice(0, m.index).trim();
+    const m2 = before.match(/\(([^()]+)\)\s*$/);
+    return m2 ? (m2[1].indexOf(':') !== -1 ? m2[1].split(':').pop().trim() : m2[1].trim()) : '';
+  }
+  return inner.trim();
 }
+const CALL_LOG_CATEGORY_NAMES_ = ['매도임대', '가망고객', '계약고객'];
 
 /* CRM매칭 텍스트 끝에 붙는 "[제3자:...]" 꼬리표만 뽑아냄 (매도임대인 본인이 아니라
    구청 담당자/배우자/법무사 등 관련 제3자와 통화한 경우를 표시하기 위한 선택 태그) */
