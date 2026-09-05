@@ -2540,6 +2540,9 @@ a { color: inherit; text-decoration: none; }
 .cl-chip--unresolved { }
 .farm-tool-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
 
+/* 통화기록 모드에서 KPI 카드를 필터로 클릭했을 때 선택 표시 */
+.rec-stat-card.cl-kpi-active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
 /* ===== 통화기록 검색/정렬 (건수 증가 대비, 2026-09-05) ===== */
 .cl-toolbar-row { display:flex; align-items:center; gap:10px; padding:10px 20px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
 .cl-search-input { flex:1; min-width:160px; height:36px; padding:0 12px; border-radius:8px; border:1px solid var(--border); font-family:inherit; font-size:13px; background:#fff; }
