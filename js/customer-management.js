@@ -1461,6 +1461,13 @@ function extractCallCode_(text) {
   return code;
 }
 
+/* CRM매칭 텍스트 끝에 붙는 "[제3자:...]" 꼬리표만 뽑아냄 (매도임대인 본인이 아니라
+   구청 담당자/배우자/법무사 등 관련 제3자와 통화한 경우를 표시하기 위한 선택 태그) */
+function extractCounterpartTag_(text) {
+  const m = String(text || '').match(/\[제3자:([^\]]+)\]/);
+  return m ? m[1] : '';
+}
+
 /* ============================================================
    목록 렌더링
    ============================================================ */
@@ -1527,6 +1534,9 @@ function buildCallCard_(item) {
     (item['반영여부']
       ? '  <span class="farm-dp-tag done">반영완료</span>'
       : '  <span class="farm-dp-tag hold">반영대기</span>') +
+    (extractCounterpartTag_(item['CRM매칭'])
+      ? '  <span class="farm-dp-tag hold" style="background:#FAECE7;color:#993556;">👤 ' + crmEsc(extractCounterpartTag_(item['CRM매칭'])) + '</span>'
+      : '') +
     '</div>' +
     '<div class="farm-dp-addr cl-name-row"><span class="cl-name-display">' + crmEsc(item['성명'] || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>' +
     '<div class="farm-dp-sub2">' + crmEsc(item['전화번호'] || '') + ' · ' + formatCallDatetime_(item['통화일시']) + '</div>' +
@@ -1622,6 +1632,7 @@ function buildDetailHtml_(item) {
   const needsReclassify = (status.type === 'unmatched' || status.type === 'ambiguous'); // 이 상태면 재분류 박스를 처음부터 펼쳐서 보여줌
   const currentCat = CALL_LOG_SHEET_CAT_TO_CAT[item.category] || '';
   const existingCode = (status.type === 'matched' || status.type === 'reclassified') ? extractCallCode_(item['CRM매칭']) : '';
+  const existingCounterpart = extractCounterpartTag_(item['CRM매칭']);
   const transcript = item['전사내용'] || '';
   const transcriptEditable = transcript.length > 0 && transcript.length <= CALL_LOG_TRANSCRIPT_EDIT_MAX;
 
@@ -1655,6 +1666,7 @@ function buildDetailHtml_(item) {
     ).join('') +
     '  </select>' +
     '  <input class="cl-reclassify-code" type="text" value="' + crmEscAttr(existingCode) + '" placeholder="CRM코드(선택, 예: A0011)" />' +
+    '  <input class="cl-reclassify-counterpart" type="text" value="' + crmEscAttr(existingCounterpart) + '" placeholder="통화 상대(선택, 예: 구청 담당자)" />' +
     '  <button class="btn-soft cl-btn--reclassify" style="height:32px;padding:0 12px;font-size:12.5px;">' + (needsReclassify ? '재분류 확정' : '코드 다시 확정') + '</button>' +
     '</div>';
 
@@ -1742,8 +1754,10 @@ function wireDetailActions_(detailEl, cardEl, item) {
     reclassifyBtn.addEventListener('click', async () => {
       const select = detailEl.querySelector('.cl-reclassify-select');
       const codeInput = detailEl.querySelector('.cl-reclassify-code');
+      const counterpartInput = detailEl.querySelector('.cl-reclassify-counterpart');
       const targetCategory = CALL_LOG_CAT_TO_SHEET_CAT[select.value];
       const crmCode = codeInput.value.trim();
+      const counterpartNote = counterpartInput.value.trim();
       const isSameCategory = targetCategory === item.category;
       const confirmMsg = isSameCategory
         ? (item.category + ' 안에서 코드 "' + (crmCode || '(미입력)') + '"(으)로 확정할까요?')
@@ -1758,6 +1772,7 @@ function wireDetailActions_(detailEl, cardEl, item) {
           'rowIndex=' + encodeURIComponent(item.rowIndex),
           'targetCategory=' + encodeURIComponent(targetCategory),
           'crmCode=' + encodeURIComponent(crmCode),
+          'counterpartNote=' + encodeURIComponent(counterpartNote),
           'recordingLink=' + encodeURIComponent(item['녹음링크'] || '')
         ].join('&');
         const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callReclassify&' + qs, 20000);
