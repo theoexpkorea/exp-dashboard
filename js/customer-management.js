@@ -7,6 +7,23 @@
    ============================================================ */
 
 const CRM_DATA_URL = (typeof DASHBOARD_LOCK !== 'undefined' && DASHBOARD_LOCK.appsScriptUrl) || '';
+
+/* 통화기록 모드 상태 — 파일 맨 위로 옮김. crmRenderStats() 등 캘린더쪽 코드가 페이지 로드
+   초반(캐시된 데이터로 즉시 렌더할 때)에 이미 이 값을 참조하는데, let 선언은 실제 선언 줄이
+   실행되기 전까지 "일시적 사각지대(TDZ)"에 걸려 ReferenceError가 나므로, 반드시 다른 코드보다
+   먼저 선언되어야 함. (2026-09-05 버그 수정: 이 선언이 파일 아래쪽에 있어서 초기 로드 시
+   전체 스크립트가 죽는 문제가 있었음) */
+let callLogMode = false;
+let callLogRawList = [];
+let callLogFilterScope = 'all';
+let callLogOnlyUnresolved = false;
+let callLogSearchQuery = '';
+let callLogSortKey = 'newest'; // 'newest' | 'oldest' — 통화일시 기준
+const CALL_LOG_PAGE_SIZE = 30; // 건수가 쌓여도 한 번에 다 그리지 않고 "더보기"로 나눠서 렌더
+let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
+let clRealCalCard = null; // 실제 캘린더 카드 DOM을 최초 1회만 캐싱 — 통화기록 컨테이너 삽입 이후엔
+                          // querySelector('.farm-cal-card')가 컨테이너 자신과 섞일 수 있어 재조회하지 않음
+
 const CRM_CAT_ORDER = ['SALE', 'LEAD', 'CONTRACT'];
 const CRM_CAT_LABEL = { SALE: '매도임대', LEAD: '가망고객', CONTRACT: '계약고객' };
 const CRM_SORT_ID_LABEL = { SALE: '매물번호순', LEAD: '고객코드순', CONTRACT: '고객코드순' }; // 정렬 드롭다운 2번째 옵션 라벨(카테고리별 명칭 차이)
@@ -1208,16 +1225,6 @@ const CALL_LOG_CAT_TO_SHEET_CAT = { SALE: '매도임대', LEAD: '가망고객', 
 const CALL_LOG_SHEET_CAT_TO_CAT = { '매도임대': 'SALE', '가망고객': 'LEAD', '계약고객': 'CONTRACT' };
 const CALL_LOG_TRANSCRIPT_EDIT_MAX = 800; // 이보다 길면 대시보드에서 수정 불가 (URL 길이 제한 때문에 시트에서 직접 수정 유도)
 
-let callLogMode = false;
-let callLogRawList = [];
-let callLogFilterScope = 'all';
-let callLogOnlyUnresolved = false;
-let callLogSearchQuery = '';
-let callLogSortKey = 'newest'; // 'newest' | 'oldest' — 통화일시 기준
-const CALL_LOG_PAGE_SIZE = 30; // 건수가 쌓여도 한 번에 다 그리지 않고 "더보기"로 나눠서 렌더
-let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
-let clRealCalCard = null; // 실제 캘린더 카드 DOM을 최초 1회만 캐싱 — 통화기록 컨테이너 삽입 이후엔
-                          // querySelector('.farm-cal-card')가 컨테이너 자신과 섞일 수 있어 재조회하지 않음
 
 /* ============================================================
    진입점: 툴바 버튼 + 컨테이너 삽입
