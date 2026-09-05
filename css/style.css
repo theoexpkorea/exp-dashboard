@@ -2534,7 +2534,7 @@ a { color: inherit; text-decoration: none; }
 .cl-reclassify select, .cl-reclassify input, .cl-edit-textarea { margin-right:6px; margin-bottom:6px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:12.5px; }
 .cl-edit-textarea { width:100%; min-height:64px; resize:vertical; margin:6px 0; }
 .cl-edit-note { font-size:11px; color:var(--text-muted); margin-top:4px; }
-.cl-chip--unresolved { margin-left:auto; padding-left:16px; border-left:1px solid var(--border); }
+.cl-chip--unresolved { }
 .farm-tool-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
 
 /* ===== 통화기록 검색/정렬 (건수 증가 대비, 2026-09-05) ===== */
