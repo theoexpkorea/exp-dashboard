@@ -1499,17 +1499,72 @@ function buildCallCard_(item) {
       ? '  <span class="farm-dp-tag done">반영완료</span>'
       : '  <span class="farm-dp-tag hold">반영대기</span>') +
     '</div>' +
-    '<div class="farm-dp-addr">' + crmEsc(item['성명'] || '(이름없음)') + '</div>' +
+    '<div class="farm-dp-addr cl-name-row"><span class="cl-name-display">' + crmEsc(item['성명'] || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정">✏️</button></div>' +
     '<div class="farm-dp-sub2">' + crmEsc(item['전화번호'] || '') + ' · ' + formatCallDatetime_(item['통화일시']) + '</div>' +
     '<div class="farm-dp-memo cl-memo-display">' + crmEsc(item['메모'] || '(메모 없음)') + '</div>' +
     '<div class="cl-card-detail" style="display:none"></div>';
 
   card.addEventListener('click', (e) => {
-    if (e.target.closest('.cl-detail-actions, .cl-reclassify, .cl-btn--toggle-transcript, .cl-btn--edit-memo, .cl-btn--edit-transcript, .cl-btn--toggle-reclassify')) return;
+    if (e.target.closest('.cl-detail-actions, .cl-reclassify, .cl-btn--toggle-transcript, .cl-btn--edit-memo, .cl-btn--edit-transcript, .cl-btn--toggle-reclassify, .cl-name-row')) return;
     toggleCardDetail_(card, item);
   });
 
+  wireNameEditBtn_(card, item);
+
   return card;
+}
+
+/* 카드 안 이름(cl-name-row)을 클릭-편집 가능하게 함. 저장/취소 후 다시 표시 모드로 돌아가면
+   펜 아이콘이 innerHTML로 새로 그려져서 이벤트가 날아가므로, 그때마다 이 함수를 다시 호출해서 재연결함. */
+function wireNameEditBtn_(card, item) {
+  const btn = card.querySelector('.cl-name-edit-btn');
+  if (!btn) return;
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const nameRow = card.querySelector('.cl-name-row');
+    if (nameRow.querySelector('input')) return; // 이미 편집 중
+    const original = item['성명'] || '';
+
+    nameRow.innerHTML =
+      '<input type="text" class="cl-name-edit-input" value="' + crmEscAttr(original) + '" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-family:inherit;font-size:inherit;font-weight:inherit;" /> ' +
+      '<button type="button" class="btn-soft cl-btn--save-name" style="height:28px;padding:0 10px;font-size:11.5px;">저장</button> ' +
+      '<button type="button" class="btn-soft cl-btn--cancel-name" style="height:28px;padding:0 10px;font-size:11.5px;">취소</button>';
+    nameRow.style.display = 'flex';
+    nameRow.style.alignItems = 'center';
+    nameRow.style.gap = '6px';
+
+    const backToDisplay = (name) => {
+      nameRow.innerHTML = '<span class="cl-name-display">' + crmEsc(name || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정">✏️</button>';
+      nameRow.style.display = ''; nameRow.style.alignItems = ''; nameRow.style.gap = '';
+      wireNameEditBtn_(card, item);
+    };
+
+    nameRow.querySelector('.cl-btn--cancel-name').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      backToDisplay(original);
+    });
+    nameRow.querySelector('.cl-btn--save-name').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const newName = nameRow.querySelector('.cl-name-edit-input').value.trim();
+      const saveBtn = nameRow.querySelector('.cl-btn--save-name');
+      saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+      try {
+        const qs = 'sheetName=' + encodeURIComponent(item.sheetName) + '&rowIndex=' + encodeURIComponent(item.rowIndex) + '&name=' + encodeURIComponent(newName);
+        const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callUpdateName&' + qs, 20000);
+        if (res && res.ok) {
+          item['성명'] = newName;
+          backToDisplay(newName);
+          crmToast('이름을 수정했어요.');
+        } else {
+          crmToast('저장에 실패했어요. 다시 시도해 주세요.');
+          saveBtn.disabled = false; saveBtn.textContent = '저장';
+        }
+      } catch (err) {
+        crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+        saveBtn.disabled = false; saveBtn.textContent = '저장';
+      }
+    });
+  };
 }
 
 function formatCallDatetime_(raw) {
