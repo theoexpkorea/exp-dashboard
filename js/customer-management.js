@@ -1215,6 +1215,8 @@ let callLogSearchQuery = '';
 let callLogSortKey = 'newest'; // 'newest' | 'oldest' — 통화일시 기준
 const CALL_LOG_PAGE_SIZE = 30; // 건수가 쌓여도 한 번에 다 그리지 않고 "더보기"로 나눠서 렌더
 let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
+let clRealCalCard = null; // 실제 캘린더 카드 DOM을 최초 1회만 캐싱 — 통화기록 컨테이너 삽입 이후엔
+                          // querySelector('.farm-cal-card')가 컨테이너 자신과 섞일 수 있어 재조회하지 않음
 
 /* ============================================================
    진입점: 툴바 버튼 + 컨테이너 삽입
@@ -1234,14 +1236,14 @@ let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
 
   const container = document.createElement('div');
   container.id = 'callLogContainer';
-  container.className = 'farm-cal-card';
+  container.className = 'cl-log-shell';
   container.style.display = 'none';
   container.style.padding = '0';
 
   // 검색/정렬 툴바 — 목록과 달리 리스트 리렌더링 때 다시 안 그림(값 유지)
   container.innerHTML =
     '<div class="cl-toolbar-row">' +
-      '<input type="text" class="cl-search-input" id="clSearchInput" placeholder="이름 · 전화번호 검색" />' +
+      '<input type="text" class="cl-search-input" id="clSearchInput" placeholder="이름 · 전화번호 · 고객코드/매물번호 검색" />' +
       '<div class="cust-sort-row" id="clSortRow" style="border-bottom:none;padding:0;">' +
         '<button type="button" class="cust-sort-btn" id="clSortBtn"><span id="clSortLabel">최신순</span><span class="cust-sort-car">▾</span></button>' +
         '<div class="cust-sort-pop" id="clSortPop">' +
@@ -1253,6 +1255,7 @@ let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
     '<div id="callLogListWrap"></div>';
 
   const calCard = document.querySelector('.farm-cal-card');
+  clRealCalCard = calCard; // toggleCallLogMode_에서 재조회 대신 이 캐시를 씀
   calCard.parentNode.insertBefore(container, calCard);
 
   btn.addEventListener('click', () => {
@@ -1288,7 +1291,7 @@ let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
 })();
 
 function toggleCallLogMode_(on) {
-  const calCard = document.querySelector('.farm-cal-card');
+  const calCard = clRealCalCard; // 캐시된 실제 캘린더 참조 (컨테이너와 클래스 충돌 방지)
   const legend = document.querySelector('.farm-legend');
   const note = document.querySelector('.farm-note');
   const monthNav = document.querySelector('.farm-month-nav');
@@ -1391,6 +1394,17 @@ function parseCallMatchStatus_(text) {
   return { type: 'unknown', label: t || '(정보없음)', tagClass: 'cancel' };
 }
 
+/* CRM매칭 텍스트 끝의 괄호 안에서 코드만 뽑아냄
+   "기존고객(매도임대:A0001)" → "A0001" / "수동재분류(가망고객)(SH-0013)" → "SH-0013"
+   확정된 코드가 있는 matched/reclassified 상태에서만 의미 있으므로 그 외에는 호출측에서 빈 값 취급 */
+function extractCallCode_(text) {
+  const m = String(text || '').match(/\(([^()]+)\)\s*$/);
+  if (!m) return '';
+  const inner = m[1];
+  const code = inner.indexOf(':') !== -1 ? inner.split(':').pop().trim() : inner.trim();
+  return code;
+}
+
 /* ============================================================
    목록 렌더링
    ============================================================ */
@@ -1404,7 +1418,7 @@ function renderCallLogList_() {
     if (callLogFilterScope !== 'all' && item.category !== CALL_LOG_CAT_TO_SHEET_CAT[callLogFilterScope]) return false;
     if (callLogOnlyUnresolved && item['반영여부']) return false;
     if (q) {
-      const hay = ((item['성명'] || '') + ' ' + (item['전화번호'] || '')).toLowerCase();
+      const hay = ((item['성명'] || '') + ' ' + (item['전화번호'] || '') + ' ' + (item['CRM매칭'] || '')).toLowerCase();
       if (hay.indexOf(q.toLowerCase()) === -1) return false;
     }
     return true;
@@ -1445,6 +1459,7 @@ function renderCallLogList_() {
 
 function buildCallCard_(item) {
   const status = parseCallMatchStatus_(item['CRM매칭']);
+  const code = (status.type === 'matched' || status.type === 'reclassified') ? extractCallCode_(item['CRM매칭']) : '';
   const card = document.createElement('div');
   card.className = 'farm-dp-item';
 
@@ -1452,6 +1467,7 @@ function buildCallCard_(item) {
     '<div class="cl-tags-row">' +
     '  <span class="cl-cat-badge" data-cat="' + crmEscAttr(item.category) + '">' + crmEsc(item.category) + '</span>' +
     '  <span class="farm-dp-tag ' + status.tagClass + '">' + crmEsc(status.label) + '</span>' +
+    (code ? '  <span class="farm-dp-tag plan">' + crmEsc(code) + '</span>' : '') +
     (item['반영여부']
       ? '  <span class="farm-dp-tag done">반영완료</span>'
       : '  <span class="farm-dp-tag hold">반영대기</span>') +
@@ -1462,7 +1478,7 @@ function buildCallCard_(item) {
     '<div class="cl-card-detail" style="display:none"></div>';
 
   card.addEventListener('click', (e) => {
-    if (e.target.closest('.cl-detail-actions, .cl-reclassify, .cl-btn--toggle-transcript, .cl-btn--edit-memo, .cl-btn--edit-transcript')) return;
+    if (e.target.closest('.cl-detail-actions, .cl-reclassify, .cl-btn--toggle-transcript, .cl-btn--edit-memo, .cl-btn--edit-transcript, .cl-btn--toggle-reclassify')) return;
     toggleCardDetail_(card, item);
   });
 
@@ -1492,14 +1508,18 @@ function toggleCardDetail_(cardEl, item) {
 
 function buildDetailHtml_(item) {
   const status = parseCallMatchStatus_(item['CRM매칭']);
-  const needsReclassify = (status.type === 'unmatched' || status.type === 'ambiguous');
+  const needsReclassify = (status.type === 'unmatched' || status.type === 'ambiguous'); // 이 상태면 재분류 박스를 처음부터 펼쳐서 보여줌
   const currentCat = CALL_LOG_SHEET_CAT_TO_CAT[item.category] || '';
+  const existingCode = (status.type === 'matched' || status.type === 'reclassified') ? extractCallCode_(item['CRM매칭']) : '';
   const transcript = item['전사내용'] || '';
   const transcriptEditable = transcript.length > 0 && transcript.length <= CALL_LOG_TRANSCRIPT_EDIT_MAX;
 
-  let html = '<div class="cl-detail-topactions">';
+  let html = '<div class="cl-edit-note" style="margin-bottom:10px;">CRM매칭: ' + crmEsc(item['CRM매칭'] || '(정보없음)') + '</div>';
+  html += '<div class="cl-detail-topactions">';
   html += '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;">✏️ 메모 수정</button>';
   html += '<button class="btn-soft cl-btn--toggle-transcript" style="height:30px;padding:0 10px;font-size:12px;">📄 전사 보기</button>';
+  // 반영완료 여부와 무관하게 언제든 코드를 다시 고칠 수 있게 — needsReclassify가 아니어도(이미 매칭/재분류된 건도) 버튼은 항상 노출
+  html += '<button class="btn-soft cl-btn--toggle-reclassify" style="height:30px;padding:0 10px;font-size:12px;">🔧 ' + (needsReclassify ? '재분류' : '코드 수정') + '</button>';
   html += '</div>';
   html += '<div class="cl-transcript-box" style="display:none">' + crmEsc(transcript || '(전사내용 없음)') + '</div>';
   html += '<div class="cl-transcript-edit-slot" style="display:none"></div>';
@@ -1511,22 +1531,21 @@ function buildDetailHtml_(item) {
   html += '<div class="cl-detail-actions">';
   if (!item['반영여부']) {
     html += '<button class="btn-soft cl-btn--done" style="height:32px;padding:0 12px;font-size:12.5px;">반영완료 처리</button>';
+  } else {
+    html += '<span class="cl-edit-note">이미 반영완료 처리된 건이에요. 위 "코드 수정"으로 코드는 여전히 바꿀 수 있어요.</span>';
   }
   html += '</div>';
 
-  if (needsReclassify) {
-    html +=
-      '<div class="cl-reclassify">' +
-      '  <div class="cl-reclassify-label">CRM매칭: ' + crmEsc(item['CRM매칭'] || '') + '</div>' +
-      '  <select class="cl-reclassify-select">' +
-      CALL_LOG_CATEGORIES.map(cat =>
-        '<option value="' + cat + '"' + (cat === currentCat ? ' selected' : '') + '>' + CALL_LOG_CAT_TO_SHEET_CAT[cat] + (cat === currentCat ? ' (현재)' : '') + '</option>'
-      ).join('') +
-      '  </select>' +
-      '  <input class="cl-reclassify-code" type="text" placeholder="CRM코드(선택, 예: A0011)" />' +
-      '  <button class="btn-soft cl-btn--reclassify" style="height:32px;padding:0 12px;font-size:12.5px;">재분류 확정</button>' +
-      '</div>';
-  }
+  html +=
+    '<div class="cl-reclassify"' + (needsReclassify ? '' : ' style="display:none"') + '>' +
+    '  <select class="cl-reclassify-select">' +
+    CALL_LOG_CATEGORIES.map(cat =>
+      '<option value="' + cat + '"' + (cat === currentCat ? ' selected' : '') + '>' + CALL_LOG_CAT_TO_SHEET_CAT[cat] + (cat === currentCat ? ' (현재)' : '') + '</option>'
+    ).join('') +
+    '  </select>' +
+    '  <input class="cl-reclassify-code" type="text" value="' + crmEscAttr(existingCode) + '" placeholder="CRM코드(선택, 예: A0011)" />' +
+    '  <button class="btn-soft cl-btn--reclassify" style="height:32px;padding:0 12px;font-size:12.5px;">' + (needsReclassify ? '재분류 확정' : '코드 다시 확정') + '</button>' +
+    '</div>';
 
   html += '<input type="hidden" class="cl-transcript-editable-flag" value="' + (transcriptEditable ? '1' : '0') + '" />';
 
@@ -1544,6 +1563,15 @@ function wireDetailActions_(detailEl, cardEl, item) {
     if (!shown) attachTranscriptEditButton_(detailEl, item);
     else detailEl.querySelector('.cl-transcript-edit-slot').innerHTML = '';
   });
+
+  /* --- 재분류/코드 수정 박스 펼치기·접기 (반영완료 여부와 무관하게 항상 가능) --- */
+  const toggleReclassifyBtn = detailEl.querySelector('.cl-btn--toggle-reclassify');
+  if (toggleReclassifyBtn) {
+    toggleReclassifyBtn.addEventListener('click', () => {
+      const box = detailEl.querySelector('.cl-reclassify');
+      box.style.display = box.style.display === 'none' ? '' : 'none';
+    });
+  }
 
   /* --- 메모 수정 --- */
   const editMemoBtn = detailEl.querySelector('.cl-btn--edit-memo');
