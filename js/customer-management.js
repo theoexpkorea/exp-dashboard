@@ -1198,7 +1198,7 @@ $('todayBtn').addEventListener('click', () => {
    .cl-reclassify select, .cl-reclassify input, .cl-edit-textarea { margin-right:6px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:12.5px; }
    .cl-edit-textarea { width:100%; min-height:64px; resize:vertical; margin:6px 0; }
    .cl-edit-note { font-size:11px; color:var(--text-muted); margin-top:4px; }
-   .cl-chip--unresolved { margin-left:auto; }
+   .cl-chip--unresolved { margin-left:auto; padding-left:16px; border-left:1px solid var(--border); }
    .farm-tool-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
    ============================================================ */
 
@@ -1321,10 +1321,22 @@ function ensureUnresolvedChip_(show) {
       chip = document.createElement('button');
       chip.id = 'callLogUnresolvedChip';
       chip.className = 'rec-filter-chip cl-chip--unresolved';
-      chip.textContent = '미반영만';
+      chip.type = 'button';
+      const setLabel = () => { chip.textContent = (callLogOnlyUnresolved ? '☑ ' : '☐ ') + '반영대기만'; };
+      setLabel();
       chip.addEventListener('click', () => {
         callLogOnlyUnresolved = !callLogOnlyUnresolved;
         chip.classList.toggle('active', callLogOnlyUnresolved);
+        setLabel();
+        if (callLogOnlyUnresolved) {
+          // 독립된 필터로 동작 — 켜지면 카테고리 상관없이 반영대기 전부를 보여줌 (카테고리 칩은 선택 해제)
+          callLogFilterScope = 'all';
+          document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.remove('active'));
+        } else {
+          // 끄면 "전체" 카테고리로 복귀
+          callLogFilterScope = 'all';
+          document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b.dataset.scope === 'all'));
+        }
         callLogVisibleCount = CALL_LOG_PAGE_SIZE;
         renderCallLogList_();
       });
@@ -1335,6 +1347,7 @@ function ensureUnresolvedChip_(show) {
     chip.style.display = 'none';
   }
 }
+
 
 /* 기존 필터칩/KPI카드 클릭을 통화기록 모드일 때만 가로챔 (capture 단계 — 기존 핸들러보다 먼저 실행) */
 document.addEventListener('DOMContentLoaded', () => {
@@ -1347,6 +1360,12 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       callLogFilterScope = btn.dataset.scope;
       document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b === btn));
+      // 카테고리를 고르면 "반영대기만" 독립 필터는 해제 — 두 그룹이 동시에 선택된 것처럼 보이지 않게 함
+      if (callLogOnlyUnresolved) {
+        callLogOnlyUnresolved = false;
+        const unresolvedChip = document.getElementById('callLogUnresolvedChip');
+        if (unresolvedChip) { unresolvedChip.classList.remove('active'); unresolvedChip.textContent = '☐ 반영대기만'; }
+      }
       callLogVisibleCount = CALL_LOG_PAGE_SIZE;
       renderCallLogList_();
     }, true);
