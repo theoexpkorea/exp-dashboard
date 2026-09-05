@@ -346,6 +346,7 @@ function crmRenderCalendar() {
 }
 
 function crmRenderStats() {
+  if (callLogMode) return; // 통화기록 모드일 때는 이 함수가 KPI를 덮어쓰면 안 됨 (updateCallLogKpi_가 그 자리를 쓰는 중)
   const todayCount = crmAllItems.filter(it => { if (crmNextHidden(it) && !crmIsDoneToday(it)) return false; const x = crmDisplayDDay(it); return x !== null && x <= 0; }).length;
   $('statToday').textContent = todayCount + '건';
   $('statSale').textContent = crmAllItems.filter(it => it.cat === 'SALE').length + '건';
@@ -1144,7 +1145,7 @@ $('formSave').addEventListener('click', async () => {
 /* ===== 네비게이션 ===== */
 $('prevBtn').addEventListener('click', () => { crmViewMonth--; if (crmViewMonth < 0) { crmViewMonth = 11; crmViewYear--; } crmRenderCalendar(); });
 $('nextBtn').addEventListener('click', () => { crmViewMonth++; if (crmViewMonth > 11) { crmViewMonth = 0; crmViewYear++; } crmRenderCalendar(); });
-$('refreshBtn').addEventListener('click', () => crmLoadData());
+$('refreshBtn').addEventListener('click', () => { if (callLogMode) fetchCallLogList_(); else crmLoadData(); });
 $('todayBtn').addEventListener('click', () => {
   crmViewYear = crmToday.getFullYear();
   crmViewMonth = crmToday.getMonth();
