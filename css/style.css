@@ -2518,6 +2518,9 @@ a { color: inherit; text-decoration: none; }
    통화기록 (customer-management.html 통화기록 모드) — 2026-09-05
    ============================================================ */
 .cl-tags-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+.cl-name-row { display:flex; align-items:center; gap:6px; }
+.cl-name-edit-btn { background:none; border:none; cursor:pointer; font-size:12px; padding:2px; opacity:.5; line-height:1; }
+.cl-name-edit-btn:hover { opacity:1; }
 .cl-cat-badge { font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:6px; flex-shrink:0; }
 .cl-cat-badge[data-cat="매도임대"] { background:#DCEBFD; color:#1D5FBF; }
 .cl-cat-badge[data-cat="가망고객"] { background:#DCF3E9; color:#12805E; }
