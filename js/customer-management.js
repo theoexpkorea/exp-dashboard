@@ -1211,6 +1211,10 @@ let callLogMode = false;
 let callLogRawList = [];
 let callLogFilterScope = 'all';
 let callLogOnlyUnresolved = false;
+let callLogSearchQuery = '';
+let callLogSortKey = 'newest'; // 'newest' | 'oldest' — 통화일시 기준
+const CALL_LOG_PAGE_SIZE = 30; // 건수가 쌓여도 한 번에 다 그리지 않고 "더보기"로 나눠서 렌더
+let callLogVisibleCount = CALL_LOG_PAGE_SIZE;
 
 /* ============================================================
    진입점: 툴바 버튼 + 컨테이너 삽입
@@ -1230,7 +1234,24 @@ let callLogOnlyUnresolved = false;
 
   const container = document.createElement('div');
   container.id = 'callLogContainer';
+  container.className = 'farm-cal-card';
   container.style.display = 'none';
+  container.style.padding = '0';
+
+  // 검색/정렬 툴바 — 목록과 달리 리스트 리렌더링 때 다시 안 그림(값 유지)
+  container.innerHTML =
+    '<div class="cl-toolbar-row">' +
+      '<input type="text" class="cl-search-input" id="clSearchInput" placeholder="이름 · 전화번호 검색" />' +
+      '<div class="cust-sort-row" id="clSortRow" style="border-bottom:none;padding:0;">' +
+        '<button type="button" class="cust-sort-btn" id="clSortBtn"><span id="clSortLabel">최신순</span><span class="cust-sort-car">▾</span></button>' +
+        '<div class="cust-sort-pop" id="clSortPop">' +
+          '<div class="cust-sort-opt sel" data-sort="newest">최신순</div>' +
+          '<div class="cust-sort-opt" data-sort="oldest">오래된순</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div id="callLogListWrap"></div>';
+
   const calCard = document.querySelector('.farm-cal-card');
   calCard.parentNode.insertBefore(container, calCard);
 
@@ -1238,6 +1259,32 @@ let callLogOnlyUnresolved = false;
     callLogMode = !callLogMode;
     toggleCallLogMode_(callLogMode);
   });
+
+  // 검색
+  const searchInput = container.querySelector('#clSearchInput');
+  searchInput.addEventListener('input', () => {
+    callLogSearchQuery = searchInput.value.trim();
+    callLogVisibleCount = CALL_LOG_PAGE_SIZE;
+    renderCallLogList_();
+  });
+
+  // 정렬 드롭다운
+  const sortRow = container.querySelector('#clSortRow');
+  const sortBtn = container.querySelector('#clSortBtn');
+  const sortPop = container.querySelector('#clSortPop');
+  sortBtn.addEventListener('click', e => { e.stopPropagation(); sortRow.classList.toggle('open'); });
+  sortPop.addEventListener('click', e => {
+    const opt = e.target.closest('.cust-sort-opt');
+    if (!opt) return;
+    sortRow.classList.remove('open');
+    if (opt.dataset.sort === callLogSortKey) return;
+    callLogSortKey = opt.dataset.sort;
+    container.querySelector('#clSortLabel').textContent = opt.textContent;
+    sortPop.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o === opt));
+    callLogVisibleCount = CALL_LOG_PAGE_SIZE;
+    renderCallLogList_();
+  });
+  document.addEventListener('click', () => sortRow.classList.remove('open'));
 })();
 
 function toggleCallLogMode_(on) {
@@ -1275,6 +1322,7 @@ function ensureUnresolvedChip_(show) {
       chip.addEventListener('click', () => {
         callLogOnlyUnresolved = !callLogOnlyUnresolved;
         chip.classList.toggle('active', callLogOnlyUnresolved);
+        callLogVisibleCount = CALL_LOG_PAGE_SIZE;
         renderCallLogList_();
       });
       tabs.appendChild(chip);
@@ -1296,6 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       callLogFilterScope = btn.dataset.scope;
       document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b === btn));
+      callLogVisibleCount = CALL_LOG_PAGE_SIZE;
       renderCallLogList_();
     }, true);
   }
@@ -1313,17 +1362,24 @@ document.addEventListener('DOMContentLoaded', () => {
    데이터 조회
    ============================================================ */
 function fetchCallLogList_() {
-  const container = $('callLogContainer');
-  container.innerHTML = '<div class="farm-cal-loading" style="position:static;display:flex;padding:30px 0;">불러오는 중...</div>';
+  const listWrap = $('callLogListWrap');
+  listWrap.innerHTML = '<div class="farm-cal-loading" style="position:static;display:flex;padding:30px 0;">불러오는 중...</div>';
 
   crmJsonpRetry(CRM_DATA_URL + '?mode=callList', 20000)
     .then(data => {
       callLogRawList = Array.isArray(data) ? data : [];
+      callLogVisibleCount = CALL_LOG_PAGE_SIZE;
       renderCallLogList_();
     })
     .catch(() => {
-      container.innerHTML = '<div class="farm-dp-empty">통화기록을 불러오지 못했습니다. 새로고침 해주세요.</div>';
+      listWrap.innerHTML = '<div class="farm-dp-empty">통화기록을 불러오지 못했습니다. 새로고침 해주세요.</div>';
     });
+}
+
+function callLogSortCompare_(a, b) {
+  const ta = new Date(a['통화일시'] || 0).getTime() || 0;
+  const tb = new Date(b['통화일시'] || 0).getTime() || 0;
+  return callLogSortKey === 'oldest' ? (ta - tb) : (tb - ta);
 }
 
 function parseCallMatchStatus_(text) {
@@ -1339,28 +1395,52 @@ function parseCallMatchStatus_(text) {
    목록 렌더링
    ============================================================ */
 function renderCallLogList_() {
-  const container = $('callLogContainer');
-  container.innerHTML = '';
+  const listWrap = $('callLogListWrap');
+  if (!listWrap) return;
+  listWrap.innerHTML = '';
 
+  const q = callLogSearchQuery.trim();
   const filtered = callLogRawList.filter(item => {
     if (callLogFilterScope !== 'all' && item.category !== CALL_LOG_CAT_TO_SHEET_CAT[callLogFilterScope]) return false;
     if (callLogOnlyUnresolved && item['반영여부']) return false;
+    if (q) {
+      const hay = ((item['성명'] || '') + ' ' + (item['전화번호'] || '')).toLowerCase();
+      if (hay.indexOf(q.toLowerCase()) === -1) return false;
+    }
     return true;
-  });
+  }).sort(callLogSortCompare_);
 
   updateCallLogKpi_();
 
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="farm-dp-empty">해당하는 통화기록이 없습니다.</div>';
+    listWrap.innerHTML = '<div class="farm-dp-empty">해당하는 통화기록이 없습니다.</div>';
     return;
   }
+
+  const visible = filtered.slice(0, callLogVisibleCount);
 
   const list = document.createElement('div');
   list.style.display = 'flex';
   list.style.flexDirection = 'column';
   list.style.gap = '8px';
-  filtered.forEach(item => list.appendChild(buildCallCard_(item)));
-  container.appendChild(list);
+  list.style.padding = '14px 20px';
+  visible.forEach(item => list.appendChild(buildCallCard_(item)));
+  listWrap.appendChild(list);
+
+  if (filtered.length > visible.length) {
+    const moreRow = document.createElement('div');
+    moreRow.className = 'cl-loadmore-row';
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'cl-loadmore-btn';
+    moreBtn.textContent = '더보기 (' + (filtered.length - visible.length) + '건 더 있음)';
+    moreBtn.addEventListener('click', () => {
+      callLogVisibleCount += CALL_LOG_PAGE_SIZE;
+      renderCallLogList_();
+    });
+    moreRow.appendChild(moreBtn);
+    listWrap.appendChild(moreRow);
+  }
 }
 
 function buildCallCard_(item) {
@@ -1417,13 +1497,15 @@ function buildDetailHtml_(item) {
   const transcript = item['전사내용'] || '';
   const transcriptEditable = transcript.length > 0 && transcript.length <= CALL_LOG_TRANSCRIPT_EDIT_MAX;
 
-  let html = '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;">✏️ 메모 수정</button> ';
+  let html = '<div class="cl-detail-topactions">';
+  html += '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;">✏️ 메모 수정</button>';
   html += '<button class="btn-soft cl-btn--toggle-transcript" style="height:30px;padding:0 10px;font-size:12px;">📄 전사 보기</button>';
+  html += '</div>';
   html += '<div class="cl-transcript-box" style="display:none">' + crmEsc(transcript || '(전사내용 없음)') + '</div>';
   html += '<div class="cl-transcript-edit-slot" style="display:none"></div>';
 
   if (item['녹음링크'] && /^https?:\/\//.test(item['녹음링크'])) {
-    html += '<br><a class="cl-recording-link" href="' + crmEscAttr(item['녹음링크']) + '" target="_blank">🔊 녹음 파일 열기</a>';
+    html += '<div class="cl-recording-row"><a class="cl-recording-link" href="' + crmEscAttr(item['녹음링크']) + '" target="_blank">🔊 녹음 파일 열기</a></div>';
   }
 
   html += '<div class="cl-detail-actions">';
@@ -1438,7 +1520,7 @@ function buildDetailHtml_(item) {
       '  <div class="cl-reclassify-label">CRM매칭: ' + crmEsc(item['CRM매칭'] || '') + '</div>' +
       '  <select class="cl-reclassify-select">' +
       CALL_LOG_CATEGORIES.map(cat =>
-        '<option value="' + cat + '"' + (cat === currentCat ? ' disabled' : '') + '>' + CALL_LOG_CAT_TO_SHEET_CAT[cat] + '</option>'
+        '<option value="' + cat + '"' + (cat === currentCat ? ' selected' : '') + '>' + CALL_LOG_CAT_TO_SHEET_CAT[cat] + (cat === currentCat ? ' (현재)' : '') + '</option>'
       ).join('') +
       '  </select>' +
       '  <input class="cl-reclassify-code" type="text" placeholder="CRM코드(선택, 예: A0011)" />' +
@@ -1522,8 +1604,12 @@ function wireDetailActions_(detailEl, cardEl, item) {
       const codeInput = detailEl.querySelector('.cl-reclassify-code');
       const targetCategory = CALL_LOG_CAT_TO_SHEET_CAT[select.value];
       const crmCode = codeInput.value.trim();
+      const isSameCategory = targetCategory === item.category;
+      const confirmMsg = isSameCategory
+        ? (item.category + ' 안에서 코드 "' + (crmCode || '(미입력)') + '"(으)로 확정할까요?')
+        : (item.category + ' → ' + targetCategory + '(으)로 재분류할까요?\n녹음파일도 함께 이동됩니다.');
 
-      if (!confirm(item.category + ' → ' + targetCategory + '(으)로 재분류할까요?\n녹음파일도 함께 이동됩니다.')) return;
+      if (!confirm(confirmMsg)) return;
 
       reclassifyBtn.disabled = true; reclassifyBtn.textContent = '처리 중...';
       try {
