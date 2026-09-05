@@ -1501,6 +1501,16 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--shadow-sm);
   position: relative;
 }
+/* 통화기록 컨테이너 전용 — farm-cal-card와 똑같은 룩을 쓰되 클래스명은 분리
+   (querySelector('.farm-cal-card')로 실제 캘린더를 찾는 코드와 충돌하지 않게 하기 위함) */
+.cl-log-shell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
 .farm-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); }
 .farm-cal-weekdays div { padding: 10px 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
 .farm-cal-weekdays div.sun { color: var(--danger); }
