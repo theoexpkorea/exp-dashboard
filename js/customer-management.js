@@ -1198,7 +1198,7 @@ $('todayBtn').addEventListener('click', () => {
    .cl-reclassify select, .cl-reclassify input, .cl-edit-textarea { margin-right:6px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:12.5px; }
    .cl-edit-textarea { width:100%; min-height:64px; resize:vertical; margin:6px 0; }
    .cl-edit-note { font-size:11px; color:var(--text-muted); margin-top:4px; }
-   .cl-chip--unresolved { margin-left:auto; padding-left:16px; border-left:1px solid var(--border); }
+   .cl-chip--unresolved { }
    .farm-tool-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
    ============================================================ */
 
@@ -1322,7 +1322,7 @@ function ensureUnresolvedChip_(show) {
       chip.id = 'callLogUnresolvedChip';
       chip.className = 'rec-filter-chip cl-chip--unresolved';
       chip.type = 'button';
-      const setLabel = () => { chip.textContent = (callLogOnlyUnresolved ? '☑ ' : '☐ ') + '반영대기만'; };
+      const setLabel = () => { chip.textContent = '반영대기만'; };
       setLabel();
       chip.addEventListener('click', () => {
         callLogOnlyUnresolved = !callLogOnlyUnresolved;
@@ -1364,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (callLogOnlyUnresolved) {
         callLogOnlyUnresolved = false;
         const unresolvedChip = document.getElementById('callLogUnresolvedChip');
-        if (unresolvedChip) { unresolvedChip.classList.remove('active'); unresolvedChip.textContent = '☐ 반영대기만'; }
+        if (unresolvedChip) { unresolvedChip.classList.remove('active'); unresolvedChip.textContent = '반영대기만'; }
       }
       callLogVisibleCount = CALL_LOG_PAGE_SIZE;
       renderCallLogList_();
