@@ -1315,6 +1315,7 @@ function toggleCallLogMode_(on) {
   if (on) {
     fetchCallLogList_();
   } else {
+    document.querySelectorAll('#statGrid [data-cat], #statGrid #statTodayCard').forEach(c => c.classList.remove('cl-kpi-active'));
     const todayLabel = document.querySelector('#statTodayCard .stat-label');
     if (todayLabel) todayLabel.textContent = '오늘 처리';
     crmRenderStats();
@@ -1340,10 +1341,14 @@ function ensureUnresolvedChip_(show) {
           // 독립된 필터로 동작 — 켜지면 카테고리 상관없이 반영대기 전부를 보여줌 (카테고리 칩은 선택 해제)
           callLogFilterScope = 'all';
           document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('#statGrid [data-cat]').forEach(c => c.classList.remove('cl-kpi-active'));
+          const todayCard = document.getElementById('statTodayCard');
+          if (todayCard) todayCard.classList.add('cl-kpi-active');
         } else {
           // 끄면 "전체" 카테고리로 복귀
           callLogFilterScope = 'all';
           document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b.dataset.scope === 'all'));
+          document.querySelectorAll('#statGrid [data-cat], #statGrid #statTodayCard').forEach(c => c.classList.remove('cl-kpi-active'));
         }
         callLogVisibleCount = CALL_LOG_PAGE_SIZE;
         renderCallLogList_();
@@ -1368,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       callLogFilterScope = btn.dataset.scope;
       document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('#statGrid [data-cat], #statGrid #statTodayCard').forEach(c => c.classList.toggle('cl-kpi-active', c.dataset && c.dataset.cat === btn.dataset.scope));
       // 카테고리를 고르면 "반영대기만" 독립 필터는 해제 — 두 그룹이 동시에 선택된 것처럼 보이지 않게 함
       if (callLogOnlyUnresolved) {
         callLogOnlyUnresolved = false;
@@ -1384,6 +1390,29 @@ document.addEventListener('DOMContentLoaded', () => {
     statGrid.addEventListener('click', (e) => {
       if (!callLogMode) return;
       e.stopPropagation();
+      const card = e.target.closest('#statTodayCard, [data-cat]');
+      if (!card) return;
+
+      document.querySelectorAll('#statGrid [data-cat], #statGrid #statTodayCard').forEach(c => c.classList.remove('cl-kpi-active'));
+      card.classList.add('cl-kpi-active');
+
+      if (card.id === 'statTodayCard') {
+        // "통화 미반영" 카드 = 반영대기만 필터와 동일 — 카테고리 상관없이 전부 보여줌
+        callLogOnlyUnresolved = true;
+        callLogFilterScope = 'all';
+        document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.remove('active'));
+        const unresolvedChip = document.getElementById('callLogUnresolvedChip');
+        if (unresolvedChip) unresolvedChip.classList.add('active');
+      } else {
+        const cat = card.dataset.cat; // SALE / LEAD / CONTRACT
+        callLogFilterScope = cat;
+        callLogOnlyUnresolved = false;
+        document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b.dataset.scope === cat));
+        const unresolvedChip = document.getElementById('callLogUnresolvedChip');
+        if (unresolvedChip) unresolvedChip.classList.remove('active');
+      }
+      callLogVisibleCount = CALL_LOG_PAGE_SIZE;
+      renderCallLogList_();
     }, true);
   }
 });
@@ -1499,7 +1528,7 @@ function buildCallCard_(item) {
       ? '  <span class="farm-dp-tag done">반영완료</span>'
       : '  <span class="farm-dp-tag hold">반영대기</span>') +
     '</div>' +
-    '<div class="farm-dp-addr cl-name-row"><span class="cl-name-display">' + crmEsc(item['성명'] || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정">✏️</button></div>' +
+    '<div class="farm-dp-addr cl-name-row"><span class="cl-name-display">' + crmEsc(item['성명'] || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>' +
     '<div class="farm-dp-sub2">' + crmEsc(item['전화번호'] || '') + ' · ' + formatCallDatetime_(item['통화일시']) + '</div>' +
     '<div class="farm-dp-memo cl-memo-display">' + crmEsc(item['메모'] || '(메모 없음)') + '</div>' +
     '<div class="cl-card-detail" style="display:none"></div>';
@@ -1534,7 +1563,7 @@ function wireNameEditBtn_(card, item) {
     nameRow.style.gap = '6px';
 
     const backToDisplay = (name) => {
-      nameRow.innerHTML = '<span class="cl-name-display">' + crmEsc(name || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정">✏️</button>';
+      nameRow.innerHTML = '<span class="cl-name-display">' + crmEsc(name || '(이름없음)') + '</span><button type="button" class="cl-name-edit-btn" title="이름 수정"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
       nameRow.style.display = ''; nameRow.style.alignItems = ''; nameRow.style.gap = '';
       wireNameEditBtn_(card, item);
     };
@@ -1598,16 +1627,16 @@ function buildDetailHtml_(item) {
 
   let html = '<div class="cl-edit-note" style="margin-bottom:10px;">CRM매칭: ' + crmEsc(item['CRM매칭'] || '(정보없음)') + '</div>';
   html += '<div class="cl-detail-topactions">';
-  html += '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;">✏️ 메모 수정</button>';
-  html += '<button class="btn-soft cl-btn--toggle-transcript" style="height:30px;padding:0 10px;font-size:12px;">📄 전사 보기</button>';
+  html += '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 메모 수정</button>';
+  html += '<button class="btn-soft cl-btn--toggle-transcript" style="height:30px;padding:0 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg> 전사 보기</button>';
   // 반영완료 여부와 무관하게 언제든 코드를 다시 고칠 수 있게 — needsReclassify가 아니어도(이미 매칭/재분류된 건도) 버튼은 항상 노출
-  html += '<button class="btn-soft cl-btn--toggle-reclassify" style="height:30px;padding:0 10px;font-size:12px;">🔧 ' + (needsReclassify ? '재분류' : '코드 수정') + '</button>';
+  html += '<button class="btn-soft cl-btn--toggle-reclassify" style="height:30px;padding:0 10px;font-size:12px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94Z"/></svg> ' + (needsReclassify ? '재분류' : '코드 수정') + '</button>';
   html += '</div>';
   html += '<div class="cl-transcript-box" style="display:none">' + crmEsc(transcript || '(전사내용 없음)') + '</div>';
   html += '<div class="cl-transcript-edit-slot" style="display:none"></div>';
 
   if (item['녹음링크'] && /^https?:\/\//.test(item['녹음링크'])) {
-    html += '<div class="cl-recording-row"><a class="cl-recording-link" href="' + crmEscAttr(item['녹음링크']) + '" target="_blank">🔊 녹음 파일 열기</a></div>';
+    html += '<div class="cl-recording-row"><a class="cl-recording-link" href="' + crmEscAttr(item['녹음링크']) + '" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>녹음 파일 열기</a></div>';
   }
 
   html += '<div class="cl-detail-actions">';
@@ -1641,7 +1670,8 @@ function wireDetailActions_(detailEl, cardEl, item) {
     const box = detailEl.querySelector('.cl-transcript-box');
     const shown = box.style.display !== 'none';
     box.style.display = shown ? 'none' : '';
-    toggleBtn.textContent = shown ? '📄 전사 보기' : '📄 전사 숨기기';
+    const fileIconSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+    toggleBtn.innerHTML = fileIconSvg + (shown ? ' 전사 보기' : ' 전사 숨기기');
     if (!shown) attachTranscriptEditButton_(detailEl, item);
     else detailEl.querySelector('.cl-transcript-edit-slot').innerHTML = '';
   });
@@ -1752,7 +1782,7 @@ function attachTranscriptEditButton_(detailEl, item) {
     return;
   }
 
-  slot.innerHTML = '<button class="btn-soft cl-btn--edit-transcript" style="height:28px;padding:0 10px;font-size:11.5px;">✏️ 전사 수정</button>';
+  slot.innerHTML = '<button class="btn-soft cl-btn--edit-transcript" style="height:28px;padding:0 10px;font-size:11.5px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> 전사 수정</button>';
   slot.querySelector('.cl-btn--edit-transcript').addEventListener('click', () => {
     const box = detailEl.querySelector('.cl-transcript-box');
     const original = item['전사내용'] || '';
