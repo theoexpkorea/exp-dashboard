@@ -1167,3 +1167,447 @@ $('todayBtn').addEventListener('click', () => {
   }
   crmHandleMaemulDeepLink();
 })();
+
+
+/* ============================================================
+   통화기록 UI - customer-management.js 맨 아래에 이어붙이는 모듈 (최종 정리본)
+   2026-09-05
+
+   전제: customer-management.js 로드 이후 실행되며 같은 전역 스코프를 공유하므로
+   CRM_DATA_URL / crmJsonpRetry / crmToast / crmEsc / crmEscAttr / crmRenderStats / $
+   등 기존 함수·상수를 그대로 재사용함 (재정의 없음).
+
+   ===== 기능 =====
+   - 조회: 툴바 "통화기록" 버튼 → 캘린더 자리에 카드리스트 표시
+   - 필터: 기존 필터칩(전체/매도임대/가망고객/계약고객) 재사용 + "미반영만" 칩 추가
+   - KPI: 기존 4개 카드 자리에 통화 관련 숫자로 바꿔치기 (모드 해제 시 원복)
+   - 카드 펼치면: 메모(수정 가능) · 녹음재생 링크 · 전사보기(짧으면 수정도 가능) ·
+     반영완료 버튼 · (미매칭/복수매칭 건만) 재분류 버튼
+
+   ===== style.css에 추가해야 하는 것 =====
+   .cl-tags-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+   .cl-cat-badge { font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:6px; flex-shrink:0; }
+   .cl-cat-badge[data-cat="매도임대"] { background:#DCEBFD; color:#1D5FBF; }
+   .cl-cat-badge[data-cat="가망고객"] { background:#DCF3E9; color:#12805E; }
+   .cl-cat-badge[data-cat="계약고객"] { background:#EBE3FB; color:#6A3FB0; }
+   .cl-transcript-box { white-space:pre-wrap; font-size:12px; background:var(--bg); border-radius:var(--radius-sm); padding:10px; max-height:220px; overflow-y:auto; margin:8px 0; }
+   .cl-recording-link { display:inline-block; margin:2px 0 8px; color:var(--accent); text-decoration:none; font-size:13px; font-weight:600; }
+   .cl-detail-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+   .cl-reclassify { margin-top:10px; padding:10px; background:#FBF1E2; border-radius:var(--radius-sm); }
+   .cl-reclassify-label { font-size:11.5px; margin-bottom:6px; color:#9A5B14; }
+   .cl-reclassify select, .cl-reclassify input, .cl-edit-textarea { margin-right:6px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); font-family:inherit; font-size:12.5px; }
+   .cl-edit-textarea { width:100%; min-height:64px; resize:vertical; margin:6px 0; }
+   .cl-edit-note { font-size:11px; color:var(--text-muted); margin-top:4px; }
+   .cl-chip--unresolved { margin-left:auto; }
+   .farm-tool-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+   ============================================================ */
+
+const CALL_LOG_CATEGORIES = ['SALE', 'LEAD', 'CONTRACT'];
+const CALL_LOG_CAT_TO_SHEET_CAT = { SALE: '매도임대', LEAD: '가망고객', CONTRACT: '계약고객' };
+const CALL_LOG_SHEET_CAT_TO_CAT = { '매도임대': 'SALE', '가망고객': 'LEAD', '계약고객': 'CONTRACT' };
+const CALL_LOG_TRANSCRIPT_EDIT_MAX = 800; // 이보다 길면 대시보드에서 수정 불가 (URL 길이 제한 때문에 시트에서 직접 수정 유도)
+
+let callLogMode = false;
+let callLogRawList = [];
+let callLogFilterScope = 'all';
+let callLogOnlyUnresolved = false;
+
+/* ============================================================
+   진입점: 툴바 버튼 + 컨테이너 삽입
+   ============================================================ */
+(function initCallLogUi() {
+  const toolbar = document.querySelector('.farm-toolbar');
+  const monthNav = document.querySelector('.farm-month-nav');
+  if (!toolbar || !monthNav) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'farm-tool-btn';
+  btn.id = 'callLogBtn';
+  btn.innerHTML =
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.7a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2Z"/></svg>' +
+    '통화기록';
+  toolbar.insertBefore(btn, monthNav);
+
+  const container = document.createElement('div');
+  container.id = 'callLogContainer';
+  container.style.display = 'none';
+  const calCard = document.querySelector('.farm-cal-card');
+  calCard.parentNode.insertBefore(container, calCard);
+
+  btn.addEventListener('click', () => {
+    callLogMode = !callLogMode;
+    toggleCallLogMode_(callLogMode);
+  });
+})();
+
+function toggleCallLogMode_(on) {
+  const calCard = document.querySelector('.farm-cal-card');
+  const legend = document.querySelector('.farm-legend');
+  const note = document.querySelector('.farm-note');
+  const monthNav = document.querySelector('.farm-month-nav');
+  const container = $('callLogContainer');
+  const callBtn = $('callLogBtn');
+
+  [calCard, legend, note, monthNav].forEach(el => { if (el) el.style.display = on ? 'none' : ''; });
+  container.style.display = on ? '' : 'none';
+  if (callBtn) callBtn.classList.toggle('active', on);
+
+  ensureUnresolvedChip_(on);
+
+  if (on) {
+    fetchCallLogList_();
+  } else {
+    const todayLabel = document.querySelector('#statTodayCard .stat-label');
+    if (todayLabel) todayLabel.textContent = '오늘 처리';
+    crmRenderStats();
+  }
+}
+
+function ensureUnresolvedChip_(show) {
+  const tabs = $('scopeTabs');
+  let chip = document.getElementById('callLogUnresolvedChip');
+  if (show) {
+    if (!chip) {
+      chip = document.createElement('button');
+      chip.id = 'callLogUnresolvedChip';
+      chip.className = 'rec-filter-chip cl-chip--unresolved';
+      chip.textContent = '미반영만';
+      chip.addEventListener('click', () => {
+        callLogOnlyUnresolved = !callLogOnlyUnresolved;
+        chip.classList.toggle('active', callLogOnlyUnresolved);
+        renderCallLogList_();
+      });
+      tabs.appendChild(chip);
+    }
+    chip.style.display = '';
+  } else if (chip) {
+    chip.style.display = 'none';
+  }
+}
+
+/* 기존 필터칩/KPI카드 클릭을 통화기록 모드일 때만 가로챔 (capture 단계 — 기존 핸들러보다 먼저 실행) */
+document.addEventListener('DOMContentLoaded', () => {
+  const scopeTabs = $('scopeTabs');
+  if (scopeTabs) {
+    scopeTabs.addEventListener('click', (e) => {
+      if (!callLogMode) return;
+      const btn = e.target.closest('[data-scope]');
+      if (!btn) return;
+      e.stopPropagation();
+      callLogFilterScope = btn.dataset.scope;
+      document.querySelectorAll('#scopeTabs .rec-filter-chip[data-scope]').forEach(b => b.classList.toggle('active', b === btn));
+      renderCallLogList_();
+    }, true);
+  }
+
+  const statGrid = $('statGrid');
+  if (statGrid) {
+    statGrid.addEventListener('click', (e) => {
+      if (!callLogMode) return;
+      e.stopPropagation();
+    }, true);
+  }
+});
+
+/* ============================================================
+   데이터 조회
+   ============================================================ */
+function fetchCallLogList_() {
+  const container = $('callLogContainer');
+  container.innerHTML = '<div class="farm-cal-loading" style="position:static;display:flex;padding:30px 0;">불러오는 중...</div>';
+
+  crmJsonpRetry(CRM_DATA_URL + '?mode=callList', 20000)
+    .then(data => {
+      callLogRawList = Array.isArray(data) ? data : [];
+      renderCallLogList_();
+    })
+    .catch(() => {
+      container.innerHTML = '<div class="farm-dp-empty">통화기록을 불러오지 못했습니다. 새로고침 해주세요.</div>';
+    });
+}
+
+function parseCallMatchStatus_(text) {
+  const t = String(text || '');
+  if (t.indexOf('복수매칭') !== -1) return { type: 'ambiguous', label: '복수매칭', tagClass: 'hold' };
+  if (t.indexOf('수동재분류') === 0) return { type: 'reclassified', label: '수동재분류', tagClass: 'plan' };
+  if (t.indexOf('신규') === 0) return { type: 'unmatched', label: '신규(미매칭)', tagClass: 'cancel' };
+  if (t.indexOf('기존고객') !== -1 || t.indexOf('이름매칭') !== -1) return { type: 'matched', label: '기존고객', tagClass: 'done' };
+  return { type: 'unknown', label: t || '(정보없음)', tagClass: 'cancel' };
+}
+
+/* ============================================================
+   목록 렌더링
+   ============================================================ */
+function renderCallLogList_() {
+  const container = $('callLogContainer');
+  container.innerHTML = '';
+
+  const filtered = callLogRawList.filter(item => {
+    if (callLogFilterScope !== 'all' && item.category !== CALL_LOG_CAT_TO_SHEET_CAT[callLogFilterScope]) return false;
+    if (callLogOnlyUnresolved && item['반영여부']) return false;
+    return true;
+  });
+
+  updateCallLogKpi_();
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="farm-dp-empty">해당하는 통화기록이 없습니다.</div>';
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.style.display = 'flex';
+  list.style.flexDirection = 'column';
+  list.style.gap = '8px';
+  filtered.forEach(item => list.appendChild(buildCallCard_(item)));
+  container.appendChild(list);
+}
+
+function buildCallCard_(item) {
+  const status = parseCallMatchStatus_(item['CRM매칭']);
+  const card = document.createElement('div');
+  card.className = 'farm-dp-item';
+
+  card.innerHTML =
+    '<div class="cl-tags-row">' +
+    '  <span class="cl-cat-badge" data-cat="' + crmEscAttr(item.category) + '">' + crmEsc(item.category) + '</span>' +
+    '  <span class="farm-dp-tag ' + status.tagClass + '">' + crmEsc(status.label) + '</span>' +
+    (item['반영여부']
+      ? '  <span class="farm-dp-tag done">반영완료</span>'
+      : '  <span class="farm-dp-tag hold">반영대기</span>') +
+    '</div>' +
+    '<div class="farm-dp-addr">' + crmEsc(item['성명'] || '(이름없음)') + '</div>' +
+    '<div class="farm-dp-sub2">' + crmEsc(item['전화번호'] || '') + ' · ' + formatCallDatetime_(item['통화일시']) + '</div>' +
+    '<div class="farm-dp-memo cl-memo-display">' + crmEsc(item['메모'] || '(메모 없음)') + '</div>' +
+    '<div class="cl-card-detail" style="display:none"></div>';
+
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.cl-detail-actions, .cl-reclassify, .cl-btn--toggle-transcript, .cl-btn--edit-memo, .cl-btn--edit-transcript')) return;
+    toggleCardDetail_(card, item);
+  });
+
+  return card;
+}
+
+function formatCallDatetime_(raw) {
+  if (!raw) return '';
+  try {
+    const d = new Date(raw);
+    return d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate() + ' ' +
+      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  } catch (e) { return String(raw); }
+}
+
+/* ============================================================
+   상세 패널
+   ============================================================ */
+function toggleCardDetail_(cardEl, item) {
+  const detailEl = cardEl.querySelector('.cl-card-detail');
+  const isOpen = detailEl.style.display !== 'none';
+  if (isOpen) { detailEl.style.display = 'none'; return; }
+  detailEl.style.display = '';
+  detailEl.innerHTML = buildDetailHtml_(item);
+  wireDetailActions_(detailEl, cardEl, item);
+}
+
+function buildDetailHtml_(item) {
+  const status = parseCallMatchStatus_(item['CRM매칭']);
+  const needsReclassify = (status.type === 'unmatched' || status.type === 'ambiguous');
+  const currentCat = CALL_LOG_SHEET_CAT_TO_CAT[item.category] || '';
+  const transcript = item['전사내용'] || '';
+  const transcriptEditable = transcript.length > 0 && transcript.length <= CALL_LOG_TRANSCRIPT_EDIT_MAX;
+
+  let html = '<button class="btn-soft cl-btn--edit-memo" style="height:30px;padding:0 10px;font-size:12px;">✏️ 메모 수정</button> ';
+  html += '<button class="btn-soft cl-btn--toggle-transcript" style="height:30px;padding:0 10px;font-size:12px;">📄 전사 보기</button>';
+  html += '<div class="cl-transcript-box" style="display:none">' + crmEsc(transcript || '(전사내용 없음)') + '</div>';
+  html += '<div class="cl-transcript-edit-slot" style="display:none"></div>';
+
+  if (item['녹음링크'] && /^https?:\/\//.test(item['녹음링크'])) {
+    html += '<br><a class="cl-recording-link" href="' + crmEscAttr(item['녹음링크']) + '" target="_blank">🔊 녹음 파일 열기</a>';
+  }
+
+  html += '<div class="cl-detail-actions">';
+  if (!item['반영여부']) {
+    html += '<button class="btn-soft cl-btn--done" style="height:32px;padding:0 12px;font-size:12.5px;">반영완료 처리</button>';
+  }
+  html += '</div>';
+
+  if (needsReclassify) {
+    html +=
+      '<div class="cl-reclassify">' +
+      '  <div class="cl-reclassify-label">CRM매칭: ' + crmEsc(item['CRM매칭'] || '') + '</div>' +
+      '  <select class="cl-reclassify-select">' +
+      CALL_LOG_CATEGORIES.map(cat =>
+        '<option value="' + cat + '"' + (cat === currentCat ? ' disabled' : '') + '>' + CALL_LOG_CAT_TO_SHEET_CAT[cat] + '</option>'
+      ).join('') +
+      '  </select>' +
+      '  <input class="cl-reclassify-code" type="text" placeholder="CRM코드(선택, 예: A0011)" />' +
+      '  <button class="btn-soft cl-btn--reclassify" style="height:32px;padding:0 12px;font-size:12.5px;">재분류 확정</button>' +
+      '</div>';
+  }
+
+  html += '<input type="hidden" class="cl-transcript-editable-flag" value="' + (transcriptEditable ? '1' : '0') + '" />';
+
+  return html;
+}
+
+function wireDetailActions_(detailEl, cardEl, item) {
+  /* --- 전사 보기/숨기기 --- */
+  const toggleBtn = detailEl.querySelector('.cl-btn--toggle-transcript');
+  toggleBtn.addEventListener('click', () => {
+    const box = detailEl.querySelector('.cl-transcript-box');
+    const shown = box.style.display !== 'none';
+    box.style.display = shown ? 'none' : '';
+    toggleBtn.textContent = shown ? '📄 전사 보기' : '📄 전사 숨기기';
+    if (!shown) attachTranscriptEditButton_(detailEl, item);
+    else detailEl.querySelector('.cl-transcript-edit-slot').innerHTML = '';
+  });
+
+  /* --- 메모 수정 --- */
+  const editMemoBtn = detailEl.querySelector('.cl-btn--edit-memo');
+  editMemoBtn.addEventListener('click', () => {
+    const memoDisplay = cardEl.querySelector('.cl-memo-display');
+    if (memoDisplay.querySelector('textarea')) return; // 이미 편집 중
+    const original = item['메모'] || '';
+    memoDisplay.innerHTML =
+      '<textarea class="cl-edit-textarea">' + crmEsc(original) + '</textarea>' +
+      '<div><button class="btn-soft cl-btn--save-memo" style="height:28px;padding:0 10px;font-size:11.5px;">저장</button> ' +
+      '<button class="btn-soft cl-btn--cancel-memo" style="height:28px;padding:0 10px;font-size:11.5px;">취소</button></div>';
+
+    memoDisplay.querySelector('.cl-btn--cancel-memo').addEventListener('click', () => {
+      memoDisplay.textContent = original || '(메모 없음)';
+    });
+    memoDisplay.querySelector('.cl-btn--save-memo').addEventListener('click', async () => {
+      const newMemo = memoDisplay.querySelector('textarea').value;
+      const saveBtn = memoDisplay.querySelector('.cl-btn--save-memo');
+      saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+      try {
+        const qs = 'sheetName=' + encodeURIComponent(item.sheetName) + '&rowIndex=' + encodeURIComponent(item.rowIndex) + '&memo=' + encodeURIComponent(newMemo);
+        const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callUpdateMemo&' + qs, 20000);
+        if (res && res.ok) {
+          item['메모'] = newMemo;
+          memoDisplay.textContent = newMemo || '(메모 없음)';
+          crmToast('메모를 수정했어요.');
+        } else {
+          crmToast('저장에 실패했어요. 다시 시도해 주세요.');
+        }
+      } catch (e) {
+        crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+      }
+    });
+  });
+
+  /* --- 반영완료 --- */
+  const doneBtn = detailEl.querySelector('.cl-btn--done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', async () => {
+      doneBtn.disabled = true; doneBtn.textContent = '처리 중...';
+      try {
+        const qs = 'sheetName=' + encodeURIComponent(item.sheetName) + '&rowIndex=' + encodeURIComponent(item.rowIndex);
+        const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callMarkDone&' + qs, 20000);
+        if (res && res.ok) { crmToast('반영완료 처리했어요.'); fetchCallLogList_(); }
+        else { crmToast('처리에 실패했어요. 다시 시도해 주세요.'); doneBtn.disabled = false; doneBtn.textContent = '반영완료 처리'; }
+      } catch (e) {
+        crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+        doneBtn.disabled = false; doneBtn.textContent = '반영완료 처리';
+      }
+    });
+  }
+
+  /* --- 재분류 --- */
+  const reclassifyBtn = detailEl.querySelector('.cl-btn--reclassify');
+  if (reclassifyBtn) {
+    reclassifyBtn.addEventListener('click', async () => {
+      const select = detailEl.querySelector('.cl-reclassify-select');
+      const codeInput = detailEl.querySelector('.cl-reclassify-code');
+      const targetCategory = CALL_LOG_CAT_TO_SHEET_CAT[select.value];
+      const crmCode = codeInput.value.trim();
+
+      if (!confirm(item.category + ' → ' + targetCategory + '(으)로 재분류할까요?\n녹음파일도 함께 이동됩니다.')) return;
+
+      reclassifyBtn.disabled = true; reclassifyBtn.textContent = '처리 중...';
+      try {
+        const qs = [
+          'sheetName=' + encodeURIComponent(item.sheetName),
+          'rowIndex=' + encodeURIComponent(item.rowIndex),
+          'targetCategory=' + encodeURIComponent(targetCategory),
+          'crmCode=' + encodeURIComponent(crmCode),
+          'recordingLink=' + encodeURIComponent(item['녹음링크'] || '')
+        ].join('&');
+        const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callReclassify&' + qs, 20000);
+        if (res && res.ok) { crmToast('재분류 완료했어요.'); fetchCallLogList_(); }
+        else { crmToast('재분류에 실패했어요. 다시 시도해 주세요.'); reclassifyBtn.disabled = false; reclassifyBtn.textContent = '재분류 확정'; }
+      } catch (e) {
+        crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+        reclassifyBtn.disabled = false; reclassifyBtn.textContent = '재분류 확정';
+      }
+    });
+  }
+}
+
+/* 전사 보기를 켰을 때, 짧으면 "수정" 버튼을 붙여줌 (800자 초과면 안내 문구만) */
+function attachTranscriptEditButton_(detailEl, item) {
+  const slot = detailEl.querySelector('.cl-transcript-edit-slot');
+  const editable = detailEl.querySelector('.cl-transcript-editable-flag').value === '1';
+  slot.style.display = '';
+
+  if (!editable) {
+    slot.innerHTML = '<div class="cl-edit-note">전사 내용이 길어서 대시보드에서는 수정할 수 없어요. 구글시트에서 직접 고쳐주세요.</div>';
+    return;
+  }
+
+  slot.innerHTML = '<button class="btn-soft cl-btn--edit-transcript" style="height:28px;padding:0 10px;font-size:11.5px;">✏️ 전사 수정</button>';
+  slot.querySelector('.cl-btn--edit-transcript').addEventListener('click', () => {
+    const box = detailEl.querySelector('.cl-transcript-box');
+    const original = item['전사내용'] || '';
+    box.innerHTML =
+      '<textarea class="cl-edit-textarea" style="min-height:120px;">' + crmEsc(original) + '</textarea>' +
+      '<div><button class="btn-soft cl-btn--save-transcript" style="height:28px;padding:0 10px;font-size:11.5px;">저장</button> ' +
+      '<button class="btn-soft cl-btn--cancel-transcript" style="height:28px;padding:0 10px;font-size:11.5px;">취소</button></div>';
+
+    box.querySelector('.cl-btn--cancel-transcript').addEventListener('click', () => {
+      box.textContent = original || '(전사내용 없음)';
+    });
+    box.querySelector('.cl-btn--save-transcript').addEventListener('click', async () => {
+      const newTranscript = box.querySelector('textarea').value;
+      if (newTranscript.length > CALL_LOG_TRANSCRIPT_EDIT_MAX) {
+        crmToast('너무 길어졌어요 (' + CALL_LOG_TRANSCRIPT_EDIT_MAX + '자 이내로 줄여주세요). 시트에서 직접 수정해 주세요.');
+        return;
+      }
+      const saveBtn = box.querySelector('.cl-btn--save-transcript');
+      saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+      try {
+        const qs = 'sheetName=' + encodeURIComponent(item.sheetName) + '&rowIndex=' + encodeURIComponent(item.rowIndex) + '&transcript=' + encodeURIComponent(newTranscript);
+        const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callUpdateTranscript&' + qs, 20000);
+        if (res && res.ok) {
+          item['전사내용'] = newTranscript;
+          box.textContent = newTranscript || '(전사내용 없음)';
+          crmToast('전사를 수정했어요.');
+        } else {
+          crmToast('저장에 실패했어요. 다시 시도해 주세요.');
+        }
+      } catch (e) {
+        crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+      }
+    });
+  });
+}
+
+/* ============================================================
+   KPI 카드 (기존 4개 슬롯 재활용, 모드 해제 시 crmRenderStats()가 원복)
+   ============================================================ */
+function updateCallLogKpi_() {
+  const unresolved = callLogRawList.filter(it => !it['반영여부']).length;
+  const saleCount = callLogRawList.filter(it => it.category === '매도임대').length;
+  const leadCount = callLogRawList.filter(it => it.category === '가망고객').length;
+  const contractCount = callLogRawList.filter(it => it.category === '계약고객').length;
+
+  const statToday = $('statToday'), statSale = $('statSale'), statLead = $('statLead'), statContract = $('statContract');
+  if (statToday) statToday.textContent = unresolved + '건';
+  if (statSale) statSale.textContent = saleCount + '건';
+  if (statLead) statLead.textContent = leadCount + '건';
+  if (statContract) statContract.textContent = contractCount + '건';
+
+  const todayLabel = document.querySelector('#statTodayCard .stat-label');
+  if (todayLabel) todayLabel.textContent = '통화 미반영';
+}
