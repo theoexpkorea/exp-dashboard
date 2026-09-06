@@ -1667,7 +1667,10 @@ function buildDetailHtml_(item) {
   } else {
     html += '<span class="cl-edit-note">이미 반영완료 처리된 건이에요. 위 "코드 수정"으로 코드는 여전히 바꿀 수 있어요.</span>';
   }
+  html += '<span style="flex:1"></span>'; // 삭제 버튼을 오른쪽 끝으로 밀어서 시각적으로 분리
+  html += '<button class="btn-soft cl-btn--delete" style="height:32px;padding:0 12px;font-size:12.5px;color:#B3261E;">🗑 삭제</button>';
   html += '</div>';
+  html += '<div class="cl-delete-confirm" style="display:none;margin-top:8px;padding:8px 10px;background:#FBEAE8;border-radius:var(--radius-sm);font-size:12px;color:#B3261E;"></div>';
 
   html +=
     '<div class="cl-reclassify"' + (needsReclassify ? '' : ' style="display:none"') + '>' +
@@ -1860,6 +1863,48 @@ function attachTranscriptEditButton_(detailEl, item) {
       }
     });
   });
+
+  /* --- 행 삭제 (녹음파일은 Drive 휴지통으로 이동 — 30일 내 복구 가능) --- */
+  const deleteBtn = detailEl.querySelector('.cl-btn--delete');
+  const confirmBox = detailEl.querySelector('.cl-delete-confirm');
+  if (deleteBtn && confirmBox) {
+    deleteBtn.addEventListener('click', () => {
+      confirmBox.style.display = '';
+      confirmBox.innerHTML =
+        '정말 삭제할까요? 녹음파일은 Drive 휴지통으로 이동합니다(30일 내 복구 가능). ' +
+        '<button class="btn-soft cl-btn--delete-confirm" style="height:26px;padding:0 8px;font-size:11.5px;margin-left:6px;">예, 삭제</button> ' +
+        '<button class="btn-soft cl-btn--delete-cancel" style="height:26px;padding:0 8px;font-size:11.5px;">취소</button>';
+
+      confirmBox.querySelector('.cl-btn--delete-cancel').addEventListener('click', () => {
+        confirmBox.style.display = 'none';
+      });
+
+      confirmBox.querySelector('.cl-btn--delete-confirm').addEventListener('click', async (e) => {
+        const btn = e.target;
+        btn.disabled = true;
+        btn.textContent = '삭제 중...';
+        try {
+          const qs = 'sheetName=' + encodeURIComponent(item.sheetName) +
+                     '&rowIndex=' + encodeURIComponent(item.rowIndex) +
+                     '&recordingLink=' + encodeURIComponent(item['녹음링크'] || '');
+          const res = await crmJsonpRetry(CRM_DATA_URL + '?mode=callDelete&' + qs, 20000);
+          if (res && res.ok) {
+            cardEl.remove(); // 재조회 없이 화면에서 즉시 제거
+            const idx = callLogRawList.indexOf(item);
+            if (idx > -1) callLogRawList.splice(idx, 1);
+            updateCallLogKpi_();
+            crmToast('삭제했어요.');
+          } else {
+            crmToast('삭제에 실패했어요. 다시 시도해 주세요.');
+            confirmBox.style.display = 'none';
+          }
+        } catch (err) {
+          crmToast('연결이 원활하지 않아요. 다시 시도해 주세요.');
+          confirmBox.style.display = 'none';
+        }
+      });
+    });
+  }
 }
 
 /* ============================================================
