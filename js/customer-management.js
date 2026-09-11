@@ -390,31 +390,47 @@ let crmPanelMode = 'date'; // 'date' | 'today' | 'cat:SALE'|'cat:LEAD'|'cat:CONT
 let crmPanelMaemulFilter = ''; // cat 패널이 특정 매물번호로 필터링된 상태인지 (딥링크 진입 시)
 let crmCatSortKey = 'dday'; // cat 패널 정렬 기준: 'dday'(다음연락일순, 기본) | 'id'(매물번호순·고객코드순, 카테고리별 라벨만 다름)
 let crmCatSortCat = '';     // 정렬 상태가 어느 카테고리에 대한 것인지 (카테고리 전환 시 기본값으로 리셋하기 위함)
+let crmDateSortKey = 'dday'; // 날짜별(해당일) 패널 정렬 기준: 'dday'(기본, 원래 순서 유지) | 'id'(코드순) — cat 패널과 별개로 관리
 
-function crmSortCatList(list, cat) {
+function crmSortByKey(list, key) {
   const sorted = list.slice();
-  if (crmCatSortKey === 'id') {
+  if (key === 'id') {
     sorted.sort((a, b) => (a.id || '').localeCompare(b.id || '', 'ko', { numeric: true, sensitivity: 'base' }));
   } else {
     sorted.sort((a, b) => { const x = crmDisplayDDay(a), y = crmDisplayDDay(b); return (x === null ? 9999 : x) - (y === null ? 9999 : y); });
   }
   return sorted;
 }
+function crmSortCatList(list, cat) {
+  return crmSortByKey(list, crmCatSortKey);
+}
 
 function crmOpenDayPanel(key, y, m, d, events) {
   crmPanelMode = 'date';
   crmPanelKey = key;
   crmPanelYmd = [y, m, d];
-  const sortRow0 = $('dpSortRow'); if (sortRow0) sortRow0.style.display = 'none';
+  const list = crmSortByKey(events, crmDateSortKey);
   const wd = crmWeekdayNames[new Date(y, m, d).getDay()];
   $('dpTitle').textContent = y + '년 ' + (m + 1) + '월 ' + d + '일 (' + wd + ')';
-  $('dpSub').textContent = events.length ? events.length + '건의 다음연락 예정' : '기록 없음';
+  $('dpSub').textContent = list.length ? list.length + '건의 다음연락 예정' : '기록 없음';
+
+  // KPI 카드(카테고리) 패널과 동일한 정렬 드롭다운 노출 — 이 날짜에 속한 고객끼리 코드순으로도 볼 수 있게
+  const sortRow = $('dpSortRow');
+  if (sortRow) {
+    sortRow.style.display = list.length ? '' : 'none';
+    const idOpt = sortRow.querySelector('.cust-sort-opt[data-sort="id"]');
+    if (idOpt) idOpt.textContent = '코드순'; // 매도임대/가망고객/계약고객이 섞여 있어 카테고리별 라벨 대신 공통 라벨 사용
+    const label = crmDateSortKey === 'id' ? '코드순' : '다음연락일순';
+    $('dpSortLabel').textContent = label;
+    sortRow.querySelectorAll('.cust-sort-opt').forEach(o => o.classList.toggle('sel', o.dataset.sort === crmDateSortKey));
+  }
+
   const body = $('dpBody');
   body.innerHTML = '';
-  if (events.length === 0) {
+  if (list.length === 0) {
     body.innerHTML = '<div class="farm-dp-empty">이 날짜가 다음연락일인 고객이 없습니다.</div>';
   } else {
-    events.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
+    list.forEach(ev => body.appendChild(crmBuildItemEl(ev)));
   }
   crmOverlay.classList.add('open');
   crmDayPanel.classList.add('open');
@@ -495,9 +511,15 @@ if (crmDpSortRow && crmDpSortBtn) {
     const opt = e.target.closest('.cust-sort-opt');
     if (!opt) return;
     crmDpSortRow.classList.remove('open');
-    if (opt.dataset.sort === crmCatSortKey) return;
-    crmCatSortKey = opt.dataset.sort;
-    crmOpenCatPanel(crmCatSortCat, crmPanelMaemulFilter, true);
+    if (crmPanelMode === 'date') {
+      if (opt.dataset.sort === crmDateSortKey) return;
+      crmDateSortKey = opt.dataset.sort;
+      crmOpenDayPanel(crmPanelKey, ...crmPanelYmd, crmEventsByDate[crmPanelKey] || []);
+    } else {
+      if (opt.dataset.sort === crmCatSortKey) return;
+      crmCatSortKey = opt.dataset.sort;
+      crmOpenCatPanel(crmCatSortCat, crmPanelMaemulFilter, true);
+    }
   });
   document.addEventListener('click', () => crmDpSortRow.classList.remove('open'));
 }
